@@ -5,7 +5,7 @@
  * @package chamilo.calendar
  */
 
-use \ChamiloSession as Session;
+use ChamiloSession as Session;
 
 // use anonymous mode when accessing this course tool
 $use_anonymous = true;
@@ -194,6 +194,11 @@ if (!empty($userId)) {
 } else {
     $agenda_ajax_url = api_get_path(WEB_AJAX_PATH).'agenda.ajax.php?type='.$type;
 }
+
+if (isset($_GET['session_id'])) {
+    $agenda_ajax_url .= '&session_id='.intval($_GET['session_id']);
+}
+
 $tpl->assign('web_agenda_ajax_url', $agenda_ajax_url);
 $course_code = api_get_course_id();
 
@@ -204,7 +209,9 @@ $form = new FormValidator(
     null,
     array('id' => 'add_event_form')
 );
-$form->addElement('html', '<div id="visible_to_input">');
+
+
+$form->addElement('html', '<span id="calendar_course_info"></span><div id="visible_to_input">');
 
 $sendTo = $agenda->parseAgendaFilter($userId);
 $addOnlyItemsInSendTo = true;
@@ -225,25 +232,20 @@ $form->addElement('label', get_lang('Date'), '<span id="start_date"></span><span
 $form->addElement('text', 'title', get_lang('Title'), array('id' => 'title'));
 $form->addElement('textarea', 'content', get_lang('Description'), array('id' => 'content'));
 
-$allowEventComment = api_get_configuration_value('allow_agenda_event_comment');
-
 if ($agenda->type == 'course') {
     $form->addElement('html', '<div id="add_as_announcement_div" style="display: none">');
     $form->addElement('checkbox', 'add_as_annonuncement', null, get_lang('AddAsAnnouncement'));
     $form->addElement('html', '</div>');
-    if ($allowEventComment) {
-        $form->addElement('textarea', 'comment', get_lang('Comment'), array('id' => 'comment'));
-    }
+    $form->addElement('textarea', 'comment', get_lang('Comment'), array('id' => 'comment'));
 }
 
-$tpl->assign('form_add', $form->return_form());
+$tpl->assign('form_add', $form->returnForm());
 
 // Loading Agenda template.
 $content = $tpl->fetch('default/agenda/month.tpl');
 
 $message = Session::read('message');
 $tpl->assign('message', $message);
-$tpl->assign('allow_agenda_event_comment', $allowEventComment);
 
 Session::erase('message');
 

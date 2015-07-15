@@ -549,30 +549,10 @@ function WSCreateUser($params) {
         return 0;
     }
 
-    /*$password = ($_configuration['password_encryption'] ? api_get_encrypted_password($password) : $password);
-    $sql = "INSERT INTO $table_user SET
-                lastname = '".Database::escape_string(trim($lastName))."',
-                firstname = '".Database::escape_string(trim($firstName))."',
-                username = '".Database::escape_string(trim($loginName))."',
-                status = '".Database::escape_string($status)."',
-                password = '".Database::escape_string($password)."',
-                email = '".Database::escape_string($email)."',
-                official_code    = '".Database::escape_string($official_code)."',
-                picture_uri     = '".Database::escape_string($picture_uri)."',
-                creator_id      = '".Database::escape_string($creator_id)."',
-                auth_source = '".Database::escape_string($auth_source)."',
-                phone = '".Database::escape_string($phone)."',
-                language = '".Database::escape_string($language)."',
-                registration_date = now(),
-                $expirationDateStatement
-                hr_dept_id = '".Database::escape_string($hr_dept_id)."',
-                active = '".Database::escape_string($active)."'";
-    $result = Database::query($sql);-*/
-
     if (isset($original_user_id_name) && isset($original_user_id_value)) {
         $_SESSION['ws_' . $original_user_id_name] = $original_user_id_value;
     }
-    
+
     /** @var User $user */
     $userId = UserManager::create_user(
         $firstName,
@@ -2666,7 +2646,8 @@ function WSCreateCourse($params)
             CourseManager::create_course_extra_field(
                 $original_course_id_name,
                 1,
-                $original_course_id_name
+                $original_course_id_name,
+                ''
             );
 
             // Save the external system's id into user_field_value table.
@@ -2684,7 +2665,8 @@ function WSCreateCourse($params)
                     CourseManager::create_course_extra_field(
                         $extra_field_name,
                         1,
-                        $extra_field_name
+                        $extra_field_name,
+                        ''
                     );
                     // Save the external system's id into course_field_value table.
                     CourseManager::update_course_extra_field_value(
@@ -2888,7 +2870,8 @@ function WSCreateCourseByTitle($params)
                 CourseManager::create_course_extra_field(
                     $original_course_id_name,
                     1,
-                    $original_course_id_name
+                    $original_course_id_name,
+                    ''
                 );
 
                 // Save the external system's id into user_field_value table.
@@ -2906,7 +2889,8 @@ function WSCreateCourseByTitle($params)
                         CourseManager::create_course_extra_field(
                             $extra_field_name,
                             1,
-                            $extra_field_name
+                            $extra_field_name,
+                            ''
                         );
                         // Save the external system's id into course_field_value table.
                         CourseManager::update_course_extra_field_value(
@@ -3652,8 +3636,8 @@ function WSCreateSession($params)
         $year_end = intval($session_param['year_end']);
         $month_end = intval($session_param['month_end']);
         $day_end = intval($session_param['day_end']);
-        $nb_days_acess_before = intval($session_param['nb_days_access_before']);
-        $nb_days_acess_after = intval($session_param['nb_days_access_after']);
+        $nb_days_access_before = intval($session_param['nb_days_access_before']);
+        $nb_days_access_after = intval($session_param['nb_days_access_after']);
         $id_coach = $session_param['user_id'];
         $nolimit = $session_param['nolimit'];
         $original_session_id_name = $session_param['original_session_id_name'];
@@ -3672,11 +3656,11 @@ function WSCreateSession($params)
         }
 
         if (empty($nolimit)){
-            $date_start = "$year_start-".(($month_start < 10)?"0$month_start":$month_start)."-".(($day_start < 10)?"0$day_start":$day_start);
-            $date_end = "$year_end-".(($month_end < 10)?"0$month_end":$month_end)."-".(($day_end < 10)?"0$day_end":$day_end);
+            $date_start = "$year_start-".(($month_start < 10)?"0$month_start":$month_start)."-".(($day_start < 10)?"0$day_start":$day_start) . ' 00:00:00';
+            $date_end = "$year_end-".(($month_end < 10)?"0$month_end":$month_end)."-".(($day_end < 10)?"0$day_end":$day_end) . ' 23:59:59';
         } else {
-            $date_start = "000-00-00";
-            $date_end = "000-00-00";
+            $date_start = "";
+            $date_end = "";
         }
 
         if (empty($name)) {
@@ -3697,9 +3681,31 @@ function WSCreateSession($params)
                 $results[] = 0;
                 continue;
             } else {
-                Database::query("INSERT INTO $tbl_session(name,date_start,date_end,id_coach,session_admin_id, nb_days_access_before_beginning, nb_days_access_after_end)
-                                 VALUES('".addslashes($name)."','$date_start','$date_end','$id_coach',".intval($_user['user_id']).",".$nb_days_acess_before.", ".$nb_days_acess_after.")");
-                $id_session = Database::insert_id();
+                $startDate = new DateTime($date_start);
+                $endDate = new DateTime($date_end);
+                $diffStart = new DateInterval($nb_days_access_before);
+                $diffEnd = new DateInterval($nb_days_access_after);
+                $coachStartDate = $startDate->sub($diffStart);
+                $coachEndDate = $endDate->add($diffEnd);
+
+                $id_session = SessionManager::create_session(
+                    $name,
+                    $date_start,
+                    $date_end,
+                    $date_start,
+                    $date_end,
+                    $coachStartDate->format('Y-m-d H:i:s'),
+                    $coachEndDate->format('Y-m-d H:i:s'),
+                    $id_coach,
+                    0,
+                    0,
+                    false,
+                    null,
+                    null,
+                    0,
+                    array(),
+                    $_user['user_id']
+                );
 
                 // Save new fieldlabel into course_field table.
                 $field_id = SessionManager::create_session_extra_field(
@@ -3861,8 +3867,8 @@ function WSEditSession($params)
         $year_end = intval($session_param['year_end']);
         $month_end = intval($session_param['month_end']);
         $day_end = intval($session_param['day_end']);
-        $nb_days_acess_before = intval($session_param['nb_days_access_before']);
-        $nb_days_acess_after = intval($session_param['nb_days_access_after']);
+        $nb_days_access_before = intval($session_param['nb_days_access_before']);
+        $nb_days_access_after = intval($session_param['nb_days_access_after']);
         $original_session_id_value = $session_param['original_session_id_value'];
         $original_session_id_name = $session_param['original_session_id_name'];
         $orig_session_id_value[] = $original_session_id_value;
@@ -3885,8 +3891,8 @@ function WSEditSession($params)
             $date_start="$year_start-".(($month_start < 10)?"0$month_start":$month_start)."-".(($day_start < 10)?"0$day_start":$day_start);
             $date_end="$year_end-".(($month_end < 10)?"0$month_end":$month_end)."-".(($day_end < 10)?"0$day_end":$day_end);
         } else {
-            $date_start="000-00-00";
-            $date_end="000-00-00";
+            $date_start="";
+            $date_end="";
         }
         if (empty($name)) {
             $results[] = 0; //SessionNameIsRequired
@@ -3901,16 +3907,33 @@ function WSEditSession($params)
             $results[] = 0; //StartDateShouldBeBeforeEndDate
             continue;
         } else {
-            $sql = "UPDATE $tbl_session SET " .
-                "name='".addslashes($name)."', " .
-                "date_start='".$date_start."', " .
-                "date_end='".$date_end."', " .
-                "id_coach='".        $id_coach."', " .
-                "session_admin_id='".        intval($_user['user_id'])."', " .
-                "nb_days_access_before_beginning='".        $nb_days_acess_before."', " .
-                "nb_days_access_after_end='".        $nb_days_acess_after."'" .
-                " WHERE id='".$id."'";
-            Database::query($sql);
+            $startDate = new DateTime($date_start);
+            $endDate = new DateTime($date_end);
+            $diffStart = new DateInterval($nb_days_access_before);
+            $diffEnd = new DateInterval($nb_days_access_after);
+            $coachStartDate = $startDate->sub($diffStart);
+            $coachEndDate = $endDate->add($diffEnd);
+
+            $sessionInfo = api_get_session_info($id);
+
+            SessionManager::edit_session(
+                $id,
+                $name,
+                $date_start,
+                $date_end,
+                $date_start,
+                $date_end,
+                $coachStartDate->format('Y-m-d H:i:s'),
+                $coachEndDate->format('Y-m-d H:i:s'),
+                $id_coach,
+                $sessionInfo['session_category_id'],
+                $sessionInfo['visibility'],
+                $sessionInfo['description'],
+                $sessionInfo['show_description'],
+                $sessionInfo['duration'],
+                null,
+                $_user['user_id']
+            );
 
             if (is_array($extra_list) && count($extra_list) > 0) {
                 foreach ($extra_list as $extra) {
@@ -4767,6 +4790,17 @@ function WSSuscribeUsersToSession($params)
                     $sql = "INSERT IGNORE INTO $tbl_session_rel_course_rel_user(session_id, c_id, user_id)
                             VALUES('$sessionId', '$enreg_course', '$enreg_user')";
                     $result = Database::query($sql);
+
+                    Event::addEvent(
+                        LOG_SESSION_ADD_USER_COURSE,
+                        LOG_USER_ID,
+                        $enreg_user,
+                        api_get_utc_datetime(),
+                        api_get_user_id(),
+                        $enreg_course,
+                        $sessionId
+                    );
+
                     if (Database::affected_rows($result)) {
                         $nbr_users++;
                     }
@@ -4780,7 +4814,7 @@ function WSSuscribeUsersToSession($params)
             list($nbr_users) = Database::fetch_array($rs);
             // update the session-course relation to add the users total
             $update_sql = "UPDATE $tbl_session_rel_course SET nbr_users=$nbr_users
-                           WHERE session_id='$id_session' AND c_id='$enreg_course'";
+                           WHERE session_id='$sessionId' AND c_id='$enreg_course'";
             Database::query($update_sql);
         }
 
@@ -5084,7 +5118,19 @@ function WSUnsuscribeUsersFromSession($params) {
                                 session_id = '$id_session' AND
                                 user_id = '$enreg_user' AND
                                 relation_type<>".SESSION_RELATION_TYPE_RRHH."";
+
             $result = Database::query($delete_sql);
+
+            Event::addEvent(
+                LOG_SESSION_DELETE_USER,
+                LOG_USER_ID,
+                $enreg_user,
+                api_get_utc_datetime(),
+                api_get_user_id(),
+                0,
+                $id_session
+            );
+
             $return = Database::affected_rows($result);
         }
         $nbr_users = 0;
@@ -5290,7 +5336,7 @@ function WSSuscribeCoursesToSession($params) {
             $courseId = $courseInfo['real_id'];
 
             $courseInfo = CourseManager::getCourseInfoFromOriginalId(
-                $original_course_id_value,
+                $course_code,
                 $original_course_id_name
             );
 
@@ -5350,6 +5396,16 @@ function WSSuscribeCoursesToSession($params) {
                         VALUES ('$id_session','$enreg_course')";
                 Database::query($sql);
 
+                Event::addEvent(
+                    LOG_SESSION_ADD_COURSE,
+                    LOG_COURSE_ID,
+                    $enreg_course,
+                    api_get_utc_datetime(),
+                    api_get_user_id(),
+                    $enreg_course,
+                    $id_session
+                );
+
                 // We add the current course in the existing courses array,
                 // to avoid adding another time the current course
                 $existingCourses[] = array('c_id' => $enreg_course);
@@ -5362,6 +5418,17 @@ function WSSuscribeCoursesToSession($params) {
                     $enreg_user_id = Database::escape_string($enreg_user['user_id']);
                     $sql = "INSERT IGNORE INTO $tbl_session_rel_course_rel_user (session_id, c_id, user_id)
                             VALUES ('$id_session','$enreg_course','$enreg_user_id')";
+
+                    Event::addEvent(
+                        LOG_SESSION_ADD_USER_COURSE,
+                        LOG_USER_ID,
+                        $enreg_user_id,
+                        api_get_utc_datetime(),
+                        api_get_user_id(),
+                        $enreg_course,
+                        $id_session
+                    );
+
                     $result = Database::query($sql);
                     if (Database::affected_rows($result)) {
                         $nbr_users++;
@@ -5543,6 +5610,17 @@ function WSUnsuscribeCoursesFromSession($params)
             Database::query("DELETE FROM $tbl_session_rel_course
                             WHERE c_id ='$courseId' AND session_id='$id_session'");
             $result = Database::query("DELETE FROM $tbl_session_rel_course_rel_user WHERE c_id='$courseId' AND session_id = '$id_session'");
+
+            Event::addEvent(
+                LOG_SESSION_DELETE_COURSE,
+                LOG_COURSE_ID,
+                $courseId,
+                api_get_utc_datetime(),
+                api_get_user_id(),
+                $courseId,
+                $id_session
+            );
+
             $return = Database::affected_rows($result);
         }
 
@@ -5796,10 +5874,10 @@ function WSListSessions($params) {
     $sql_params = array();
     // Dates should be provided in YYYY-MM-DD format, UTC
     if (!empty($params['date_start'])) {
-        $sql_params['s.date_start'] = array('operator' => '>=', 'value' => $params['date_start']);
+        $sql_params['s.access_start_date'] = array('operator' => '>=', 'value' => $params['date_start']);
     }
     if (!empty($params['date_end'])) {
-        $sql_params['s.date_end'] = array('operator' => '<=', 'value' => $params['date_end']);
+        $sql_params['s.access_end_date'] = array('operator' => '<=', 'value' => $params['date_end']);
     }
     $sessions_list = SessionManager::get_sessions_list($sql_params);
     $return_list = array();
@@ -5808,8 +5886,8 @@ function WSListSessions($params) {
             'id' => $session['id'],
             'title' => $session['name'],
             'url' => api_get_path(WEB_CODE_PATH).'session/index.php?session_id='.$session['id'], // something like http://my.chamilo.net/main/session/index.php?session_id=5
-            'date_start' => $session['date_start'],
-            'date_end' => $session['date_end'],
+            'date_start' => $session['access_start_date'],
+            'date_end' => $session['access_end_date'],
         );
     }
 
@@ -6113,7 +6191,8 @@ $server->register(
 function WSCertificatesList($startingDate = '', $endingDate = '')
 {
     global $_configuration;
-    if ($_configuration['add_gradebook_certificates_cron_task_enabled']) {
+    $certificatesCron = api_get_setting('add_gradebook_certificates_cron_task_enabled');
+    if ($certificatesCron === 'true') {
         require_once api_get_path(SYS_CODE_PATH).'cron/add_gradebook_certificates.php';
     }
     $result = array();
@@ -6187,7 +6266,12 @@ function WSCreateGroup($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::add($params['name'], null, null, 1);
+    $userGroup = new UserGroup();
+    $params = [
+        'name' => $params['name']
+    ];
+    return $userGroup->save($params);
+    //return GroupPortalManager::add($params['name'], null, null, 1);
 }
 
 /* Create group Web Service end */
@@ -6232,7 +6316,11 @@ function WSUpdateGroup($params)
         return return_error(WS_ERROR_SECRET_KEY);
     }
     $params['allow_member_group_to_leave'] = null;
-    return GroupPortalManager::update(
+
+    $userGroup = new UserGroup();
+    return $userGroup->update($params);
+
+    /*return GroupPortalManager::update(
         $params['id'],
         $params['name'],
         $params['description'],
@@ -6240,7 +6328,7 @@ function WSUpdateGroup($params)
         $params['visibility'],
         $params['picture_uri'],
         $params['allow_member_group_to_leave']
-    );
+    );*/
 }
 
 /* Update group Web Service end */
@@ -6278,7 +6366,11 @@ function WSDeleteGroup($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::delete($params['id']);
+    $userGroup = new UserGroup();
+
+    return $userGroup->delete($params['id']);
+
+    //return GroupPortalManager::delete($params['id']);
 }
 
 /* Delete group Web Service end */
@@ -6317,7 +6409,11 @@ function GroupBindToParent($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::set_parent_group($params['id'], $params['parent_id']);
+    $userGroup = new UserGroup();
+
+    return $userGroup->set_parent_group($params['id'], $params['parent_id']);
+
+    //return GroupPortalManager::set_parent_group($params['id'], $params['parent_id']);
 }
 
 /* Bind group Web Service end */
@@ -6355,7 +6451,8 @@ function GroupUnbindFromParent($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::set_parent_group($params['id'], 0);
+    $userGroup = new UserGroup();
+    return $userGroup->set_parent_group($params['id'], 0);
 }
 
 /* Unbind group Web Service end */
@@ -6394,7 +6491,10 @@ function WSAddUserToGroup($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::add_user_to_group($params['user_id'], $params['group_id']);
+
+    $userGroup = new UserGroup();
+
+    return $userGroup->add_user_to_group($params['user_id'], $params['group_id']);
 }
 
 /* Add user to group Web Service end */
@@ -6434,7 +6534,9 @@ function WSUpdateUserRoleInGroup($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::update_user_role(
+    $userGroup = new UserGroup();
+
+    return $userGroup->update_user_role(
         $params['user_id'],
         $params['group_id'],
         $params['relation_type']
@@ -6477,7 +6579,12 @@ function WSDeleteUserFromGroup($params)
     if (!WSHelperVerifyKey($params['secret_key'])) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-    return GroupPortalManager::delete_user_rel_group($params['user_id'], $params['group_id']);
+    $userGroup = new UserGroup();
+
+    return $userGroup->delete_user_rel_group(
+        $params['user_id'],
+        $params['group_id']
+    );
 }
 
 /* Delete user from group Web Service end */
@@ -6494,11 +6601,10 @@ if (!empty($hook)) {
 // Use the request to (try to) invoke the service
 $HTTP_RAW_POST_DATA = isset($HTTP_RAW_POST_DATA) ? $HTTP_RAW_POST_DATA : '';
 // If you send your data in utf8 then this value must be false.
-if (isset($_configuration['registration.soap.php.decode_utf8'])) {
-    if ($_configuration['registration.soap.php.decode_utf8']) {
-        $server->decode_utf8 = true;
-    } else {
-        $server->decode_utf8 = false;
-    }
+$decodeUTF8 = api_get_setting('registration.soap.php.decode_utf8');
+if ($decodeUTF8 === 'true') {
+    $server->decode_utf8 = true;
+} else {
+    $server->decode_utf8 = false;
 }
 $server->service($HTTP_RAW_POST_DATA);

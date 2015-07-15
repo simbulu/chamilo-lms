@@ -649,7 +649,7 @@ class Event
         $course_id = null,
         $sessionId = 0
     ) {
-        $TABLETRACK_DEFAULT = Database::get_main_table(TABLE_STATISTIC_TRACK_E_DEFAULT);
+        $table = Database::get_main_table(TABLE_STATISTIC_TRACK_E_DEFAULT);
 
         if (empty($event_type)) {
             return false;
@@ -706,7 +706,8 @@ class Event
             'default_value' => $event_value,
             'session_id' => $sessionId
         );
-        Database::insert($TABLETRACK_DEFAULT, $params);
+        Database::insert($table, $params);
+
         return true;
     }
 
@@ -734,6 +735,7 @@ class Event
             $et['descLangVar'] = $event_config[$et["event_type_name"]]["desc_lang_var"];
             $to_return[] = $et;
         }
+
         return $to_return;
     }
 
@@ -775,20 +777,6 @@ class Event
             return Database::store_result($result, 'ASSOC');
         }
         return false;
-    }
-
-    /**
-     * @deprecated seems not to be use.
-     * @param $user_id
-     * @param $event_type
-     * @return mixed
-     */
-    function get_latest_event_by_user_and_type($user_id, $event_type)
-    {
-        $result = self::get_events_by_user_and_type($user_id, $event_type);
-        if ($result && !empty($result)) {
-            return $result[0];
-        }
     }
 
     /**
@@ -852,32 +840,6 @@ class Event
     }
 
     /**
-     * @param $etId
-     * @param $users
-     * @param $message
-     * @param $subject
-     * @deprecated seem not to be use
-     */
-    public static function eventTypeMod($etId, $users, $message, $subject) {
-        $etId = intval($etId);
-
-        $sql = 'DELETE FROM '.Database::get_main_table(TABLE_EVENT_TYPE_REL_USER).' WHERE event_type_id = '.$etId.'	';
-        Database::query($sql);
-
-        foreach ($users as $user) {
-            $sql = 'INSERT INTO '.Database::get_main_table(TABLE_EVENT_TYPE_REL_USER).' (user_id,event_type_id)
-                VALUES('.intval($user).','.$etId.') ';
-            Database::query($sql);
-        }
-
-        $sql = 'UPDATE '.Database::get_main_table(TABLE_MAIN_EVENT_TYPE_MESSAGE).'
-                SET message = "'.Database::escape_string($message).'",
-                    subject = "'.Database::escape_string($subject).'"
-                    WHERE event_type_id = '.$etId.'';
-        Database::query($sql);
-    }
-
-    /**
      * Gets the last attempt of an exercise based in the exe_id
      * @param int $exe_id
      * @return mixed
@@ -890,6 +852,7 @@ class Event
         $rs_last_attempt = Database::query($sql_track_attempt);
         $row_last_attempt = Database::fetch_array($rs_last_attempt);
         $last_attempt_date = $row_last_attempt['last_attempt_date']; //Get the date of last attempt
+
         return $last_attempt_date;
     }
 
@@ -1423,17 +1386,22 @@ class Event
             }
         }
 
-        //Getting the best results of every student
+        // Getting the best results of every student
         $best_score_return = array();
-
         foreach ($list as $student_result) {
             $user_id = $student_result['exe_user_id'];
             $current_best_score[$user_id] = $student_result['exe_result'];
 
-            if (isset($current_best_score[$user_id]) && isset($best_score_return[$user_id]) && $current_best_score[$user_id] > $best_score_return[$user_id]['exe_result']) {
+            //echo $current_best_score[$user_id].' - '.$best_score_return[$user_id]['exe_result'].'<br />';
+            if (!isset($best_score_return[$user_id]['exe_result'])) {
+                $best_score_return[$user_id] = $student_result;
+            }
+
+            if ($current_best_score[$user_id] > $best_score_return[$user_id]['exe_result']) {
                 $best_score_return[$user_id] = $student_result;
             }
         }
+
         return $best_score_return;
     }
 
@@ -1741,7 +1709,6 @@ class Event
                             $item['answer'] = $objExercise->fill_in_blank_answer_to_string($item['answer']);
                             break;
                         case HOT_SPOT:
-                            //var_dump($item['answer']);
                             break;
                     }
 

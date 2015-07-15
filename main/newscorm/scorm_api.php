@@ -1234,7 +1234,6 @@ function update_toc(update_action, update_id, change_ids) {
         change_ids = 'yes';
     }
     var myelem = $("#toc_"+update_id);
-    var myelemimg = $("#toc_img_"+update_id);
     logit_lms('update_toc("'+update_action+'", '+update_id+')',2);
 
     if (update_id != 0) {
@@ -1242,13 +1241,11 @@ function update_toc(update_action, update_id, change_ids) {
         if (update_action == "unhighlight" || update_action == "highlight") {
             if (update_action == "unhighlight") {
                 myelem.removeClass('scorm_highlight');
-                //myelem.addClass('scorm_item_normal');
             } else {
                 if (change_ids=='yes') {
                    olms.lms_next_item = update_id;
                    olms.lms_previous_item = update_id;
                 }
-                //myelem.removeClass('scorm_item_normal');
                 myelem.addClass('scorm_highlight');
             }
         } else {
@@ -2025,8 +2022,6 @@ function attach_glossary_into_scorm(type) {
                 }
 
                 var complex_array = new Array();
-
-                //$("iframe").contents().find("body .glossary-ajax").on("click", ".glossary-ajax", function() {
                 $("iframe").contents().find("body").on("click", ".glossary-ajax", function() {
 
                 div_show_id="div_show_id";
@@ -2046,7 +2041,6 @@ function attach_glossary_into_scorm(type) {
                         var extra_left = 0;
                     }
 
-                    //$("#"+div_show_id).dialog("destroy");
                     show_dialog.dialog({
                         autoOpen: false,
                         width: 600,

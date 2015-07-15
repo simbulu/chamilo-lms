@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  * 	Exercise list: This script shows the list of exercises for administrators and students.
  * 	@package chamilo.exercise
@@ -9,7 +10,7 @@
  *  @todo fix excel export
  *
  */
-// including the global library
+
 require_once '../inc/global.inc.php';
 
 // Setting the tabs
@@ -36,7 +37,7 @@ $is_allowedToEdit = api_is_allowed_to_edit(null, true) || api_is_drh() || api_is
 $is_tutor = api_is_allowed_to_edit(true);
 
 $TBL_QUESTIONS = Database :: get_course_table(TABLE_QUIZ_QUESTION);
-$TBL_TRACK_EXERCICES = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_EXERCISES);
+$TBL_TRACK_EXERCISES = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_EXERCISES);
 $TBL_TRACK_ATTEMPT = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
 $TBL_TRACK_ATTEMPT_RECORDING = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT_RECORDING);
 $TBL_LP_ITEM_VIEW = Database :: get_course_table(TABLE_LP_ITEM_VIEW);
@@ -199,7 +200,7 @@ if (isset($_REQUEST['comments']) &&
         $tot += $row['marks'];
     }
 
-    $sql = "UPDATE $TBL_TRACK_EXERCICES SET exe_result = '".floatval($tot)."'
+    $sql = "UPDATE $TBL_TRACK_EXERCISES SET exe_result = '".floatval($tot)."'
             WHERE exe_id = ".$id;
     Database::query($sql);
 
@@ -235,7 +236,7 @@ if (isset($_REQUEST['comments']) &&
         Database::query($sql);
         if ($origin == 'tracking_course') {
             //Redirect to the course detail in lp
-            header('location: exercice.php?course='.Security :: remove_XSS($_GET['course']));
+            header('location: exercise.php?course='.Security :: remove_XSS($_GET['course']));
             exit;
         } else {
             //Redirect to the reporting
@@ -274,7 +275,7 @@ if ($is_allowedToEdit && $origin != 'learnpath') {
         );
     }
 } else {
-    $actions .= '<a href="exercice.php">'.Display :: return_icon('back.png', get_lang('GoBackToQuestionList'), '', ICON_SIZE_MEDIUM).'</a>';
+    $actions .= '<a href="exercise.php">'.Display :: return_icon('back.png', get_lang('GoBackToQuestionList'), '', ICON_SIZE_MEDIUM).'</a>';
 }
 
 //Deleting an attempt
@@ -284,7 +285,7 @@ if (($is_allowedToEdit || $is_tutor || api_is_coach()) &&
 ) {
     $exe_id = intval($_GET['did']);
     if (!empty($exe_id)) {
-        $sql = 'DELETE FROM '.$TBL_TRACK_EXERCICES.' WHERE exe_id = '.$exe_id;
+        $sql = 'DELETE FROM '.$TBL_TRACK_EXERCISES.' WHERE exe_id = '.$exe_id;
         Database::query($sql);
         $sql = 'DELETE FROM '.$TBL_TRACK_ATTEMPT.' WHERE exe_id = '.$exe_id;
         Database::query($sql);
@@ -296,13 +297,13 @@ if (($is_allowedToEdit || $is_tutor || api_is_coach()) &&
 
 if ($is_allowedToEdit || $is_tutor) {
     $nameTools = get_lang('StudentScore');
-    $interbreadcrumb[] = array("url" => "exercice.php?gradebook=$gradebook", "name" => get_lang('Exercices'));
+    $interbreadcrumb[] = array("url" => "exercise.php?gradebook=$gradebook", "name" => get_lang('Exercises'));
     $objExerciseTmp = new Exercise();
     if ($objExerciseTmp->read($exercise_id)) {
         $interbreadcrumb[] = array("url" => "admin.php?exerciseId=".$exercise_id, "name" => $objExerciseTmp->name);
     }
 } else {
-    $interbreadcrumb[] = array("url" => "exercice.php?gradebook=$gradebook", "name" => get_lang('Exercices'));
+    $interbreadcrumb[] = array("url" => "exercise.php?gradebook=$gradebook", "name" => get_lang('Exercises'));
     $objExerciseTmp = new Exercise();
     if ($objExerciseTmp->read($exercise_id)) {
         $nameTools = get_lang('Results').': '.$objExerciseTmp->name;
@@ -318,7 +319,10 @@ if (($is_allowedToEdit || $is_tutor || api_is_coach()) && isset($_GET['delete_be
     if ($check) {
         $objExerciseTmp = new Exercise();
         if ($objExerciseTmp->read($exercise_id)) {
-            $count = $objExerciseTmp->clean_results(true, $_GET['delete_before_date'].' 23:59:59');
+            $count = $objExerciseTmp->clean_results(
+                true,
+                $_GET['delete_before_date'].' 23:59:59'
+            );
             Display::display_confirmation_message(sprintf(get_lang('XResultsCleaned'), $count));
         }
     }
@@ -395,7 +399,7 @@ if (!empty($group_parameters)) {
     $group_parameters = implode(';', $group_parameters);
 }
 
-$officialCodeInList = api_get_configuration_value('show_official_code_exercise_result_list');
+$officialCodeInList = api_get_setting('show_official_code_exercise_result_list');
 
 if ($is_allowedToEdit || $is_tutor) {
 
@@ -416,7 +420,7 @@ if ($is_allowedToEdit || $is_tutor) {
         get_lang('Actions')
     );
 
-    if ($officialCodeInList == true) {
+    if ($officialCodeInList === 'true') {
         $columns = array_merge(array(get_lang('OfficialCode')), $columns);
     }
 
@@ -448,7 +452,7 @@ if ($is_allowedToEdit || $is_tutor) {
         array('name' => 'actions', 'index' => 'actions', 'width' => '60', 'align' => 'left', 'search' => 'false')
     );
 
-    if ($officialCodeInList == true) {
+    if ($officialCodeInList == 'true') {
         $officialCodeRow = array('name' => 'official_code', 'index' => 'official_code', 'width' => '50', 'align' => 'left', 'search' => 'true');
         $column_model = array_merge(array($officialCodeRow), $column_model);
     }

@@ -73,13 +73,13 @@ if ($origin == 'group') {
     $group_properties = GroupManager :: get_group_properties($_clean['toolgroup']);
     $interbreadcrumb[] = array('url' => '../group/group.php', 'name' => get_lang('Groups'));
     $interbreadcrumb[] = array('url' => '../group/group_space.php?gidReq='.$_SESSION['toolgroup'], 'name' => get_lang('GroupSpace').' '.$group_properties['name']);
-    $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&amp;gidReq='.$_SESSION['toolgroup'].'&amp;forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
+    $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&gidReq='.$_SESSION['toolgroup'].'&forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
     $interbreadcrumb[] = array('url' => 'javascript: void (0);', 'name' => get_lang('EditPost'));
 } else {
     $interbreadcrumb[] = array('url' => 'index.php?'.api_get_cidreq(), 'name' => $nameTools);
     $interbreadcrumb[] = array('url' => 'viewforumcategory.php?forumcategory='.$current_forum_category['cat_id'], 'name' => prepare4display($current_forum_category['cat_title']));
-    $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&amp;forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
-    $interbreadcrumb[] = array('url' => 'viewthread.php?'.api_get_cidreq().'&amp;origin='.$origin.'&amp;forum='.Security::remove_XSS($_GET['forum']).'&amp;thread='.Security::remove_XSS($_GET['thread']), 'name' => prepare4display($current_thread['thread_title']));
+    $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
+    $interbreadcrumb[] = array('url' => 'viewthread.php?'.api_get_cidreq().'&origin='.$origin.'&forum='.Security::remove_XSS($_GET['forum']).'&thread='.Security::remove_XSS($_GET['thread']), 'name' => prepare4display($current_thread['thread_title']));
     $interbreadcrumb[] = array('url' => 'javascript: void (0);', 'name' => get_lang('EditPost'));
 }
 
@@ -94,6 +94,22 @@ if (isset($_POST['add_resources']) AND $_POST['add_resources'] == get_lang('Reso
 $table_link = Database :: get_main_table(TABLE_MAIN_GRADEBOOK_LINK);
 
 /* Header */
+$htmlHeadXtra[] = <<<JS
+    <script>
+    $(document).on('ready', function() {
+        $('#reply-add-attachment').on('click', function(e) {
+            e.preventDefault();
+
+            var newInputFile = $('<input>', {
+                type: 'file',
+                name: 'user_upload[]'
+            });
+
+            $('[name="user_upload[]"]').parent().append(newInputFile);
+        });
+    });
+    </script>
+JS;
 
 // Are we in a lp ?
 $origin = '';
@@ -166,7 +182,7 @@ if ($origin != 'learnpath') {
     } else {
         echo '<a href="index.php?'.api_get_cidreq().'">'.Display::return_icon('back.png', get_lang('BackToForumOverview'), '', ICON_SIZE_MEDIUM).'</a>';
     }
-    echo '<a href="viewforum.php?forum='.Security::remove_XSS($_GET['forum']).'&amp;gidReq='.Security::remove_XSS($_GET['gidReq']).'&amp;origin='.$origin.'">'.Display::return_icon('forum.png', get_lang('BackToForum'), '', ICON_SIZE_MEDIUM).'</a>';
+    echo '<a href="viewforum.php?forum='.Security::remove_XSS($_GET['forum']).'&gidReq='.Security::remove_XSS($_GET['gidReq']).'&origin='.$origin.'">'.Display::return_icon('forum.png', get_lang('BackToForum'), '', ICON_SIZE_MEDIUM).'</a>';
     echo '</div>';
 }
 
@@ -174,7 +190,7 @@ if ($origin != 'learnpath') {
 
 /*New display forum div*/
 echo '<div class="forum_title">';
-echo '<h1><a href="viewforum.php?&amp;origin='.$origin.'&amp;forum='.$current_forum['forum_id'].'" '.class_visible_invisible($current_forum['visibility']).'>'.prepare4display($current_forum['forum_title']).'</a></h1>';
+echo '<h1><a href="viewforum.php?&origin='.$origin.'&forum='.$current_forum['forum_id'].'" '.class_visible_invisible($current_forum['visibility']).'>'.prepare4display($current_forum['forum_title']).'</a></h1>';
 echo '<p class="forum_description">'.prepare4display($current_forum['forum_comment']).'</p>';
 echo '</div>';
 /* End new display forum */
@@ -231,17 +247,9 @@ if (!empty($values) and isset($_POST['SubmitPost'])) {
             Database::query('UPDATE '.$table_link.' SET weight='.$weight_calification.' WHERE id='.$link_id.'');
         }
     }
-} else {
-    // Only show Forum attachment ajax form when do not pass form submit
-    $attachmentAjaxForm = getAttachmentAjaxForm(
-        $current_forum['forum_id'],
-        $current_thread['thread_id'],
-        $current_post['post_id']
-    );
-    echo $attachmentAjaxForm;
 }
 
 // Footer
-if ($origin != 'learnpath') {
+if (isset($origin) && $origin != 'learnpath') {
     Display :: display_footer();
 }

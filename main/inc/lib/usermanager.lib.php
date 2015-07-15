@@ -595,11 +595,12 @@ class UserManager
         }
 
         if (api_get_setting('allow_social_tool') == 'true') {
+            $userGroup = new UserGroup();
             //Delete user from portal groups
-            $group_list = GroupPortalManager::get_groups_by_user($user_id);
+            $group_list = $userGroup->get_groups_by_user($user_id);
             if (!empty($group_list)) {
                 foreach ($group_list as $group_id => $data) {
-                    GroupPortalManager::delete_user_rel_group($user_id, $group_id);
+                    $userGroup->delete_user_rel_group($user_id, $group_id);
                 }
             }
 
@@ -1382,6 +1383,9 @@ class UserManager
     /**
      * Get user path from user ID (returns an array).
      * The return format is a complete path to a folder ending with "/"
+     * In case the first level of subdirectory of users/ does not exist, the
+     * function will attempt to create it. Probably not the right place to do it
+     * but at least it avoids headaches in many other places.
      * @param   integer $id User ID
      * @param   string  $type Type of path to return (can be 'system', 'web', 'rel', 'last')
      * @return  string  User folder path (i.e. /var/www/chamilo/app/upload/users/1/1/)
@@ -1396,6 +1400,18 @@ class UserManager
         $userPath = "users/$id/";
         if (api_get_setting('split_users_upload_directory') === 'true') {
             $userPath = 'users/'.substr((string) $id, 0, 1).'/'.$id.'/';
+            // In exceptional cases, on some portals, the intermediate base user
+            // directory might not have been created. Make sure it is before
+            // going further.
+            $rootPath = api_get_path(SYS_UPLOAD_PATH) . 'users/' . substr((string) $id, 0, 1);
+            if (!is_dir($rootPath)) {
+                $perm = api_get_permissions_for_new_directories();
+                try {
+                    mkdir($rootPath, $perm);
+                } catch (Exception $e) {
+                    //
+                }
+            }
         }
         switch ($type) {
             case 'system': // Base: absolute system path.
@@ -1462,13 +1478,13 @@ class UserManager
                 break;
         }
 
-        $gravatarEnabled = api_get_configuration_value('gravatar_enabled');
+        $gravatarEnabled = api_get_setting('gravatar_enabled');
 
-        if ($gravatarEnabled) {
+        if ($gravatarEnabled === 'true') {
             $file = self::getGravatar(
                 $imageWebPath['email'],
                 $gravatarSize,
-                api_get_configuration_value('gravatar_type')
+                api_get_setting('gravatar_type')
             );
 
             if ($addRandomId) {
@@ -1565,7 +1581,7 @@ class UserManager
         }
 
         // Validation 2.
-        $allowed_types = array('jpg', 'jpeg', 'png', 'gif');
+        $allowed_types = api_get_supported_image_extensions();
         $file = str_replace('\\', '/', $file);
         $filename = (($pos = strrpos($file, '/')) !== false) ? substr($file, $pos + 1) : $file;
         $extension = strtolower(substr(strrchr($filename, '.'), 1));
@@ -2256,7 +2272,7 @@ class UserManager
      */
     public static function get_sessions_by_category(
         $user_id,
-        $is_time_over = false,
+        $is_time_over = true,
         $ignore_visibility_for_admins = false
     ) {
         // Database Table Definitions
@@ -2274,15 +2290,14 @@ class UserManager
         $sql = "SELECT DISTINCT
                     session.id,
                     session.name,
-                    session.date_start,
-                    session.date_end,
+                    session.access_start_date,
+                    session.access_end_date,
                     session_category_id,
                     session_category.name as session_category_name,
                     session_category.date_start session_category_date_start,
                     session_category.date_end session_category_date_end,
-                    nb_days_access_before_beginning,
-                    nb_days_access_after_end
-
+                    coach_access_start_date,
+                    coach_access_end_date
               FROM $tbl_session as session
                   LEFT JOIN $tbl_session_category session_category
                   ON (session_category_id = session_category.id)
@@ -2298,27 +2313,28 @@ class UserManager
         $categories = array();
 
         if (Database::num_rows($result) > 0) {
-            while ($row = Database::fetch_array($result)) {
+            while ($row = Database::fetch_array($result, 'ASSOC')) {
 
                 // User portal filters:
                 if ($is_time_over) {
                     // History
-                    if (isset($row['date_end']) && $row['date_end'] != '0000-00-00') {
-                        if ($row['date_end'].' 23:59:59' > $now) {
-                            continue;
-                        }
+                    if (empty($row['access_end_date']) || $row['access_end_date'] == '0000-00-00 00:00:00') {
+                        continue;
                     }
 
-                    if ($row['date_end'] == '0000-00-00') {
-                        continue;
+                    if (isset($row['access_end_date'])) {
+                        if ($row['access_end_date'] > $now) {
+                            continue;
+                        }
+
                     }
                 } else {
                     // Current user portal
                     if (api_is_allowed_to_create_course()) {
                         // Teachers can access the session depending in the access_coach date
                     } else {
-                        if (isset($row['date_end']) && $row['date_end'] != '0000-00-00') {
-                            if ($row['date_end'].' 23:59:59' <= $now) {
+                        if (isset($row['access_end_date']) && $row['access_end_date'] != '0000-00-00 00:00:00') {
+                            if ($row['access_end_date'] <= $now) {
                                 continue;
                             }
                         }
@@ -2385,10 +2401,10 @@ class UserManager
                 $categories[$row['session_category_id']]['sessions'][$row['id']] = array(
                     'session_name' => $row['name'],
                     'session_id' => $row['id'],
-                    'date_start' => $row['date_start'],
-                    'date_end' => $row['date_end'],
-                    'nb_days_access_before_beginning' => $row['nb_days_access_before_beginning'],
-                    'nb_days_access_after_end' => $row['nb_days_access_after_end'],
+                    'access_start_date' => $row['access_start_date'],
+                    'access_end_date' => $row['access_end_date'],
+                    'coach_access_start_date' => $row['coach_access_start_date'],
+                    'coach_access_end_date' => $row['coach_access_end_date'],
                     'courses' => $courseList
                 );
             }
@@ -2465,7 +2481,8 @@ class UserManager
 
         if (api_is_allowed_to_create_course()) {
             $sessionListFromCourseCoach = array();
-            $sql =" SELECT DISTINCT session_id FROM $tbl_session_course_user
+            $sql =" SELECT DISTINCT session_id
+                    FROM $tbl_session_course_user
                     WHERE user_id = $user_id AND status = 2 ";
 
             $result = Database::query($sql);
@@ -2477,14 +2494,14 @@ class UserManager
             }
             if (!empty($sessionListFromCourseCoach)) {
                 $condition = implode("','", $sessionListFromCourseCoach);
-                $coachCourseConditions = " OR ( id IN ('$condition'))";
+                $coachCourseConditions = " OR ( s.id IN ('$condition'))";
             }
         }
 
         // Get the list of sessions where the user is subscribed
         // This is divided into two different queries
         $sessions = array();
-        $sql = "SELECT DISTINCT s.id, name, date_start, date_end
+        $sql = "SELECT DISTINCT s.id, name, access_start_date, access_end_date
                 FROM $tbl_session_user, $tbl_session s
                 WHERE (
                     session_id = s.id AND
@@ -2492,7 +2509,7 @@ class UserManager
                     relation_type <> ".SESSION_RELATION_TYPE_RRHH."
                 )
                 $coachCourseConditions
-                ORDER BY date_start, date_end, name";
+                ORDER BY access_start_date, access_end_date, name";
 
         $result = Database::query($sql);
         if (Database::num_rows($result)>0) {
@@ -2501,13 +2518,14 @@ class UserManager
             }
         }
 
-        $sql = "SELECT DISTINCT id, name, date_start, date_end
-                FROM $tbl_session
+        $sql = "SELECT DISTINCT
+                id, name, access_start_date, access_end_date
+                FROM $tbl_session s
                 WHERE (
                     id_coach = $user_id
                 )
                 $coachCourseConditions
-                ORDER BY date_start, date_end, name";
+                ORDER BY access_start_date, access_end_date, name";
 
         $result = Database::query($sql);
         if (Database::num_rows($result)>0) {
@@ -2537,8 +2555,8 @@ class UserManager
                         email, course.course_language l,
                         1 sort,
                         category_code user_course_cat,
-                        date_start,
-                        date_end,
+                        access_start_date,
+                        access_end_date,
                         session.id as session_id,
                         session.name as session_name
                     FROM $tbl_session_course_user as session_course_user
@@ -2580,8 +2598,8 @@ class UserManager
                 course.course_language l,
                 1 sort,
                 category_code user_course_cat,
-                date_start,
-                date_end,
+                access_start_date,
+                access_end_date,
                 session.id as session_id,
                 session.name as session_name,
                 IF((session_course_user.user_id = 3 AND session_course_user.status=2),'2', '5')
@@ -3444,8 +3462,10 @@ class UserManager
 
         $sql = " $select
                 FROM $user_table u
-                INNER JOIN $access_url_rel_user_table url_rel_user ON (u.user_id = url_rel_user.user_id)
-                LEFT JOIN $table_user_tag_values uv ON (u.user_id AND uv.user_id AND  uv.user_id = url_rel_user.user_id)
+                INNER JOIN $access_url_rel_user_table url_rel_user
+                ON (u.user_id = url_rel_user.user_id)
+                LEFT JOIN $table_user_tag_values uv
+                ON (u.user_id AND uv.user_id AND uv.user_id = url_rel_user.user_id)
                 LEFT JOIN $table_user_tag ut ON (uv.tag_id = ut.id)
                 WHERE
                     ($where_field tag LIKE '".Database::escape_string($tag."%")."') OR
@@ -4886,7 +4906,7 @@ EOF;
      * @param string $until Optional. Until date
      * @return int The time
      */
-    public static function getExpendedTimeInCourses($userId, $courseId, $sessionId = 0, $from = '', $until = '')
+    public static function getTimeSpentInCourses($userId, $courseId, $sessionId = 0, $from = '', $until = '')
     {
         $userId = intval($userId);
         $sessionId = intval($sessionId);
@@ -4895,7 +4915,7 @@ EOF;
 
         $whereConditions = array(
             'user_id = ? ' => $userId,
-            "AND c_id = '?' " => $courseId,
+            'AND c_id = ? ' => $courseId,
             'AND session_id = ? ' => $sessionId
         );
 
@@ -5040,6 +5060,45 @@ SQL;
         }
 
         return $users;
+    }
+
+    /**
+     * @param int $optionSelected
+     * @return string
+     */
+    public static function getUserSubscriptionTab($optionSelected = 1)
+    {
+        $allowAdmin = api_get_setting('allow_user_course_subscription_by_course_admin');
+        if (($allowAdmin == 'true' && api_is_allowed_to_edit()) ||
+            api_is_platform_admin()
+        ) {
+            $userPath = api_get_path(WEB_CODE_PATH).'user/';
+
+            $headers = [
+                [
+                    'url' => $userPath.'user.php?'.api_get_cidreq(),
+                    'content' => get_lang('Users'),
+                ],
+                [
+                    'url' => $userPath.'subscribe_user.php?'.api_get_cidreq(),
+                    'content' => get_lang('Students'),
+                ],
+                [
+                    'url' => $userPath.'subscribe_user.php?type=teacher&'.api_get_cidreq(),
+                    'content' => get_lang('Teachers'),
+                ],
+                [
+                    'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
+                    'content' => get_lang('Groups'),
+                ],
+                [
+                    'url' => $userPath.'class.php?'.api_get_cidreq(),
+                    'content' => get_lang('Classes'),
+                ],
+            ];
+
+            return Display::tabsOnlyLink($headers, $optionSelected);
+        }
     }
 
 }

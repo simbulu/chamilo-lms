@@ -324,9 +324,10 @@ EOT;
      * @param string $label Text appearing on the button
      * @param string $name Element name (for form treatment purposes)
      * @param bool $createElement Whether to use the create or add method
+     * @param array $attributes Additional attributes
      * @return HTML_QuickForm_button
      */
-    public function addButtonCreate($label, $name = 'submit', $createElement = false)
+    public function addButtonCreate($label, $name = 'submit', $createElement = false, $attributes = array())
     {
         return $this->addButton(
             $name,
@@ -335,7 +336,7 @@ EOT;
             'primary',
             null,
             null,
-            array(),
+            $attributes,
             $createElement
         );
     }
@@ -406,24 +407,28 @@ EOT;
     /**
      * Returns a button with the default (grey?) color and a magnifier icon
      * @param string $label Text appearing on the button
+     * @param string $name Element name (for form treatment purposes)
+     *
      * @return HTML_QuickForm_button
      */
-    public function addButtonSearch($label = null)
+    public function addButtonSearch($label = null, $name = 'submit')
     {
         if (empty($label)) {
             $label = get_lang('Search');
         }
-        return $this->addButton('submit', $label, 'search', 'default');
+        return $this->addButton($name, $label, 'search', 'default');
     }
 
     /**
      * Returns a button with the primary color and a right-pointing arrow icon
      * @param string $label Text appearing on the button
+     * @param string $name Element name (for form treatment purposes)
+     * @param array $attributes Additional attributes
      * @return HTML_QuickForm_button
      */
-    public function addButtonNext($label)
+    public function addButtonNext($label, $name = 'submit',$attributes = array())
     {
-        return $this->addButton('submit', $label, 'arrow-right', 'primary');
+        return $this->addButton($name, $label, 'arrow-right', 'primary', null, null, $attributes);
     }
 
     /**
@@ -486,6 +491,46 @@ EOT;
             null,
             array(),
             $createElement
+        );
+    }
+
+    /**
+     * Shortcut to reset button
+     * @param string $label Text appearing on the button
+     * @param string $name Element name (for form treatment purposes)
+     * @param bool $createElement Whether to use the create or add method
+     * @return HTML_QuickForm_button
+     */
+    public function addButtonReset($label, $name = 'reset', $createElement = false)
+    {
+        $icon = 'eraser';
+        $style = 'default';
+        $size = 'default';
+        $class = null;
+        $attributes = array();
+
+        if ($createElement) {
+            return $this->createElement(
+                'reset',
+                $name,
+                $label,
+                $icon,
+                $style,
+                $size,
+                $class,
+                $attributes
+            );
+        }
+
+        return $this->addElement(
+            'reset',
+            $name,
+            $label,
+            $icon,
+            $style,
+            $size,
+            $class,
+            $attributes
         );
     }
 
@@ -968,6 +1013,25 @@ EOT;
             isset($GLOBALS['_HTML_QuickForm_default_renderer']) ?
                 $GLOBALS['_HTML_QuickForm_default_renderer'] : null;
     }
+
+    /**
+     * Adds a input of type url to the form.
+     * @param type $name The label for the form-element
+     * @param type $label The element name
+     * @param type $required Optional. Is the form-element required (default=true)
+     * @param type $attributes Optional. List of attributes for the form-element
+     */
+    public function addUrl($name, $label, $required = true, $attributes = array())
+    {
+        $this->addElement('url', $name, $label, $attributes);
+        $this->applyFilter($name, 'trim');
+        $this->addRule($name, get_lang('InsertAValidUrl'), 'url');
+
+        if ($required) {
+            $this->addRule($name, get_lang('ThisFieldIsRequired'), 'required');
+        }
+    }
+
 }
 
 /**

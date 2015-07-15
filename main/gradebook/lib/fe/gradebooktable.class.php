@@ -19,6 +19,9 @@ class GradebookTable extends SortableTable
     private $evals_links;
     public $cats;
     private $dataForGraph;
+    public $exportToPdf;
+    public $teacherView;
+    public $userId;
 
     /**
      * Constructor
@@ -28,9 +31,30 @@ class GradebookTable extends SortableTable
      * @param array $links
      * @param null $addparams
      */
-    public function __construct($currentcat, $cats = array(), $evals = array(), $links = array(), $addparams = null)
-    {
-        parent::__construct('gradebooklist', null, null, api_is_allowed_to_edit() ? 1 : 0);
+    public function __construct(
+        $currentcat,
+        $cats = array(),
+        $evals = array(),
+        $links = array(),
+        $addparams = null,
+        $exportToPdf = false,
+        $showTeacherView = null,
+        $userId = null
+    ) {
+        $this->teacherView = is_null($showTeacherView) ? api_is_allowed_to_edit(null, true) : $showTeacherView;
+        $this->userId = is_null($userId) ? api_get_user_id() : $userId;
+        $this->exportToPdf = $exportToPdf;
+
+        parent::__construct(
+            'gradebooklist',
+            null,
+            null,
+            api_is_allowed_to_edit() ? 1 : 0,
+            20,
+            'ASC',
+            'gradebook_list'
+        );
+
         $this->evals_links = array_merge($evals, $links);
         $this->currentcat = $currentcat;
         $this->cats = $cats;
@@ -41,15 +65,20 @@ class GradebookTable extends SortableTable
         }
 
         $column= 0;
-        if (api_is_allowed_to_edit(null, true)) {
-            $this->set_header($column++, '', '', 'width="25px"');
+        if ($this->teacherView) {
+            if ($this->exportToPdf == false) {
+                $this->set_header($column++, '', '', 'width="25px"');
+            }
         }
 
         $this->set_header($column++, get_lang('Type'), '', 'width="35px"');
         $this->set_header($column++, get_lang('Name'), false);
-        $this->set_header($column++, get_lang('Description'), false);
 
-        if (api_is_allowed_to_edit(null, true)) {
+        if ($this->exportToPdf == false) {
+            $this->set_header($column++, get_lang('Description'), false);
+        }
+
+        if ($this->teacherView) {
             $this->set_header(
                 $column++,
                 get_lang('Weight'),
@@ -64,7 +93,9 @@ class GradebookTable extends SortableTable
             $this->set_header($column++, get_lang('Average'), false);
 
             if (!empty($cats)) {
-                $this->set_header($column++, get_lang('Actions'), false);
+                if ($this->exportToPdf == false) {
+                    $this->set_header($column++, get_lang('Actions'), false);
+                }
             }
         }
 
@@ -72,7 +103,7 @@ class GradebookTable extends SortableTable
         $this->odd_even_rows_enabled = false;
 
         // Admins get an edit column.
-        if (api_is_allowed_to_edit(null, true)) {
+        if ($this->teacherView) {
             $this->set_header($column++, get_lang('Modify'), false, 'width="195px"');
             // Actions on multiple selected documents.
             $this->set_form_actions(array(
@@ -82,8 +113,14 @@ class GradebookTable extends SortableTable
                 )
             );
         } else {
-            if (empty($_GET['selectcat']) && !api_is_allowed_to_edit()) {
-                $this->set_header($column++, get_lang('Certificates'), false);
+            if (empty($_GET['selectcat']) && !$this->teacherView) {
+                if ($this->exportToPdf == false) {
+                    $this->set_header(
+                        $column++,
+                        get_lang('Certificates'),
+                        false
+                    );
+                }
             }
         }
     }
@@ -182,7 +219,15 @@ class GradebookTable extends SortableTable
         $sortable_data = array();
         $weight_total_links = 0;
         $main_categories = array();
-        $main_cat =  Category::load(null, null, $course_code, null, null, $session_id, false);
+        $main_cat = Category::load(
+            null,
+            null,
+            $course_code,
+            null,
+            null,
+            $session_id,
+            false
+        );
         $total_categories_weight = 0;
         $scoredisplay = ScoreDisplay :: instance();
 
@@ -192,7 +237,6 @@ class GradebookTable extends SortableTable
 
         // Categories.
         foreach ($data_array as $data) {
-
             // list of items inside the gradebook (exercises, lps, forums, etc)
             $row  = array();
             /** @var AbstractLink $item */
@@ -203,14 +247,14 @@ class GradebookTable extends SortableTable
             $invisibility_span_close = api_is_allowed_to_edit() && $item->is_visible() == '0' ? '</span>' : '';
 
             // Id
-            if (api_is_allowed_to_edit(null, true)) {
-                $row[] = $this->build_id_column($item);
+            if ($this->teacherView) {
+                if ($this->exportToPdf == false) {
+                    $row[] = $this->build_id_column($item);
+                }
             }
 
             // Type.
             $row[] = $this->build_type_column($item);
-
-            $this->dataForGraph['categories'][] = $item->get_name();
 
             // Name.
             if (get_class($item) == 'Category') {
@@ -221,11 +265,15 @@ class GradebookTable extends SortableTable
                 $main_categories[$item->get_id()]['name'] = $this->build_name_link($item);
             }
 
+            $this->dataForGraph['categories'][] = $item->get_name();
+
             $main_categories[$item->get_id()]['weight']= $item->get_weight();
             $total_categories_weight += $item->get_weight();
 
             // Description.
-            $row[] = $invisibility_span_open.$data[2].$invisibility_span_close;
+            if ($this->exportToPdf == false) {
+                $row[] = $invisibility_span_open.$data[2].$invisibility_span_close;
+            }
 
             // Weight.
             $weight = $scoredisplay->display_score(
@@ -238,7 +286,7 @@ class GradebookTable extends SortableTable
                 true
             );
 
-            if (api_is_allowed_to_edit(null, true)) {
+            if ($this->teacherView) {
                 $row[] = $invisibility_span_open .Display::tag('h4', $weight).$invisibility_span_close;
             } else {
                 $row[] = $invisibility_span_open .$weight.$invisibility_span_close;
@@ -247,7 +295,7 @@ class GradebookTable extends SortableTable
             $category_weight = $item->get_weight();
             $mainCategoryWeight = $main_cat[0]->get_weight();
 
-            if (api_is_allowed_to_edit(null, true)) {
+            if ($this->teacherView) {
                 $weight_total_links += $data[3];
             } else {
                 $cattotal = Category::load($_GET['selectcat']);
@@ -256,7 +304,7 @@ class GradebookTable extends SortableTable
             }
 
             // Edit (for admins).
-            if (api_is_allowed_to_edit(null, true)) {
+            if ($this->teacherView) {
                 $cat = new Category();
                 $show_message = $cat->show_message_resource_delete($item->get_course_code());
                 if ($show_message === false) {
@@ -285,7 +333,7 @@ class GradebookTable extends SortableTable
 
                     $totalResult = [
                         $totalResult[0] + $data['result_score_weight'][0],
-                        $totalResult[1] + $data['result_score_weight'][1],
+                        $totalResult[1] + $data['result_score_weight'][1]
                     ];
 
                     $totalBest = [
@@ -311,13 +359,17 @@ class GradebookTable extends SortableTable
                     $row[] = $average;
 
                     if (get_class($item) == 'Category') {
-                        $row[] = $this->build_edit_column($item);
+                        if ($this->exportToPdf == false) {
+                            $row[] = $this->build_edit_column($item);
+                        }
                     }
                 } else {
                     $row[] = $scoreToDisplay;
 
                     if (!empty($this->cats)) {
-                        $row[] = $this->build_edit_column($item);
+                        if ($this->exportToPdf == false) {
+                            $row[] = $this->build_edit_column($item);
+                        }
                     }
                 }
             }
@@ -327,16 +379,22 @@ class GradebookTable extends SortableTable
 
             // Loading children
             if (get_class($item) == 'Category') {
-                $stud_id = api_get_user_id();
                 $course_code = api_get_course_id();
                 $session_id = api_get_session_id();
                 $parent_id = $item->get_id();
-                $cats = Category::load($parent_id, null, null, null, null, null);
+                $cats = Category::load(
+                    $parent_id,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                );
 
                 if (isset($cats[0])) {
-                    $allcat  = $cats[0]->get_subcategories($stud_id, $course_code, $session_id);
-                    $alleval = $cats[0]->get_evaluations($stud_id);
-                    $alllink = $cats[0]->get_links($stud_id);
+                    $allcat  = $cats[0]->get_subcategories($this->userId, $course_code, $session_id);
+                    $alleval = $cats[0]->get_evaluations($this->userId);
+                    $alllink = $cats[0]->get_links($this->userId);
 
                     $sub_cat_info = new GradebookDataGenerator($allcat, $alleval, $alllink);
                     $data_array = $sub_cat_info->get_data($sorting, $from, $this->per_page);
@@ -357,24 +415,28 @@ class GradebookTable extends SortableTable
                             $main_categories[$parent_id]['children'][$item->get_id()]['weight'] = $item->get_weight();
                         }
 
-                        if (api_is_allowed_to_edit(null, true)) {
-                            $row[] = $this->build_id_column($item);
+                        if ($this->teacherView) {
+                            if ($this->exportToPdf == false) {
+                                $row[] = $this->build_id_column($item);
+                            }
                         }
-
+                        // Type
                         $row[] = $this->build_type_column($item, array('style' => 'padding-left:5px'));
 
                         // Name.
                         $row[] = $invisibility_span_open."&nbsp;&nbsp;&nbsp;  ".$this->build_name_link($item) . $invisibility_span_close;
 
                         // Description.
-                        $row[] = $invisibility_span_open.$data[2].$invisibility_span_close;
+                        if ($this->exportToPdf == false) {
+                            $row[] = $invisibility_span_open.$data[2].$invisibility_span_close;
+                        }
 
                         $weight = $data[3];
                         $total_weight += $weight;
-
+                        // Weight
                         $row[] = $invisibility_span_open.$weight.$invisibility_span_close;
 
-                        if (api_is_allowed_to_edit(null, true)) {
+                        if ($this->teacherView) {
                             //$weight_total_links += intval($data[3]);
                         } else {
                             $cattotal = Category::load($_GET['selectcat']);
@@ -383,11 +445,13 @@ class GradebookTable extends SortableTable
                         }
 
                         // Admins get an edit column.
-                        if (api_is_allowed_to_edit(null, true)) {
+                        if ($this->teacherView) {
                             $cat = new Category();
                             $show_message = $cat->show_message_resource_delete($item->get_course_code());
                             if ($show_message === false) {
-                                $row[] = $this->build_edit_column($item);
+                                if ($this->exportToPdf == false) {
+                                    $row[] = $this->build_edit_column($item);
+                                }
                             }
                         } else {
                             // Students get the results and certificates columns
@@ -418,7 +482,9 @@ class GradebookTable extends SortableTable
                             }
 
                             if (!empty($cats)) {
-                                $row[] = null;
+                                if ($this->exportToPdf == false) {
+                                    $row[] = null;
+                                }
                             }
                         }
                         $row['child_of'] = $parent_id;
@@ -427,7 +493,7 @@ class GradebookTable extends SortableTable
 
                     // "Warning row"
                     if (!empty($data_array)) {
-                        if (api_is_allowed_to_edit()) {
+                        if ($this->teacherView) {
                             // Compare the category weight to the sum of all weights inside the category
                             if (intval($total_weight) == $category_weight) {
                                 $label = null;
@@ -459,7 +525,7 @@ class GradebookTable extends SortableTable
             }
         } //end looping categories
 
-        if (api_is_allowed_to_edit()) {
+        if ($this->teacherView) {
             // Total for teacher.
             if (count($main_cat) > 1) {
                 $main_weight = intval($main_cat[0]->get_weight());
@@ -518,16 +584,28 @@ class GradebookTable extends SortableTable
                     SCORE_DIV
                 );
 
-                $row = array(
-                    null,
-                    '<h3>' . get_lang('Total') . '</h3>',
-                    null,
-                    $main_weight,
-                    $totalResult,
-                    $totalRanking,
-                    $totalBest,
-                    $totalAverage,
-                );
+                if ($this->exportToPdf) {
+                    $row = array(
+                        null,
+                        '<h3>' . get_lang('Total') . '</h3>',
+                        $main_weight,
+                        $totalResult,
+                        $totalRanking,
+                        $totalBest,
+                        $totalAverage,
+                    );
+                } else {
+                    $row = array(
+                        null,
+                        '<h3>' . get_lang('Total') . '</h3>',
+                        null,
+                        $main_weight,
+                        $totalResult,
+                        $totalRanking,
+                        $totalBest,
+                        $totalAverage,
+                    );
+                }
 
                 $sortable_data[] = $row;
             }
@@ -536,7 +614,7 @@ class GradebookTable extends SortableTable
         // Warning messages
         $view = isset($_GET['view']) ? $_GET['view']: null;
 
-        if (api_is_allowed_to_edit()) {
+        if ($this->teacherView) {
             if (isset($_GET['selectcat']) &&
                 $_GET['selectcat'] > 0 &&
                 $view <> 'presence'
@@ -555,7 +633,7 @@ class GradebookTable extends SortableTable
                 ) {
                     $warning_message = sprintf(get_lang('TotalWeightMustBeX'), $weight_category);
                     $modify_icons  = '<a class="right_link" href="gradebook_edit_cat.php?editcat='.$id_cat.'&cidReq='.$course_code.'&id_session='.api_get_session_id().'">'.
-                            Display::return_icon('edit.png', $warning_message, array(), ICON_SIZE_SMALL).'</a>';
+                        Display::return_icon('edit.png', $warning_message, array(), ICON_SIZE_SMALL).'</a>';
                     $warning_message .= $modify_icons;
                     Display::display_warning_message($warning_message, false);
                 }
@@ -637,13 +715,16 @@ class GradebookTable extends SortableTable
     public function getGraph()
     {
         $data = $this->getDataForGraph();
-        if (!empty($data) && isset($data['my_result'])) {
+        if (!empty($data) &&
+            isset($data['categories']) &&
+            isset($data['my_result']) &&
+            isset($data['average'])
+        ) {
             $dataSet = new pData();
             $dataSet->addPoints($data['my_result'], get_lang('Me'));
             // In order to generate random values
             // $data['average'] = array(rand(0,50), rand(0,50));
             $dataSet->addPoints($data['average'], get_lang('Average'));
-
             $dataSet->addPoints($data['categories'], 'categories');
 
             $dataSet->setAbscissa("categories");
@@ -686,7 +767,7 @@ class GradebookTable extends SortableTable
 
             /* Write the chart legend */
             $pChart->drawLegend(
-                $xSize-180,
+                $xSize - 180,
                 9,
                 array(
                     "Style" => LEGEND_NOBORDER,

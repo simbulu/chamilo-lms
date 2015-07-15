@@ -113,10 +113,16 @@
 
 use ChamiloSession as Session;
 
-//Conditional login
-if (isset($_SESSION['conditional_login']['uid']) &&
-    $_SESSION['conditional_login']['can_login'] === true
-) {
+// Facebook connexion, if activated
+if (api_is_facebook_auth_activated() && !api_get_user_id()) {
+    require_once api_get_path(SYS_PATH).'main/auth/external_login/facebook.inc.php';
+    if (isset($facebook_config['appId']) && isset($facebook_config['secret'])) {
+        facebookConnect();
+    }
+}
+
+// Conditional login
+if (isset($_SESSION['conditional_login']['uid']) && $_SESSION['conditional_login']['can_login'] === true) {
     $uData = api_get_user_info($_SESSION['conditional_login']['uid']);
     ConditionalLogin::check_conditions($uData);
 
@@ -572,8 +578,8 @@ if (!empty($_SESSION['_user']['user_id']) && !($login || $logout)) {
         } elseif (!$logout) {
             // Handle cookie from Master Server
 
-            $forceSsoRedirect = api_get_configuration_value('force_sso_redirect');
-            if ($forceSsoRedirect) {
+            $forceSsoRedirect = api_get_setting('sso_force_redirect');
+            if ($forceSsoRedirect === 'true') {
                 // all users to be redirected unless they are connected (removed req on sso_cookie)
                 $redirectToMasterConditions = !isset($_GET['sso_referer']) && !isset($_GET['loginFailed']);
             } else {
@@ -841,11 +847,18 @@ if (isset($cidReset) && $cidReset) {
             $tbl_session_course_user = Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER);
 
             if (!empty($_GET['id_session'])) {
-                $_SESSION['id_session'] = intval($_GET['id_session']);
                 $sql = 'SELECT name FROM '.$tbl_session . '
-                        WHERE id="'.intval($_SESSION['id_session']) . '"';
+                        WHERE id="'.intval($_GET['id_session']) . '"';
                 $rs = Database::query($sql);
-                list($_SESSION['session_name']) = Database::fetch_array($rs);
+                if (Database::num_rows($rs)) {
+                    list($_SESSION['session_name']) = Database::fetch_array(
+                        $rs
+                    );
+                    $_SESSION['id_session'] = intval($_GET['id_session']);
+                } else {
+                    api_not_allowed(true);
+                }
+
             } else {
                 Session::erase('session_name');
                 Session::erase('id_session');
@@ -878,7 +891,7 @@ if (isset($cidReset) && $cidReset) {
 
         if (!empty($_SESSION)) {
             foreach ($_SESSION as $key => $session_item) {
-                if (strpos($key, 'lp_autolunch_') === false) {
+                if (strpos($key, 'lp_autolaunch_') === false) {
                     continue;
                 } else {
                     if (isset($_SESSION[$key])) {
@@ -922,16 +935,19 @@ if (isset($cidReset) && $cidReset) {
         $_cid = $_SESSION['_cid'];
         $_course = $_SESSION['_course'];
 
-        // these lines are usefull for tracking. Indeed we can have lost the id_session and not the cid.
+        // these lines are useful for tracking. Indeed we can have lost the id_session and not the cid.
         // Moreover, if we want to track a course with another session it can be usefull
         if (!empty($_GET['id_session']) && is_numeric($_GET['id_session'])) {
             $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
-            $sql = 'SELECT name FROM '.$tbl_session . ' WHERE id="'.intval($_SESSION['id_session']). '"';
+            $sql = 'SELECT name FROM '.$tbl_session . ' WHERE id="'.intval($_GET['id_session']). '"';
             $rs = Database::query($sql);
-            list($_SESSION['session_name']) = Database::fetch_array($rs);
-            $_SESSION['id_session'] = intval($_GET['id_session']);
+            if (Database::num_rows($rs)) {
+                list($_SESSION['session_name']) = Database::fetch_array($rs);
+                $_SESSION['id_session'] = intval($_GET['id_session']);
+            } else {
+                api_not_allowed(true);
+            }
         }
-
 
         if (!empty($_REQUEST['gidReq'])) {
             $_SESSION['_gid'] = intval($_REQUEST['gidReq']);
@@ -1199,10 +1215,11 @@ if ((isset($uidReset) && $uidReset) || (isset($cidReset) && $cidReset)) {
         $is_sessionAdmin = false;
     }
 
-    //Checking the course access
+    // Checking the course access
     $is_allowed_in_course = false;
 
     if (isset($_course) && isset($_course['visibility'])) {
+
         switch ($_course['visibility']) {
             case COURSE_VISIBILITY_OPEN_WORLD: //3
                 $is_allowed_in_course = true;
@@ -1287,10 +1304,10 @@ if ((isset($uidReset) && $uidReset) || (isset($cidReset) && $cidReset)) {
 } else {
     // Continue with the previous values
 
-    $is_courseAdmin = isset($_SESSION ['is_courseAdmin']) ? $_SESSION ['is_courseAdmin'] : false;
-    $is_courseTutor = isset($_SESSION ['is_courseTutor']) ? $_SESSION ['is_courseTutor'] : false;
-    $is_courseCoach = isset($_SESSION ['is_courseCoach']) ? $_SESSION ['is_courseCoach'] : false;
-    $is_courseMember = isset($_SESSION ['is_courseMember']) ? $_SESSION ['is_courseMember'] : false;
+    $is_courseAdmin = isset($_SESSION['is_courseAdmin']) ? $_SESSION['is_courseAdmin'] : false;
+    $is_courseTutor = isset($_SESSION['is_courseTutor']) ? $_SESSION['is_courseTutor'] : false;
+    $is_courseCoach = isset($_SESSION['is_courseCoach']) ? $_SESSION['is_courseCoach'] : false;
+    $is_courseMember = isset($_SESSION['is_courseMember']) ? $_SESSION['is_courseMember'] : false;
     $is_allowed_in_course = isset($_SESSION ['is_allowed_in_course']) ? $_SESSION ['is_allowed_in_course'] : false;
 }
 

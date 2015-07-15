@@ -107,12 +107,14 @@ class Display
         echo self::$global_template->show_header_template();
     }
 
+    /**
+     * Display no header
+     */
     public static function display_no_header()
     {
         global $tool_name, $show_learnpath;
         $disable_js_and_css_files = true;
         self::$global_template = new Template($tool_name, false, false, $show_learnpath);
-        //echo self::$global_template->show_header_template();
     }
 
     /**
@@ -183,7 +185,7 @@ class Display
         if (file_exists($localised_file_name)) {
             include $localised_file_name;
         } else {
-            include ($default_file_name);
+            include $default_file_name;
         }
     }
 
@@ -431,8 +433,10 @@ class Display
     /**
      * Displays a normal message. It is recommended to use this public function
      * to display any normal information messages.
+     * @param string $message
+     * @param bool	$filter (true) or not (false)
+     * @param bool $returnValue
      *
-     * @param bool	Filter (true) or not (false)
      * @return void
      */
     public static function display_normal_message($message, $filter = true, $returnValue = false)
@@ -533,6 +537,7 @@ class Display
             default:
                 $class .= 'alert alert-info';
         }
+
         return self::div($message, array('class'=> $class));
     }
 
@@ -605,6 +610,7 @@ class Display
         // icon html code
         $icon_html_source = self::return_icon($icon_file, $hmail, '', $icon_size);
         // Return encrypted mailto hyperlink
+
         return '<a href="'.$hmail.'"'.$style_class.' class="clickable_email_link">'.$icon_html_source.'</a>';
     }
 
@@ -660,51 +666,6 @@ class Display
             $result .= '>'.$i.'</option>';
         }
         return $result;
-    }
-
-    /**
-     * Shows the so-called "left" menu for navigating
-     */
-    public static function show_course_navigation_menu($isHidden = false)
-    {
-        global $output_string_menu;
-        global $_setting;
-
-        // Check if the $_SERVER['REQUEST_URI'] contains already url parameters (thus a questionmark)
-        if (strpos($_SERVER['REQUEST_URI'], '?') === false) {
-            $sourceurl = api_get_self().'?';
-        } else {
-            $sourceurl = $_SERVER['REQUEST_URI'];
-        }
-        $output_string_menu = '';
-        if ($isHidden == 'true' and $_SESSION['hideMenu']) {
-
-            $_SESSION['hideMenu'] = 'hidden';
-
-            $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
-            $sourceurl = str_replace('&isHidden=false', '', $sourceurl);
-
-            $output_string_menu .= ' <a href="'.$sourceurl.'&isHidden=false"><img src="../../main/img/expand.gif" alt="'.'Show menu1'.'" padding:"2px"/></a>';
-        } elseif ($isHidden == 'false' && $_SESSION['hideMenu']) {
-            $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
-            $sourceurl = str_replace('&isHidden=false', '', $sourceurl);
-
-            $_SESSION['hideMenu'] = 'shown';
-            $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="../../main/img/collapse.gif" alt="'.'Hide menu2'.'" padding:"2px"/></a></div>';
-        } elseif ($_SESSION['hideMenu']) {
-            if ($_SESSION['hideMenu'] == 'shown') {
-                $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="../../main/img/collapse.gif" alt="'.'Hide menu3'.' padding:"2px"/></a></div>';
-            }
-            if ($_SESSION['hideMenu'] == 'hidden') {
-                $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
-                $output_string_menu .= '<a href="'.$sourceurl.'&isHidden=false"><img src="../../main/img/expand.gif" alt="'.'Hide menu4'.' padding:"2px"/></a>';
-            }
-        } elseif (!$_SESSION['hideMenu']) {
-            $_SESSION['hideMenu'] = 'shown';
-            if (isset($_cid)) {
-                $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="main/img/collapse.gif" alt="'.'Hide menu5'.' padding:"2px"/></a></div>';
-            }
-        }
     }
 
     /**
@@ -1055,21 +1016,31 @@ class Display
         return $main_div ;
     }
 
-    public static function tabs_only_link($header_list, $selected = null)
+    /**
+     * @param $headers
+     * @param null $selected
+     *
+     * @return string
+     */
+    public static function tabsOnlyLink($headers, $selected = null)
     {
          $id = uniqid();
          $i = 1;
          $lis = null;
-         foreach ($header_list as $item) {
+         foreach ($headers as $item) {
             $class = null;
             if ($i == $selected) {
                 $class = 'active';
             }
-            $item =self::tag('a', $item['content'], array('id'=>$id.'-'.$i, 'href' => $item['url']));
-            $lis .=self::tag('li', $item, array('class' => $class));
+             $item = self::tag(
+                 'a',
+                 $item['content'],
+                 array('id' => $id.'-'.$i, 'href' => $item['url'])
+             );
+             $lis .= self::tag('li', $item, array('class' => $class));
             $i++;
         }
-        return self::tag('ul',$lis, array('class' => 'nav nav-tabs'));
+        return self::tag('ul', $lis, array('class' => 'nav nav-tabs'));
     }
 
     /**
@@ -1164,7 +1135,7 @@ class Display
 
         $json = '';
         if (!empty($extra_params['datatype'])) {
-            $obj->datatype  = $extra_params['datatype'];
+            $obj->datatype = $extra_params['datatype'];
         }
 
         // Row even odd style.
@@ -1174,24 +1145,24 @@ class Display
         }
 
         if (!empty($extra_params['sortname'])) {
-            $obj->sortname      = $extra_params['sortname'];
+            $obj->sortname = $extra_params['sortname'];
         }
 
         if (!empty($extra_params['sortorder'])) {
-            $obj->sortorder     = $extra_params['sortorder'];
+            $obj->sortorder = $extra_params['sortorder'];
         }
 
         if (!empty($extra_params['rowList'])) {
-            $obj->rowList     = $extra_params['rowList'];
+            $obj->rowList = $extra_params['rowList'];
         }
         //Sets how many records we want to view in the grid
         $obj->rowNum = 20;
         if (!empty($extra_params['rowNum'])) {
-            $obj->rowNum     = $extra_params['rowNum'];
+            $obj->rowNum = $extra_params['rowNum'];
         }
 
         if (!empty($extra_params['viewrecords'])) {
-            $obj->viewrecords   = $extra_params['viewrecords'];
+            $obj->viewrecords = $extra_params['viewrecords'];
         }
 
         $beforeSelectRow = null;
@@ -1285,7 +1256,7 @@ class Display
         $row = 0;
         $column = 0;
 
-        //Course headers
+        // Course headers
         if (!empty($headers)) {
 	        foreach ($headers as $item) {
 	            $table->setHeaderContents($row, $column, $item);
@@ -1319,10 +1290,10 @@ class Display
      */
     public static function show_notification($course_info)
     {
-        $t_track_e_access 	= Database::get_main_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
-        $course_tool_table	= Database::get_course_table(TABLE_TOOL_LIST);
-        $tool_edit_table 	= Database::get_course_table(TABLE_ITEM_PROPERTY);
-        $course_code        = Database::escape_string($course_info['code']);
+        $t_track_e_access = Database::get_main_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
+        $course_tool_table = Database::get_course_table(TABLE_TOOL_LIST);
+        $tool_edit_table = Database::get_course_table(TABLE_ITEM_PROPERTY);
+        $course_code = Database::escape_string($course_info['code']);
 
         $user_id = api_get_user_id();
         $course_id = intval($course_info['real_id']);
@@ -1348,15 +1319,7 @@ class Display
         if ($oldestTrackDate == $oldestTrackDateOrig) {
             //if there was no connexion to the course ever, then take the
             // course creation date as a reference
-            $course_table = Database::get_main_table(TABLE_MAIN_COURSE);
-            $sql = "SELECT course.creation_date ".
-                 "FROM $course_table course ".
-                 "WHERE course.code = '".$course_code."'";
-            $res = Database::query($sql);
-            if ($res && Database::num_rows($res)>0) {
-                $row = Database::fetch_array($res);
-            }
-            $oldestTrackDate = $row['creation_date'];
+            $oldestTrackDate = $course_info['creation_date'];
         }
 
         // Get the last edits of all tools of this course.
@@ -1396,9 +1359,10 @@ class Display
                 // user is not part of.
                 && ((in_array($item_property['to_group_id'], $group_ids)
                 // Drop the dropbox, notebook and chat tools (we don't care)
-                && ($item_property['tool'] != TOOL_DROPBOX
-                      && $item_property['tool'] != TOOL_NOTEBOOK
-                      && $item_property['tool'] != TOOL_CHAT)
+                && (
+                        //$item_property['tool'] != TOOL_DROPBOX &&
+                        $item_property['tool'] != TOOL_NOTEBOOK &&
+                        $item_property['tool'] != TOOL_CHAT)
                    )
                 )
                 // Take only what's visible or "invisible but where the user is a teacher" or where the visibility is unset.
@@ -1406,9 +1370,6 @@ class Display
                     || ($course_info['status'] == '1' && $item_property['visibility'] == '0')
                     || !isset($item_property['visibility']))
             ) {
-                if ($course_info['real_id'] == 1) {
-                  //  var_dump($item_property);
-                }
                 // Also drop announcements and events that are not for the user or his group.
                 if ((
                         $item_property['tool'] == TOOL_ANNOUNCEMENT ||
@@ -1457,89 +1418,12 @@ class Display
                 $my_course['id_session'] = $course_info['id_session'];
             }
             $label = get_lang('TitleNotification').": ".get_lang($type)." ($lastDate)";
-            $retvalue .= '<a href="'.api_get_path(WEB_CODE_PATH).$notification['link'].'?cidReq='.$course_code.'&amp;ref='.$notification['ref'].'&amp;gidReq='.$notification['to_group_id'].'&amp;id_session='.$my_course['id_session'].'">'.
+            $retvalue .= '<a href="'.api_get_path(WEB_CODE_PATH).$notification['link'].'?cidReq='.$course_code.'&ref='.$notification['ref'].'&gidReq='.$notification['to_group_id'].'&id_session='.$my_course['id_session'].'">'.
                             Display::return_icon($notification['image'], $label).'</a>&nbsp;';
         }
 
         return $retvalue;
     }
-
-    /**
-     * Displays a digest e.g. short summary of new agenda and announcements items.
-     * This used to be displayed in the right hand menu, but is now
-     * disabled by default (see config settings in this file) because most people like
-     * the what's new icons better.
-     *
-     * @version 1.0
-     */
-    public static function display_digest($toolsList, $digest, $orderKey, $courses)
-    {
-        $html = '';
-        if (is_array($digest) && (CONFVAL_showExtractInfo == SCRIPTVAL_UnderCourseList || CONFVAL_showExtractInfo == SCRIPTVAL_Both)) {
-            // // // LEVEL 1 // // //
-            reset($digest);
-            $html .= "<br /><br />\n";
-            while (list($key1) = each($digest)) {
-                if (is_array($digest[$key1])) {
-                    // // // Title of LEVEL 1 // // //
-                    $html .= "<strong>\n";
-                    if ($orderKey[0] == 'keyTools') {
-                        $tools = $key1;
-                        $html .= $toolsList[$key1]['name'];
-                    } elseif ($orderKey[0] == 'keyCourse') {
-                        $courseSysCode = $key1;
-                        $html .= "<a href=\"".api_get_path(WEB_COURSE_PATH). $courses[$key1]['coursePath']. "\">".$courses[$key1]['courseCode']. "</a>\n";
-                    } elseif ($orderKey[0] == 'keyTime') {
-                        $html .= api_convert_and_format_date($digest[$key1], DATE_FORMAT_LONG, date_default_timezone_get());
-                    }
-                    $html .= "</strong>\n";
-                    // // // End Of Title of LEVEL 1 // // //
-                    // // // LEVEL 2 // // //
-                    reset($digest[$key1]);
-                    while (list ($key2) = each($digest[$key1])) {
-                        // // // Title of LEVEL 2 // // //
-                        $html .= "<p>\n". "\n";
-                        if ($orderKey[1] == 'keyTools') {
-                            $tools = $key2;
-                            $html .= $toolsList[$key2][name];
-                        } elseif ($orderKey[1] == 'keyCourse') {
-                            $courseSysCode = $key2;
-                            $html .= "<a href=\"". api_get_path(WEB_COURSE_PATH). $courses[$key2]['coursePath']. "\">". $courses[$key2]['courseCode']. "</a>\n";
-                        } elseif ($orderKey[1] == 'keyTime') {
-                            $html .= api_convert_and_format_date($key2, DATE_FORMAT_LONG, date_default_timezone_get());
-                        }
-                        $html .= "\n";
-                        $html .= "</p>";
-                        // // // End Of Title of LEVEL 2 // // //
-                        // // // LEVEL 3 // // //
-                        reset($digest[$key1][$key2]);
-                        while (list ($key3, $dataFromCourse) = each($digest[$key1][$key2])) {
-                            // // // Title of LEVEL 3 // // //
-                            if ($orderKey[2] == 'keyTools') {
-                                $level3title = "<a href=\"".$toolsList[$key3]["path"].$courseSysCode."\">".$toolsList[$key3]['name']."</a>";
-                            } elseif ($orderKey[2] == 'keyCourse') {
-                                $level3title = "&#8226; <a href=\"".$toolsList[$tools]["path"].$key3."\">".$courses[$key3]['courseCode']."</a>\n";
-                            } elseif ($orderKey[2] == 'keyTime') {
-                                $level3title = "&#8226; <a href=\"".$toolsList[$tools]["path"].$courseSysCode."\">".api_convert_and_format_date($key3, DATE_FORMAT_LONG, date_default_timezone_get())."</a>";
-                            }
-                            // // // End Of Title of LEVEL 3 // // //
-                            // // // LEVEL 4 (data) // // //
-                            reset($digest[$key1][$key2][$key3]);
-                            while (list ($key4, $dataFromCourse) = each($digest[$key1][$key2][$key3])) {
-                                $html .= $level3title. ' &ndash; '. api_substr(strip_tags($dataFromCourse), 0, CONFVAL_NB_CHAR_FROM_CONTENT);
-                                //adding ... (three dots) if the texts are too large and they are shortened
-                                if (api_strlen($dataFromCourse) >= CONFVAL_NB_CHAR_FROM_CONTENT) {
-                                    $html .= '...';
-                                }
-                            }
-                            $html .= "<br />\n";
-                        }
-                    }
-                }
-            }
-            return $html;
-        }
-    } // End function display_digest
 
     /**
      * Get the session box details as an array
@@ -1575,8 +1459,14 @@ class Display
             $session['coach'] = '';
             $session['dates'] =  '';
 
-            if ($session_info['date_end'] == '0000-00-00' &&
-                $session_info['date_start'] == '0000-00-00'
+            if (
+                (
+                    $session_info['access_end_date'] == '0000-00-00' &&
+                    $session_info['access_start_date'] == '0000-00-00'
+                ) ||
+                (
+                    empty($session_info['access_end_date']) && empty($session_info['access_start_date'])
+                )
             ) {
                 if (api_get_setting('show_session_coach') === 'true') {
                     $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($session_info['firstname'], $session_info['lastname']);
@@ -1603,28 +1493,57 @@ class Display
             } else {
                 $start = $stop = false;
                 $start_buffer = $stop_buffer = '';
-                if ($session_info['date_start'] == '0000-00-00') {
-                    $session_info['date_start'] = '';
+                if ($session_info['access_start_date'] == '0000-00-00' || empty($session_info['access_start_date'])) {
+                    $session_info['access_start_date'] = '';
                 } else {
                     $start = true;
-                    $start_buffer = $session_info['date_start'];
-                    $session_info['date_start'] = get_lang('From').' '.$session_info['date_start'];
+                    $start_buffer = $session_info['access_start_date'];
+                    $session_info['access_start_date'] = $session_info['access_start_date'];
                 }
-                if ($session_info['date_end'] == '0000-00-00') {
-                    $session_info['date_end'] = '';
+                if ($session_info['access_end_date'] == '0000-00-00' || empty($session_info['access_end_date'])) {
+                    $session_info['access_end_date'] = '';
                 } else {
                     $stop = true;
-                    $stop_buffer = $session_info['date_end'];
-                    $session_info['date_end'] = get_lang('Until').' '.$session_info['date_end'];
+                    $stop_buffer = $session_info['access_end_date'];
+                    $session_info['access_end_date'] = $session_info['access_end_date'];
                 }
                 if ($start && $stop) {
-                    $session['dates'] = Display::tag('i', sprintf(get_lang('FromDateXToDateY'), $start_buffer, $stop_buffer));
+                    $session['dates'] = Display::tag(
+                        'em',
+                        sprintf(
+                            get_lang('FromDateXToDateY'),
+                            api_format_date($start_buffer),
+                            api_format_date($stop_buffer)
+                        )
+                    );
                 } else {
-                    $session['dates'] = Display::tag('i', $session_info['date_start'].' '.$session_info['date_end']);
+                    $start_buffer = $stop_buffer = null;
+
+                    if (!empty($session_info['access_start_date'])) {
+                        $start_buffer = sprintf(
+                            get_lang('FromDateX'),
+                            api_format_date($session_info['access_start_date'])
+                        );
+                    }
+
+                    if (!empty($session_info['access_end_date'])) {
+                        $stop_buffer = sprintf(
+                            get_lang('UntilDateX'),
+                            api_format_date($session_info['access_end_date'])
+                        );
+                    }
+
+                    $session['dates'] = Display::tag(
+                        'em',
+                        "$start_buffer $stop_buffer"
+                    );
                 }
 
                 if ( api_get_setting('show_session_coach') === 'true' ) {
-                    $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($session_info['firstname'], $session_info['lastname']);
+                    $session['coach'] = get_lang('GeneralCoach') . ': ' . api_get_person_name(
+                        $session_info['firstname'],
+                        $session_info['lastname']
+                    );
                 }
                 $active = ($date_start <= $now && $date_end >= $now);
             }
@@ -1633,6 +1552,25 @@ class Display
 
             $session['description'] = $session_info['description'];
             $session['show_description'] = $session_info['show_description'];
+
+            $entityManager = Database::getManager();
+            $fieldValuesRepo = $entityManager->getRepository('ChamiloCoreBundle:ExtraFieldValues');
+            $extraFieldValues = $fieldValuesRepo->getVisibleValues(
+                Chamilo\CoreBundle\Entity\ExtraField::SESSION_FIELD_TYPE,
+                $session_id
+            );
+
+            $session['extra_fields'] = [];
+
+            foreach ($extraFieldValues as $value) {
+                $session['extra_fields'][] = [
+                    'field' => [
+                        'variable' => $value->getField()->getVariable(),
+                        'display_text' => $value->getField()->getDisplayText()
+                    ],
+                    'value' => $value->getValue()
+                ];
+            }
 
             $output = $session;
         }
@@ -1650,9 +1588,8 @@ class Display
      **/
     public static function return_rating_system($id, $url, $point_info = array(), $add_div_wrapper = true)
     {
-		$number_of_users_who_voted =  isset($point_info['users_who_voted']) ? $point_info['users_who_voted'] : null;
-
-		$percentage =  isset($point_info['point_average']) ? $point_info['point_average'] : 0;
+		$number_of_users_who_voted = isset($point_info['users_who_voted']) ? $point_info['users_who_voted'] : null;
+		$percentage = isset($point_info['point_average']) ? $point_info['point_average'] : 0;
 
 		if (!empty($percentage)) {
             $percentage = $percentage*125/100;
@@ -1690,6 +1627,7 @@ class Display
         if ($add_div_wrapper) {
 			$html = Display::div($html, array('id' => 'rating_wrapper_'.$id));
 		}
+
         return $html;
     }
 
@@ -1751,6 +1689,10 @@ class Display
         return self::page_header($title, $second_title, 'h4');
     }
 
+    /**
+     * @param array $list
+     * @return null|string
+     */
     public static function description($list)
     {
         $html = null;
@@ -1795,7 +1737,13 @@ class Display
         return $div;
     }
 
-    public static function badge($count, $type ="warning") {
+    /**
+     * @param string $count
+     * @param string $type
+     * @return null|string
+     */
+    public static function badge($count, $type ="warning")
+    {
         $class = '';
 
         switch ($type) {
@@ -1843,7 +1791,6 @@ class Display
      */
     public static function label($content, $type = 'default')
     {
-        $class = '';
         switch ($type) {
             case 'success':
                 $class = 'label-success';
@@ -1873,6 +1820,7 @@ class Display
             $html .= $content;
             $html .='</span>';
         }
+
         return $html;
     }
 
@@ -2143,5 +2091,4 @@ class Display
 
         return self::url("$icon $text", $url, $attributes);
     }
-
 }

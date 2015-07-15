@@ -30,6 +30,7 @@ if (!(isset($_user['user_id']) && $_user['user_id']) || api_is_anonymous($_user[
     api_not_allowed(true);
 }
 
+$htmlHeadXtra[] = api_get_password_checker_js('#username', '#password1');
 $htmlHeadXtra[] = '<script>
 function confirmation(name) {
     if (confirm("'.get_lang('AreYouSureToDelete', '').' " + name + " ?")) {
@@ -112,8 +113,7 @@ $form = new FormValidator(
     'profile',
     'post',
     api_get_self()."?".str_replace('&fe=1', '', Security::remove_XSS($_SERVER['QUERY_STRING'])),
-    null,
-    array('style' => 'width: 70%; float: '.($text_dir == 'rtl' ? 'right;' : 'left;'))
+    null
 );
 
 if (api_is_western_name_order()) {
@@ -213,10 +213,10 @@ if (is_profile_editable() && api_get_setting('profile', 'picture') == 'true') {
     if (!empty($user_data['picture_uri'])) {
         $form->addElement('checkbox', 'remove_picture', null, get_lang('DelImage'));
     }
-    $allowed_picture_types = array ('jpg', 'jpeg', 'png', 'gif');
+    $allowed_picture_types = api_get_supported_image_extensions();
     $form->addRule(
         'picture',
-        get_lang('OnlyImagesAllowed').' ('.implode(',', $allowed_picture_types).')',
+        get_lang('OnlyImagesAllowed').' ('.implode(', ', $allowed_picture_types).')',
         'filetype',
         $allowed_picture_types
     );
@@ -749,7 +749,7 @@ if (api_get_setting('allow_social_tool') == 'true') {
 
     $tpl->assign('social_menu_block', $menu);
     $tpl->assign('social_right_content', $form->returnForm());
-    $social_layout = $tpl->get_template('social/inbox.tpl');
+    $social_layout = $tpl->get_template('social/edit_profile.tpl');
     $tpl->display($social_layout);
 } else {
     $bigImage = Usermanager::getUserPicture(api_get_user_id(), USER_IMAGE_SIZE_BIG);

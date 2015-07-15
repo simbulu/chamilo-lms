@@ -81,6 +81,7 @@ class Exercise
         }
         $this->course_id = $course_info['real_id'];
         $this->course = $course_info;
+        $this->sessionId = api_get_session_id();
     }
 
     /**
@@ -94,14 +95,14 @@ class Exercise
     public function read($id)
     {
         global $_configuration;
-        $TBL_EXERCICES = Database::get_course_table(TABLE_QUIZ_TEST);
+        $TBL_EXERCISES = Database::get_course_table(TABLE_QUIZ_TEST);
         $table_lp_item = Database::get_course_table(TABLE_LP_ITEM);
 
         $id  = intval($id);
         if (empty($this->course_id)) {
             return false;
         }
-        $sql = "SELECT * FROM $TBL_EXERCICES WHERE c_id = ".$this->course_id." AND id = ".$id;
+        $sql = "SELECT * FROM $TBL_EXERCISES WHERE c_id = ".$this->course_id." AND id = ".$id;
         $result = Database::query($sql);
 
         // if the exercise has been found
@@ -427,11 +428,11 @@ class Exercise
     public function selectQuestionList($from_db = false)
     {
         if ($from_db && !empty($this->id)) {
-            $TBL_EXERCICE_QUESTION  = Database::get_course_table(TABLE_QUIZ_TEST_QUESTION);
+            $TBL_EXERCISE_QUESTION  = Database::get_course_table(TABLE_QUIZ_TEST_QUESTION);
             $TBL_QUESTIONS = Database::get_course_table(TABLE_QUIZ_QUESTION);
 
             $sql = "SELECT DISTINCT e.question_order
-                    FROM $TBL_EXERCICE_QUESTION e
+                    FROM $TBL_EXERCISE_QUESTION e
                     INNER JOIN $TBL_QUESTIONS  q
                     ON (e.question_id = q.id AND e.c_id = ".$this->course_id." AND q.c_id = ".$this->course_id.")
 					WHERE e.exercice_id	= ".intval($this->id)."";
@@ -440,7 +441,7 @@ class Exercise
             $count_question_orders = Database::num_rows($result);
 
             $sql = "SELECT e.question_id, e.question_order
-                    FROM $TBL_EXERCICE_QUESTION e
+                    FROM $TBL_EXERCISE_QUESTION e
                     INNER JOIN $TBL_QUESTIONS  q
                     ON (e.question_id= q.id AND e.c_id = ".$this->course_id." AND q.c_id = ".$this->course_id.")
 					WHERE e.exercice_id	= ".intval($this->id)."
@@ -757,7 +758,7 @@ class Exercise
     public function save($type_e = '')
     {
         $_course = $this->course;
-        $TBL_EXERCICES = Database::get_course_table(TABLE_QUIZ_TEST);
+        $TBL_EXERCISES = Database::get_course_table(TABLE_QUIZ_TEST);
 
         $id = $this->id;
         $exercise = $this->exercise;
@@ -801,7 +802,7 @@ class Exercise
                 $end_time = '0000-00-00 00:00:00';
             }
 
-            $sql = "UPDATE $TBL_EXERCICES SET
+            $sql = "UPDATE $TBL_EXERCISES SET
 				    title='".Database::escape_string($exercise)."',
 					description='".Database::escape_string($description)."'";
 
@@ -882,11 +883,11 @@ class Exercise
                 'pass_percentage' => $pass_percentage
             ];
 
-            $this->id = Database::insert($TBL_EXERCICES, $params);
+            $this->id = Database::insert($TBL_EXERCISES, $params);
 
             if ($this->id) {
 
-                $sql = "UPDATE $TBL_EXERCICES SET id = iid WHERE iid = {$this->id} ";
+                $sql = "UPDATE $TBL_EXERCISES SET id = iid WHERE iid = {$this->id} ";
                 Database::query($sql);
 
                 // insert into the item_property table
@@ -1003,8 +1004,8 @@ class Exercise
      */
     public function delete()
     {
-        $TBL_EXERCICES = Database::get_course_table(TABLE_QUIZ_TEST);
-        $sql = "UPDATE $TBL_EXERCICES SET active='-1'
+        $TBL_EXERCISES = Database::get_course_table(TABLE_QUIZ_TEST);
+        $sql = "UPDATE $TBL_EXERCISES SET active='-1'
                 WHERE c_id = ".$this->course_id." AND id = ".intval($this->id)."";
         Database::query($sql);
         api_item_property_update($this->course, TOOL_QUIZ, $this->id, 'QuizDeleted', api_get_user_id());
@@ -1167,7 +1168,7 @@ class Exercise
 
             $form->addElement('select', 'exerciseAttempts',get_lang('ExerciseAttempts'),$attempt_option, array('id'=>'exerciseAttempts','class'=>'chzn-select'));
 
-            // Exercice time limit
+            // Exercise time limit
             $form->addElement('checkbox', 'activate_start_date_check',null, get_lang('EnableStartTime'), array('onclick' => 'activate_start_date()'));
 
             $var = Exercise::selectTimeLimit();
@@ -1607,6 +1608,7 @@ class Exercise
 
         // if we want to delete attempts before date $cleanResultBeforeDate
         // $cleanResultBeforeDate must be a valid UTC-0 date yyyy-mm-dd
+
         if (!empty($cleanResultBeforeDate)) {
             $cleanResultBeforeDate = Database::escape_string($cleanResultBeforeDate);
             if (api_is_valid_date($cleanResultBeforeDate)) {
@@ -1632,7 +1634,8 @@ class Exercise
         $i = 0;
         if (is_array($exe_list) && count($exe_list) > 0) {
             foreach ($exe_list as $item) {
-                $sql = "DELETE FROM $table_track_e_attempt WHERE exe_id = '".$item['exe_id']."'";
+                $sql = "DELETE FROM $table_track_e_attempt
+                        WHERE exe_id = '".$item['exe_id']."'";
                 Database::query($sql);
                 $i++;
             }
@@ -1900,6 +1903,9 @@ class Exercise
 
     /**
      * So the time control will work
+     *
+     * @param string $time_left
+     * @return string
      */
     public function show_time_control_js($time_left)
     {
@@ -2174,8 +2180,8 @@ class Exercise
         $arrques = null;
         $arrans  = null;
 
-        $questionId   = intval($questionId);
-        $exeId        = intval($exeId);
+        $questionId = intval($questionId);
+        $exeId = intval($exeId);
         $TBL_TRACK_ATTEMPT = Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
         $table_ans = Database::get_course_table(TABLE_QUIZ_ANSWER);
 
@@ -2500,6 +2506,7 @@ class Exercise
                     for ($k = 0; $k < $last; $k++) {
                         $answer .= $pre_array[$k];
                     }
+
                     // splits weightings that are joined with a comma
                     $answerWeighting = explode(',', $is_set_switchable[0]);
 
@@ -2510,6 +2517,7 @@ class Exercise
                     $j = 0;
                     //initialise answer tags
                     $user_tags = $correct_tags = $real_text = array();
+
                     // the loop will stop at the end of the text
                     while (1) {
                         // quits the loop if there are no more blanks (detect '[')
@@ -2519,19 +2527,21 @@ class Exercise
                             $real_text[] = $answer;
                             break; //no more "blanks", quit the loop
                         }
+
                         // adds the piece of text that is before the blank
-                        //and ends with '[' into a general storage array
+                        // and ends with '[' into a general storage array
                         $real_text[] = api_substr($temp, 0, $pos +1);
                         $answer .= api_substr($temp, 0, $pos +1);
+
                         //take the string remaining (after the last "[" we found)
                         $temp = api_substr($temp, $pos +1);
+
                         // quit the loop if there are no more blanks, and update $pos to the position of next ']'
                         if (($pos = api_strpos($temp, ']')) === false) {
                             // adds the end of the text
                             $answer .= $temp;
                             break;
                         }
-
                         if ($from_database) {
                             $queryfill = "SELECT answer FROM ".$TBL_TRACK_ATTEMPT."
                                           WHERE
@@ -2540,9 +2550,12 @@ class Exercise
                             $resfill = Database::query($queryfill);
                             $str = Database::result($resfill, 0, 'answer');
 
+
                             api_preg_match_all('#\[([^[]*)\]#', $str, $arr);
                             $str = str_replace('\r\n', '', $str);
+
                             $choice = $arr[1];
+
 
                             if (isset($choice[$j])) {
                                 $tmp = api_strrpos($choice[$j], ' / ');
@@ -2554,12 +2567,15 @@ class Exercise
                             } else {
                                 $choice[$j] = null;
                             }
+
                         } else {
 							// This value is the user input, not escaped while correct answer is escaped by fckeditor
-							$choice[$j] = api_htmlentities(trim($choice[$j]));
+							// Works with cyrillic alphabet and when using ">" chars
+                            $choice[$j] = htmlentities(api_utf8_encode(trim($choice[$j])));
                         }
 
                         $user_tags[] = $choice[$j];
+
                         //put the contents of the [] answer tag into correct_tags[]
                         $correct_tags[] = api_substr($temp, 0, $pos);
                         $j++;
@@ -2616,7 +2632,7 @@ class Exercise
                         // adds the correct word, followed by ] to close the blank
                         $answer .= ' / <font color="green"><b>' . $real_correct_tags[$i] . '</b></font>]';
                         if (isset($real_text[$i +1])) {
-                            $answer .= $real_text[$i +1];
+                            $answer .= $real_text[$i + 1];
                         }
                     }
                     break;
@@ -2951,7 +2967,7 @@ class Exercise
                         }
                         $user_array = substr($user_array,0,-1);
                     } else {
-                        if ($studentChoice) {
+                        if (!empty($studentChoice)) {
                             $newquestionList[]=$questionId;
                         }
 
@@ -3267,12 +3283,12 @@ class Exercise
                     if ($debug) error_log('Showing questions $from '.$from);
 
                     switch ($answerType) {
-                        case UNIQUE_ANSWER :
+                        case UNIQUE_ANSWER:
                         case UNIQUE_ANSWER_IMAGE:
                         case UNIQUE_ANSWER_NO_OPTION:
-                        case MULTIPLE_ANSWER :
+                        case MULTIPLE_ANSWER:
                         case GLOBAL_MULTIPLE_ANSWER :
-                        case MULTIPLE_ANSWER_COMBINATION :
+                        case MULTIPLE_ANSWER_COMBINATION:
                             if ($answerId == 1) {
                                 ExerciseShowFunctions::display_unique_or_multiple_answer(
                                     $feedback_type,
@@ -4422,7 +4438,12 @@ class Exercise
         }
 
         // Checking visibility in the item_property table.
-        $visibility = api_get_item_visibility(api_get_course_info(), TOOL_QUIZ, $this->id, api_get_session_id());
+        $visibility = api_get_item_visibility(
+            api_get_course_info(),
+            TOOL_QUIZ,
+            $this->id,
+            api_get_session_id()
+        );
 
         if ($visibility == 0 || $visibility == 2) {
             $this->active = 0;
@@ -4430,7 +4451,7 @@ class Exercise
 
         // 2. If the exercise is not active.
         if (empty($lp_id)) {
-            //2.1 LP is OFF
+            // 2.1 LP is OFF
             if ($this->active == 0) {
                 return array(
                     'value' => false,
@@ -4438,8 +4459,8 @@ class Exercise
                 );
             }
         } else {
-            //2.1 LP is loaded
-            if ($this->active == 0 AND !learnpath::is_lp_visible_for_student($lp_id, api_get_user_id())) {
+            // 2.1 LP is loaded
+            if ($this->active == 0 && !learnpath::is_lp_visible_for_student($lp_id, api_get_user_id())) {
                 return array(
                     'value' => false,
                     'message' => Display::return_message(get_lang('ExerciseNotFound'), 'warning', false)
@@ -4452,6 +4473,7 @@ class Exercise
             (!empty($this->start_time) && $this->start_time != '0000-00-00 00:00:00') ||
             (!empty($this->end_time) && $this->end_time != '0000-00-00 00:00:00')
         ) ? true : false;
+
 
         if ($limit_time_exists) {
             $time_now = time();
@@ -4587,7 +4609,7 @@ class Exercise
         } else {
             if ($this->isRandom()) {
                 // USE question categories
-                // get questions by category for this exercice
+                // get questions by category for this exercise
                 // we have to choice $objExercise->random question in each array values of $tabCategoryQuestions
                 // key of $tabCategoryQuestions are the categopy id (0 for not in a category)
                 // value is the array of question id of this category

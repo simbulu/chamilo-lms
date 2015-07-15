@@ -14,7 +14,7 @@ require_once '../inc/global.inc.php';
 
 $user_id = api_get_user_id();
 $show_full_profile = true;
-//social tab
+// social tab
 $this_section = SECTION_SOCIAL;
 unset($_SESSION['this_section']); //for hmtl editor repository
 
@@ -25,6 +25,8 @@ if (api_get_setting('allow_social_tool') != 'true') {
     header('Location: ' . $url);
     exit;
 }
+
+$userGroup = new UserGroup();
 
 //fast upload image
 if (api_get_setting('profile', 'picture') == 'true') {
@@ -76,100 +78,9 @@ if (api_get_setting('profile', 'picture') == 'true') {
 
 //Block Menu
 $social_menu_block = SocialManager::show_social_menu('home');
-
-// Search box
-/*$social_search_block = '<div class="panel panel-default social-search">';
-$social_search_block .= '<div class="panel-heading">'.get_lang("SearchUsers").'</div>';
-$social_search_block .= '<div class="panel-body">';
-$social_search_block.= UserManager::get_search_form('');
-$social_search_block.= '</div>';
-$social_search_block.= '</div>';*/
-
 $social_search_block = Display::panel(UserManager::get_search_form(''), get_lang("SearchUsers"));
 
-//BLock Social Skill
-$social_skill_block = '';
-
-if (api_get_setting('allow_skills_tool') == 'true') {
-    $skill = new Skill();
-
-    $ranking = $skill->get_user_skill_ranking(api_get_user_id());
-    $skills = $skill->get_user_skills(api_get_user_id(), true);
-
-    $extra = '<div class="btn-group pull-right">
-                <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="#">
-                <span class="caret"></span></a>
-                 <ul class="dropdown-menu">';
-    if (api_is_student() || api_is_student_boss() || api_is_drh()) {
-        $extra .= '<li>' . Display::url(
-            get_lang('SkillsReport'),
-            api_get_path(WEB_CODE_PATH) . 'social/my_skills_report.php'
-            ) . '</li>';
-    }
-
-    $extra.= '<li>' . Display::url(
-        get_lang('SkillsWheel'),
-        api_get_path(WEB_CODE_PATH) . 'social/skills_wheel.php'
-        ) . '</li>';
-
-    $extra .= '<li>' . Display::url(
-        sprintf(get_lang('YourSkillRankingX'), $ranking),
-        api_get_path(WEB_CODE_PATH) . 'social/skills_ranking.php'
-    ) . '</li>';
-
-    $extra .= '</ul></div>';
-
-    $social_skill_block = Display::panel(
-        null,
-        get_lang('Skills'),
-        null,
-        null,
-        $extra
-    );
-
-    $lis = '';
-    if (!empty($skills)) {
-        foreach ($skills as $skill) {
-            $badgeImage = null;
-
-            if (!empty($skill['icon'])) {
-                $badgeImage = Display::img(
-                    $skill['web_icon_thumb_path'],
-                    $skill['name']
-                );
-            } else {
-                $badgeImage = Display::return_icon(
-                    'badges-default.png',
-                    $skill['name'],
-                    array('title' => $skill['name']), ICON_SIZE_BIG
-                );
-            }
-
-            $lis .= Display::tag(
-                'li',
-                $badgeImage .
-                '<div class="badges-name">' . $skill['name'] . '</div>'
-            );
-        }
-        $content = Display::tag('ul', $lis, array('class' => 'list-badges'));
-        $social_skill_block = Display::panel(
-            $content,
-            get_lang('Skills'),
-            null,
-            null,
-            $extra
-        );
-
-    } else {
-        $social_skill_block .= Display::panel(
-            Display::url(get_lang('SkillsWheel'), api_get_path(WEB_CODE_PATH) . 'social/skills_wheel.php'),
-            get_lang('WithoutAchievedSkills')
-        );
-    }
-}
-
-
-$results = GroupPortalManager::get_groups_by_age(1, false);
+$results = $userGroup->get_groups_by_age(1, false);
 
 $groups_newest = array();
 
@@ -185,24 +96,25 @@ if (!empty($results)) {
             $result['count'] = $result['count'] . ' ' . get_lang('Members');
         }
 
-        $group_url = "groups.php?id=$id";
+        $group_url = "group_view.php?id=$id";
 
         $result['name'] = '<div class="group-name">'.Display::url(
                           api_ucwords(cut($result['name'], 40, true)), $group_url)
-                          .'</div><div class="count-username">'.Display::return_icon('user.png','','',ICON_SIZE_TINY).$result['count'].'</div>';
+                          .'</div><div class="count-username">'.
+                            Display::return_icon('user.png','','',ICON_SIZE_TINY).$result['count'].'</div>';
 
-        $picture = GroupPortalManager::get_picture_group(
+        $picture = $userGroup->get_picture_group(
             $id,
-            $result['picture_uri'],
+            $result['picture'],
             80
         );
 
-        $result['picture_uri'] = '<img class="group-image" src="' . $picture['file'] . '" />';
+        $result['picture'] = '<img class="group-image" src="' . $picture['file'] . '" />';
         $group_actions = '<div class="group-more"><a href="groups.php?#tab_browse-2">' . get_lang('SeeMore') . '</a></div>';
         $group_info= '<div class="description"><p>' . cut($result['description'], 120, true) . "</p></div>";
         $groups_newest[] = array(
             Display::url(
-                $result['picture_uri'],
+                $result['picture'],
                 $group_url
             ),
             $result['name'],
@@ -210,8 +122,9 @@ if (!empty($results)) {
         );
     }
 }
-//Top popular
-$results = GroupPortalManager::get_groups_by_popularity(1, false);
+
+// Top popular
+$results = $userGroup->get_groups_by_popularity(1, false);
 
 $groups_pop = array();
 foreach ($results as $result) {
@@ -222,7 +135,7 @@ foreach ($results as $result) {
     );
     $result['name'] = Security::remove_XSS($result['name'], STUDENT, true);
     $id = $result['id'];
-    $group_url = "groups.php?id=$id";
+    $group_url = "group_view.php?id=$id";
 
     if ($result['count'] == 1) {
         $result['count'] = '1 ' . get_lang('Member');
@@ -233,9 +146,9 @@ foreach ($results as $result) {
             api_ucwords(cut($result['name'], 40, true)),$group_url)
         .'</div><div class="count-username">'.Display::return_icon('user.png','','',ICON_SIZE_TINY).$result['count'].'</div>';
 
-    $picture = GroupPortalManager::get_picture_group(
+    $picture = $userGroup->get_picture_group(
         $id,
-        $result['picture_uri'],
+        $result['picture'],
         80
     );
     $result['picture_uri'] = '<img class="group-image" src="' . $picture['file'] . '" />';
@@ -274,16 +187,6 @@ if ($list > 0) {
         $social_group_block.="</div>";
     }
     $social_group_block.= "</div>";
-
-    /*$social_group_block .= Display::return_sortable_grid(
-        'home_group',
-        array(),
-        $groups_pop,
-        array('hide_navigation' => true, 'per_page' => 100),
-        array(),
-        false,
-        array(true, true, true, true, true)
-    );*/
 }
 
 $social_group_block = Display::panel($social_group_block, get_lang('Group'));
@@ -293,7 +196,7 @@ SocialManager::setSocialUserBlock($tpl, api_get_user_id(), 'home');
 
 $tpl->assign('social_menu_block', $social_menu_block);
 $tpl->assign('social_search_block', $social_search_block);
-$tpl->assign('social_skill_block', $social_skill_block);
+$tpl->assign('social_skill_block', SocialManager::getSkillBlock($user_id));
 $tpl->assign('social_group_block', $social_group_block);
 $social_layout = $tpl->get_template('social/home.tpl');
 $tpl->display($social_layout);

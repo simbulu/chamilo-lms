@@ -60,7 +60,7 @@ form .label {
     color: #ffffff;
     text-transform: none;
     background: none;
-    border-radius: none;
+    border-radius: unset;
     color: #404040;
     float: left;
     line-height: 18px;
@@ -483,6 +483,39 @@ switch ($action) {
             }
         }
         break;
+    case 'add_lp_category':
+        if (!$is_allowed_to_edit) {
+            api_not_allowed(true);
+        }
+        require 'lp_add_category.php';
+        break;
+    case 'move_up_category':
+        if (!$is_allowed_to_edit) {
+            api_not_allowed(true);
+        }
+        if (isset($_REQUEST['id'])) {
+            learnpath::moveUpCategory($_REQUEST['id']);
+        }
+        require 'lp_list.php';
+        break;
+    case 'move_down_category':
+        if (!$is_allowed_to_edit) {
+            api_not_allowed(true);
+        }
+        if (isset($_REQUEST['id'])) {
+            learnpath::moveDownCategory($_REQUEST['id']);
+        }
+        require 'lp_list.php';
+        break;
+    case 'delete_lp_category':
+        if (!$is_allowed_to_edit) {
+            api_not_allowed(true);
+        }
+        if (isset($_REQUEST['id'])) {
+            learnpath::deleteCategory($_REQUEST['id']);
+        }
+        require 'lp_list.php';
+        break;
     case 'add_lp':
         if (!$is_allowed_to_edit) {
             api_not_allowed(true);
@@ -497,13 +530,17 @@ switch ($action) {
             } else {
                 $_SESSION['post_time'] = $_REQUEST['post_time'];
 
-                if (isset($_REQUEST['activate_start_date_check']) && $_REQUEST['activate_start_date_check'] == 1) {
+                if (isset($_REQUEST['activate_start_date_check']) &&
+                    $_REQUEST['activate_start_date_check'] == 1
+                ) {
                 	$publicated_on = $_REQUEST['publicated_on'];
                 } else {
                 	$publicated_on = null;
                 }
 
-                if (isset($_REQUEST['activate_end_date_check']) && $_REQUEST['activate_end_date_check'] == 1) {
+                if (isset($_REQUEST['activate_end_date_check']) &&
+                    $_REQUEST['activate_end_date_check'] == 1
+                ) {
                 	$expired_on = $_REQUEST['expired_on'];
                 } else {
                 	$expired_on = null;
@@ -517,12 +554,17 @@ switch ($action) {
                     'manual',
                     '',
                     $publicated_on,
-                    $expired_on
+                    $expired_on,
+                    $_REQUEST['category_id']
                 );
 
                 if (is_numeric($new_lp_id)) {
                     // TODO: Maybe create a first module directly to avoid bugging the user with useless queries
-                    $_SESSION['oLP'] = new learnpath(api_get_course_id(),$new_lp_id,api_get_user_id());
+                    $_SESSION['oLP'] = new learnpath(
+                        api_get_course_id(),
+                        $new_lp_id,
+                        api_get_user_id()
+                    );
                     //require 'lp_build.php';
                     $url = api_get_self().'?action=add_item&type=step&lp_id='.intval($new_lp_id).'&'.api_get_cidreq();
                     header("Location: $url&isStudentView=false");
@@ -550,9 +592,9 @@ switch ($action) {
                 api_not_allowed(true);
             }
             if ($debug > 0) error_log('New LP - auto_launch action triggered', 0);
-            if (!$lp_found) { error_log('New LP - No learnpath given for set_autolunch', 0); require 'lp_list.php'; }
+            if (!$lp_found) { error_log('New LP - No learnpath given for set_autolaunch', 0); require 'lp_list.php'; }
             else {
-                $_SESSION['oLP']->set_autolunch($_GET['lp_id'], $_GET['status']);
+                $_SESSION['oLP']->set_autolaunch($_GET['lp_id'], $_GET['status']);
                 require 'lp_list.php';
                 exit;
             }
@@ -713,8 +755,8 @@ switch ($action) {
             api_not_allowed(true);
         }
 
-        global $_configuration;
-        if (isset($_configuration['hide_scorm_copy_link']) && $_configuration['hide_scorm_copy_link']) {
+        $hideScormCopyLink = api_get_setting('hide_scorm_copy_link');
+        if ($hideScormCopyLink === 'true') {
             api_not_allowed(true);
         }
 
@@ -729,8 +771,8 @@ switch ($action) {
         if (!$is_allowed_to_edit) {
             api_not_allowed(true);
         }
-        global $_configuration;
-        if (isset($_configuration['hide_scorm_export_link']) && $_configuration['hide_scorm_export_link']) {
+        $hideScormExportLink = api_get_setting('hide_scorm_export_link');
+        if ($hideScormExportLink === 'true') {
             api_not_allowed(true);
         }
         if ($debug > 0) error_log('New LP - export action triggered', 0);
@@ -745,8 +787,8 @@ switch ($action) {
         if (!learnpath::is_lp_visible_for_student($_SESSION['oLP']->lp_id, api_get_user_id())) {
             api_not_allowed();
         }
-        global $_configuration;
-        if (isset($_configuration['hide_scorm_pdf_link']) && $_configuration['hide_scorm_pdf_link']) {
+        $hideScormPdfLink = api_get_setting('hide_scorm_pdf_link');
+        if ($hideScormPdfLink === 'true') {
             api_not_allowed(true);
         }
 
@@ -881,21 +923,20 @@ switch ($action) {
             $_SESSION['oLP']->set_hide_toc_frame($hide_toc_frame);
             $_SESSION['oLP']->set_prerequisite($_REQUEST['prerequisites']);
             $_SESSION['oLP']->set_use_max_score($_REQUEST['use_max_score']);
+            $_SESSION['oLP']->setSubscribeUsers($_REQUEST['subscribe_users']);
 
             if (isset($_REQUEST['activate_start_date_check']) && $_REQUEST['activate_start_date_check'] == 1) {
             	$publicated_on  = $_REQUEST['publicated_on'];
-            	$publicated_on  = $publicated_on['Y'].'-'.$publicated_on['F'].'-'.$publicated_on['d'].' '.$publicated_on['H'].':'.$publicated_on['i'].':00';
             } else {
             	$publicated_on = null;
             }
 
             if (isset($_REQUEST['activate_end_date_check']) && $_REQUEST['activate_end_date_check'] == 1) {
-            	$expired_on   = $_REQUEST['expired_on'];
-            	$expired_on   = $expired_on['Y'].'-'.$expired_on['F'].'-'.$expired_on['d'].' '.$expired_on['H'].':'.$expired_on['i'].':00';
+                $expired_on = $_REQUEST['expired_on'];
             } else {
-            	$expired_on   = null;
+                $expired_on = null;
             }
-
+            $_SESSION['oLP']->setCategoryId($_REQUEST['category_id']);
             $_SESSION['oLP']->set_modified_on();
             $_SESSION['oLP']->set_publicated_on($publicated_on);
             $_SESSION['oLP']->set_expired_on($expired_on);
@@ -1205,6 +1246,25 @@ switch ($action) {
         $_SESSION['oLP']->clear_prerequisites();
         $url = api_get_self().'?action=add_item&type=step&lp_id='.intval($_SESSION['oLP']->lp_id)."&message=ItemUpdated";
         header('Location: '.$url);
+        break;
+    case 'toggle_seriousgame': //activate/deactive seriousgame_mode
+        if (!$is_allowed_to_edit) {
+            api_not_allowed(true);
+        }
+
+        if ($debug > 0) {
+            error_log('New LP - seriousgame_mode action triggered');
+        }
+
+        if (!$lp_found) {
+            error_log('New LP - No learnpath given for visibility');
+
+            require 'lp_list.php';
+        }
+
+        $_SESSION['refresh'] = 1;
+        $_SESSION['oLP']->set_seriousgame_mode();
+        require 'lp_list.php';
         break;
     default:
         if ($debug > 0) error_log('New LP - default action triggered', 0);

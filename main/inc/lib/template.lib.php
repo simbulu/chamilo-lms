@@ -66,6 +66,7 @@ class Template
         $this->load_plugins     = $load_plugins;
 
         $template_paths = array(
+            api_get_path(SYS_CODE_PATH) . 'template/overrides', // user defined templates
             api_get_path(SYS_CODE_PATH).'template', //template folder
             api_get_path(SYS_PLUGIN_PATH) //plugin folder
         );
@@ -211,9 +212,18 @@ class Template
     }
 
     /**
-     * @param string $helpInput
+     * @deprecated
+     * @param null $helpInput
      */
     public function set_help($helpInput = null)
+    {
+        $this->setHelp($helpInput);
+    }
+
+    /**
+     * @param string $helpInput
+     */
+    public function setHelp($helpInput = null)
     {
         if (!empty($helpInput)) {
             $help = $helpInput;
@@ -481,13 +491,13 @@ class Template
         // Default CSS Bootstrap
 
         $bowerCSSFiles = [
-            'bootstrap/dist/css/bootstrap.min.css',
             'bootstrap-daterangepicker/daterangepicker-bs3.css',
             'fontawesome/css/font-awesome.min.css',
-            'jquery-ui/themes/smoothness/jquery-ui.min.css',
             'jquery-ui/themes/smoothness/theme.css',
+            'jquery-ui/themes/smoothness/jquery-ui.min.css',
             'mediaelement/build/mediaelementplayer.min.css',
-            'jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.css'
+            'jqueryui-timepicker-addon/dist/jquery-ui-timepicker-addon.min.css',
+            'bootstrap/dist/css/bootstrap.min.css',
         ];
 
         foreach ($bowerCSSFiles as $file) {
@@ -523,18 +533,17 @@ class Template
         global $disable_js_and_css_files;
         // Base CSS
         $css[] = api_get_cdn_path(api_get_path(WEB_CSS_PATH).'base.css');
-        $css[] = api_get_cdn_path(api_get_path(WEB_CSS_PATH).'themes/'.$this->theme.'/default.css');
 
         if ($this->show_learnpath) {
-            $css[] = api_get_path(WEB_CSS_PATH).$this->theme.'/learnpath.css';
-
-            // if we have a SCORM file in theme, don't use default_scorm.css file
-            if (is_file(api_get_path(SYS_CSS_PATH).$this->theme.'/scorm.css')) {
-                $css[] = api_get_path(WEB_CSS_PATH).$this->theme.'/scorm.css';
-            } else {
-                $css[] = api_get_cdn_path(api_get_path(WEB_CSS_PATH).'default_scorm.css');
+            $css[] = api_get_cdn_path(api_get_path(WEB_CSS_PATH).'scorm.css');
+            if (is_file(api_get_path(SYS_CSS_PATH).'themes/'.$this->theme.'/learnpath.css')) {
+                $css[] = api_get_path(WEB_CSS_PATH).'themes/'.$this->theme.'/learnpath.css';
             }
         }
+
+        $css[] = api_get_cdn_path(api_get_path(WEB_CSS_PATH).'themes/'.$this->theme.'/default.css');
+
+
 
         $css_file_to_string = null;
         foreach ($css as $file) {
@@ -616,9 +625,9 @@ class Template
         $bowerJsFiles = [
             'modernizr/modernizr.js',
             'jquery/dist/jquery.min.js',
-            'moment/min/moment-with-locales.min.js',
-            'jquery-ui/jquery-ui.min.js',
             'bootstrap/dist/js/bootstrap.min.js',
+            'jquery-ui/jquery-ui.min.js',
+            'moment/min/moment-with-locales.min.js',
             'ckeditor/ckeditor.js',
             'bootstrap-daterangepicker/daterangepicker.js',
             'jquery-timeago/jquery.timeago.js',
@@ -809,7 +818,8 @@ class Template
         //Preparing values for the menu
 
         //Logout link
-        if (isset($_configuration['hide_logout_button']) && $_configuration['hide_logout_button'] == 'true') {
+        $hideLogout = api_get_setting('hide_logout_button');
+        if ($hideLogout === 'true') {
             $this->assign('logout_link', null);
         } else {
             $this->assign('logout_link', api_get_path(WEB_PATH).'index.php?logout=logout&uid='.api_get_user_id());
@@ -859,25 +869,23 @@ class Template
             $number_of_new_messages_of_friend = SocialManager::get_message_number_invitation_by_user_id(
                 api_get_user_id()
             );
-            $group_pending_invitations        = GroupPortalManager::get_groups_by_user(
+            $usergroup = new UserGroup();
+            $group_pending_invitations = $usergroup->get_groups_by_user(
                 api_get_user_id(),
                 GROUP_USER_PERMISSION_PENDING_INVITATION,
                 false
             );
-            $group_pending_invitations        = 0;
+            $group_pending_invitations = 0;
             if (!empty($group_pending_invitations)) {
                 $group_pending_invitations = count($group_pending_invitations);
             }
-            $total_invitations = intval($number_of_new_messages_of_friend) + $group_pending_invitations + intval(
-                    $count_unread_message
-                );
+            $total_invitations = intval($number_of_new_messages_of_friend) + $group_pending_invitations + intval($count_unread_message);
         }
         $total_invitations = (!empty($total_invitations) ? Display::badge($total_invitations) : null);
 
         $this->assign('user_notifications', $total_invitations);
 
-
-        //Block Breadcrumb
+        // Block Breadcrumb
         $breadcrumb = return_breadcrumb($interbreadcrumb, $language_file, $nameTools);
         $this->assign('breadcrumb', $breadcrumb);
 

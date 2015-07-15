@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+require_once 'Resource.class.php';
 require_once 'Course.class.php';
 require_once 'Event.class.php';
 require_once 'Link.class.php';
@@ -218,19 +219,20 @@ class CourseRestorer
                             values as users/groups possibly not exist in
 							the target course*/
 							$sql = "INSERT INTO $table SET
-									c_id 				= '".$this->destination_course_id."',
-									tool 				= '".self::DBUTF8escapestring($property['tool'])."',
-									insert_user_id 		= '".self::DBUTF8escapestring($property['insert_user_id'])."',
-									insert_date 		= '".self::DBUTF8escapestring($property['insert_date'])."',
-									lastedit_date 		= '".self::DBUTF8escapestring($property['lastedit_date'])."',
-									ref 				= '".self::DBUTF8escapestring($resource->destination_id)."',
-									lastedit_type 		= '".self::DBUTF8escapestring($property['lastedit_type'])."',
-									lastedit_user_id 	= '".self::DBUTF8escapestring($property['lastedit_user_id'])."',
-									visibility 			= '".self::DBUTF8escapestring($property['visibility'])."',
-									start_visible 		= '".self::DBUTF8escapestring($property['start_visible'])."',
-									end_visible 		= '".self::DBUTF8escapestring($property['end_visible'])."',
-									to_user_id  		= '".self::DBUTF8escapestring($property['to_user_id'])."',
-									to_group_id 		= '0' $condition_session" ;
+									c_id = '".$this->destination_course_id."',
+									tool = '".self::DBUTF8escapestring($property['tool'])."',
+									insert_user_id = '".self::DBUTF8escapestring($property['insert_user_id'])."',
+									insert_date = '".self::DBUTF8escapestring($property['insert_date'])."',
+									lastedit_date = '".self::DBUTF8escapestring($property['lastedit_date'])."',
+									ref = '".self::DBUTF8escapestring($resource->destination_id)."',
+									lastedit_type = '".self::DBUTF8escapestring($property['lastedit_type'])."',
+									lastedit_user_id = '".self::DBUTF8escapestring($property['lastedit_user_id'])."',
+									visibility = '".self::DBUTF8escapestring($property['visibility'])."',
+									start_visible = '".self::DBUTF8escapestring($property['start_visible'])."',
+									end_visible = '".self::DBUTF8escapestring($property['end_visible'])."',
+									to_user_id = '".self::DBUTF8escapestring($property['to_user_id'])."',
+									to_group_id = NULL
+									$condition_session" ;
 													;
 							Database::query($sql);
 						}
@@ -2077,7 +2079,7 @@ class CourseRestorer
 
 				//Adding the author's image
 				if (!empty($lp->preview_image)) {
-					$new_filename = uniqid('').$new_filename.substr($lp->preview_image,strlen($lp->preview_image)-7, strlen($lp->preview_image));
+					$new_filename = uniqid('').substr($lp->preview_image,strlen($lp->preview_image)-7, strlen($lp->preview_image));
 					if (file_exists($origin_path.$lp->preview_image) && !is_dir($origin_path.$lp->preview_image)) {
 						$copy_result = copy($origin_path.$lp->preview_image, $destination_path.$new_filename);
 						//$copy_result = true;
@@ -2120,7 +2122,7 @@ class CourseRestorer
 						"author             = '".self::DBUTF8escapestring($lp->author)."', " .
 						"preview_image      = '".self::DBUTF8escapestring($lp->preview_image)."', " .
         				"use_max_score      = '".self::DBUTF8escapestring($lp->use_max_score)."', " .
-        				"autolunch          = '".self::DBUTF8escapestring($lp->autolunch)."', " .
+        				"autolaunch          = '".self::DBUTF8escapestring($lp->autolaunch)."', " .
         				"created_on         = '".self::DBUTF8escapestring($lp->created_on)."', " .
         				"modified_on        = '".self::DBUTF8escapestring($lp->modified_on)."', " .
         				"publicated_on      = '".self::DBUTF8escapestring($lp->publicated_on)."', " .
@@ -2352,7 +2354,8 @@ class CourseRestorer
                         start_visible,
                         end_visible
                         FROM '.$item_property_table.' ip
-                        INNER JOIN '.$work_table.' sp ON ip.ref=sp.id
+                        INNER JOIN '.$work_table.' sp
+                        ON ip.ref=sp.id
                         WHERE
                             sp.c_id = '.$this->course_origin_id.' AND
                             ip.c_id = '.$this->course_origin_id.' AND

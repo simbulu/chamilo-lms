@@ -9,7 +9,7 @@ $action = $_REQUEST['a'];
 switch ($action) {
     case 'upload_file':
         api_protect_course_script(true);
-        //User access same as upload.php
+        // User access same as upload.php
         $is_allowed_to_edit = api_is_allowed_to_edit(null, true);
         // This needs cleaning!
         if (api_get_group_id()) {
@@ -24,7 +24,7 @@ switch ($action) {
             exit;
         }
 
-        $fileExistsOption = api_get_configuration_value('document_if_file_exists_option');
+        $fileExistsOption = api_get_setting('document_if_file_exists_option');
         $defaultFileExistsOption = 'rename';
         if (!empty($fileExistsOption)) {
             $defaultFileExistsOption = $fileExistsOption;

@@ -131,13 +131,19 @@ $new_course_list = array();
 
 if (!empty($course_list)) {
     foreach ($course_list as $course_data) {
-        if (in_array($course_data['code'], $user_course_list) || api_is_anonymous()) {
-            $course_data['title'] = Display::url(
-                $course_data['title'],
-                api_get_course_url($course_data['code'], $session_id)
-            );
-        } else {
-            continue;
+        if (!api_is_platform_admin()) {
+            if (in_array(
+                    $course_data['code'],
+                    $user_course_list
+                ) || api_is_anonymous()
+            ) {
+                $course_data['title'] = Display::url(
+                    $course_data['title'],
+                    api_get_course_url($course_data['code'], $session_id)
+                );
+            } else {
+                continue;
+            }
         }
 
         $list = new LearnpathList(
@@ -363,13 +369,13 @@ if (!empty($new_exercises)) {
 
 $start = $end = $start_only = $end_only ='';
 
-if (!empty($session_info['date_start']) && $session_info['date_start'] != '0000-00-00') {
-    $start = api_convert_and_format_date($session_info['date_start'], DATE_FORMAT_SHORT);
-    $start_only = get_lang('From').' '.$session_info['date_start'];
+if (!empty($session_info['access_start_date']) && $session_info['access_start_date'] != '0000-00-00') {
+    $start = api_convert_and_format_date($session_info['access_start_date'], DATE_FORMAT_SHORT);
+    $start_only = get_lang('From').' '.$session_info['access_start_date'];
 }
-if (!empty($session_info['date_start']) && $session_info['date_end'] != '0000-00-00') {
-    $end = api_convert_and_format_date($session_info['date_end'], DATE_FORMAT_SHORT);
-    $end_only = get_lang('Until').' '.$session_info['date_end'];
+if (!empty($session_info['access_start_date']) && $session_info['access_end_date'] != '0000-00-00') {
+    $end = api_convert_and_format_date($session_info['access_end_date'], DATE_FORMAT_SHORT);
+    $end_only = get_lang('Until').' '.$session_info['access_end_date'];
 }
 
 if (!empty($start) && !empty($end)) {
@@ -434,9 +440,10 @@ $column_model   = array(
 );
 
 $extra_params = array();
+$extra_params['sortname'] = 'date';
 
 /*
-$extra_params['sortname'] = 'date';
+
 $extra_params['sortorder'] = 'asc';
 $extra_params['pgbuttons'] = false;
 $extra_params['recordtext'] = '';

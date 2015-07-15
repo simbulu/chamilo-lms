@@ -1,7 +1,9 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 require_once '../global.inc.php';
-$action = $_GET['a'];
+
+$action = isset($_GET['a']) ? $_GET['a'] : '';
 
 switch ($action) {
     case 'get_second_select_options':
@@ -11,7 +13,11 @@ switch ($action) {
 
         if (!empty($type) && !empty($field_id) && !empty($option_value_id)) {
             $field_options = new ExtraFieldOption($type);
-            echo $field_options->get_second_select_field_options_by_field($field_id, $option_value_id, true);
+            echo $field_options->get_second_select_field_options_by_field(
+                $field_id,
+                $option_value_id,
+                true
+            );
         }
         break;
     case 'search_tags':
@@ -19,7 +25,26 @@ switch ($action) {
         $fieldId = isset($_REQUEST['field_id']) ? $_REQUEST['field_id'] : null;
         $tag = isset($_REQUEST['tag']) ? $_REQUEST['tag'] : null;
         $extraFieldOption = new ExtraFieldOption($type);
-        echo $extraFieldOption->getSearchOptionsByField($tag, $fieldId, 10, 'json');
+
+        $result = [];
+        $tags = Database::getManager()
+            ->getRepository('ChamiloCoreBundle:Tag')
+            ->createQueryBuilder('t')
+            ->where("t.tag LIKE :tag")
+            ->andWhere('t.fieldId = :field')
+            ->setParameter('field', $fieldId)
+            ->setParameter('tag', "$tag%")
+            ->getQuery()
+            ->getResult();
+
+        foreach ($tags as $tag) {
+            $result[] = [
+                'caption' => $tag->getTag(),
+                'value' => $tag->getTag()
+            ];
+        }
+
+        echo json_encode($result);
         break;
     default:
         exit;

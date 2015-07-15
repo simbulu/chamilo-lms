@@ -59,7 +59,7 @@ Display::display_header($nameTools,"Tracking");
 /*	Constants and variables */
 
 $is_allowedToTrack = $is_courseAdmin;
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course($user_id, $course_id);
+$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course($user_id, $courseId);
 
 // Database Table Definitions
 $TABLECOURSUSER	        	= Database::get_main_table(TABLE_MAIN_COURSE_USER);
@@ -73,10 +73,10 @@ $sql = "SELECT 1
         FROM $tbl_session_course_user AS session_course_user
         INNER JOIN $tbl_session AS session
             ON session_course_user.session_id = session.id
-            AND ((date_start <= '$now'
-            AND date_end >= '$now')
-            OR (date_start='0000-00-00' AND date_end='0000-00-00'))
-        WHERE session_id='".api_get_session_id()."' AND course_code='$_cid'";
+            AND ((access_start_date <= '$now'
+            AND access_end_date >= '$now')
+            OR (access_start_date='0000-00-00' AND access_end_date='0000-00-00'))
+        WHERE session_id='".api_get_session_id()."' AND c_id = $courseId";
 //echo $sql;
 $result=Database::query($sql);
 if(!Database::num_rows($result)){

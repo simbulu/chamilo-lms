@@ -19,11 +19,14 @@ function clean_user_select() {
 }
 
 var region_value = '{{ region_value }}';
+
 $(document).ready(function() {
 	var date = new Date();
-	var d = date.getDate();
-	var m = date.getMonth()+1;
-	var y = date.getFullYear();
+
+    // Reset button.
+    $("button[type=reset]").click(function() {
+        $("#session_id").find('option').removeAttr("selected");
+    });
 
 	$("#dialog-form").dialog({
 		autoOpen: false,
@@ -45,8 +48,17 @@ $(document).ready(function() {
 	content = $( "#content" ),
 	allFields = $( [] ).add( title ).add( content ), tips = $(".validateTips");
 
-	$('#users_to_send_id').bind('change', function() {
-	    var selected_counts = $("#users_to_send_id option:selected").size();
+    $("#select_form_id_search").change(function() {
+        var temp ="&user_id="+$("#select_form_id_search").val();
+        var position =String(window.location).indexOf("&user");
+        var url_length = String(window.location).length;
+        var url = String(window.location).substring(0,position)+temp;
+        if (position > 0) {
+            window.location.replace(url);
+        } else {
+            url = String(window.location)+temp;
+            window.location.replace(url);
+        }
     });
 
     $.datepicker.setDefaults( $.datepicker.regional[region_value] );
@@ -87,9 +99,6 @@ $(document).ready(function() {
         },
 		// Add event
 		select: function(start, end, jsEvent, view) {
-			//Removing UTC stuff
-            //var start_date = $.datepicker.formatDate("yy-mm-dd", start) + " " + start.toTimeString().substr(0, 8);
-            //var end_date  = $.datepicker.formatDate("yy-mm-dd", end) + " " + end.toTimeString().substr(0, 8);
             var start_date = start.format("YY-MM-DD");
             var end_date = end.format("YY-MM-DD");
 
@@ -230,7 +239,6 @@ $(document).ready(function() {
             } else {
                 var end_date 	= '';
                 if (calEvent.end && calEvent.end != '') {
-                    //var end_date 	= Math.round(calEvent.end.getTime() / 1000);
                     var end_date  = calEvent.end.format("YY-MM-DD");
                 }
             }
@@ -253,12 +261,8 @@ $(document).ready(function() {
                 $('#color_calendar').removeClass('group_event');
                 $('#color_calendar').addClass(calEvent.type+'_event');
 
-                //my_start_month = calEvent.start.getMonth() +1;
-                //$('#start_date').html(calEvent.start.getDate() +"/"+ my_start_month +"/"+calEvent.start.getFullYear());
                 $('#start_date').html(calEvent.start.format("YY-MM-DD"));
                 if (calEvent.end) {
-                    //my_end_month = calEvent.end.getMonth() +1;
-                    //$('#end_date').html(' '+calEvent.end.getDate() +"/"+ my_end_month +"/"+calEvent.end.getFullYear());
                     $('#end_date').html(' - '+calEvent.end.format("YY-MM-DD"));
                 }
 
@@ -275,6 +279,24 @@ $(document).ready(function() {
 
                 if ($("#comment").parent().find('#comment_edit').length == 0) {
                     $("#comment").parent().append('<div id="comment_edit"></div>');
+                }
+
+                if (calEvent.course_name) {
+                    $("#calendar_course_info").html(
+                        '<div class="form-group"><label class="col-sm-2 control-label">{{ 'Course' | get_lang }}</label>' +
+                        '<div class="class="col-sm-8">' + calEvent.course_name+"</div></div>"
+                    );
+                } else {
+                    $("#calendar_course_info").html('');
+                }
+
+                if (calEvent.session_name) {
+                    $("#calendar_session_info").html(
+                        '<div class="form-group"><label class="col-sm-2 control-label">{{ 'Session' | get_lang }}</label>'+
+                        '<div class="class="col-sm-8">' + calEvent.session_name+"</div></div>"
+                    );
+                } else {
+                    $("#calendar_session_info").html('');
                 }
 
                 $("#comment_edit").html(calEvent.comment);
@@ -337,10 +359,9 @@ $(document).ready(function() {
                             window.location.href = url;
                             $("#dialog-form").dialog( "close" );
                         },
-
 						'{{ "Delete"|get_lang }}': function() {
 
-                            if (calEvent.parent_event_id || calEvent.has_children != '' ) {
+                            if (calEvent.parent_event_id || calEvent.has_children != '') {
                                 var newDiv = $(document.createElement('div'));
 
                                 newDiv.dialog({
@@ -425,16 +446,30 @@ $(document).ready(function() {
 					}
 				});
 			} else {
-			    //Simple form
-                //my_start_month = calEvent.start.getMonth() +1;
+			    // Simple form
                 $('#simple_start_date').html(calEvent.start.format("YY-MM-DD"));
 
                 if (end_date != '') {
-                    my_end_month = calEvent.end.getMonth() +1;
-                    //$('#simple_start_date').html(calEvent.start.getDate() +"/"+ my_start_month +"/"+calEvent.start.getFullYear() +" - "+calEvent.start.toLocaleTimeString());
                     $('#simple_start_date').html(calEvent.start.format("YY-MM-DD"));
-                    //$('#simple_end_date').html(' '+calEvent.end.getDate() +"/"+ my_end_month +"/"+calEvent.end.getFullYear() +" - "+calEvent.end.toLocaleTimeString());
                     $('#simple_end_date').html(' ' + calEvent.end.format("YY-MM-DD"));
+                }
+                if (calEvent.course_name) {
+                    $("#calendar_course_info_simple").html(
+                        '<div class="form-group"><label class="col-sm-2 control-label">{{ 'Course' | get_lang }}</label>' +
+                        '<div class="col-sm-8">' + calEvent.course_name+"</div></div>"
+                    );
+                } else {
+                    $("#calendar_course_info_simple").html('');
+                }
+
+                if (calEvent.session_name) {
+                    $("#calendar_session_info").html(
+                        '<div class="form-group"><label class="col-sm-2 control-label">{{ 'Session' | get_lang }}</label>' +
+                        '<div class="col-sm-8">' + calEvent.session_name+"</div></div>"
+                    );
+
+                } else {
+                    $("#calendar_session_info").html('');
                 }
 
                 $("#simple_title").html(calEvent.title);
@@ -497,44 +532,43 @@ $(document).ready(function() {
 
 <div id="simple-dialog-form" style="display:none;">
     <div style="width:500px">
-        <form name="form-simple" class="form-vertical">
-            <div class="control-group">
-                <label class="control-label">
+        <form name="form-simple" class="form-horizontal">
+            <span id="calendar_course_info_simple"></span>
+            <span id="calendar_session_info"></span>
+            <div class="form-group">
+                <label class="col-sm-2 control-label">
                     <b>{{ "Date" |get_lang}}</b>
                 </label>
-                <div class="controls">
+                <div class="col-sm-8">
                     <span id="simple_start_date"></span>
                     <span id="simple_end_date"></span>
                 </div>
             </div>
-            <div class="control-group">
-                <label class="control-label">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">
                     <b>{{ "Title" |get_lang}}</b>
                 </label>
-                <div class="controls">
+                <div class="col-sm-8">
                     <div id="simple_title"></div>
                 </div>
             </div>
 
-            <div class="control-group">
-                <label class="control-label">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">
                     <b>{{ "Description" |get_lang}}</b>
                 </label>
-                <div class="controls">
+                <div class="col-sm-8">
                     <div id="simple_content"></div>
                 </div>
             </div>
-            {% if allow_agenda_event_comment %}
-            <div class="control-group">
-                <label class="control-label">
+            <div class="form-group">
+                <label class="col-sm-2 control-label">
                     <b>{{ "Comment" |get_lang}}</b>
                 </label>
-                <div class="controls">
+                <div class="col-sm-8">
                     <div id="simple_comment"></div>
                 </div>
             </div>
-            {% endif %}
-
         </form>
     </div>
 </div>

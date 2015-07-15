@@ -26,15 +26,23 @@ class LearnpathList
      * This method is the constructor for the learnpathList. It gets a list of available learning paths from
      * the database and creates the learnpath objects. This list depends on the user that is connected
      * (only displays) items if he has enough permissions to view them.
-     * @param	integer		$user_id
-     * @param	string		$course_code Optional course code (otherwise we use api_get_course_id())
-     * @param int			$session_id Optional session id (otherwise we use api_get_session_id())
-     * @param string $order_by
-     * @param string $check_publication_dates
+     * @param	integer	$user_id
+     * @param	string	$course_code Optional course code (otherwise we use api_get_course_id())
+     * @param   int		$session_id Optional session id (otherwise we use api_get_session_id())
+     * @param   string  $order_by
+     * @param   string  $check_publication_dates
+     * @param   int     $categoryId
+     *
      * @return	void
      */
-    public function __construct($user_id, $course_code = '', $session_id = null, $order_by = null, $check_publication_dates = false)
-    {
+    public function __construct(
+        $user_id,
+        $course_code = '',
+        $session_id = null,
+        $order_by = null,
+        $check_publication_dates = false,
+        $categoryId = null
+    ) {
         $course_info = api_get_course_info($course_code);
         $lp_table = Database::get_course_table(TABLE_LP_MAIN);
         $tbl_tool = Database::get_course_table(TABLE_TOOL_LIST);
@@ -74,8 +82,21 @@ class LearnpathList
             ";
         }
 
+        $categoryFilter = '';
+
+        if (!is_null($categoryId) && is_numeric($categoryId)) {
+            $categoryId = intval($categoryId);
+            $categoryFilter = " AND category_id = $categoryId";
+        }
+
         $sql = "SELECT * FROM $lp_table
-                WHERE c_id = $course_id $time_conditions $condition_session $order";
+                WHERE
+                    c_id = $course_id
+                    $time_conditions
+                    $condition_session
+                    $categoryFilter
+                $order
+                    ";
 
         $res = Database::query($sql);
         $names = array();
@@ -85,6 +106,7 @@ class LearnpathList
             // is done using domesticate()
             $myname = domesticate($row['name']);
             $mylink = 'newscorm/lp_controller.php?action=view&lp_id='.$row['id'].'&id_session='.$session_id;
+
             $sql2 = "SELECT * FROM $tbl_tool
                      WHERE
                         c_id = $course_id AND (
@@ -103,7 +125,12 @@ class LearnpathList
             }
 
             // Check if visible.
-            $vis = api_get_item_visibility(api_get_course_info($course_code), 'learnpath', $row['id'], $session_id);
+            $vis = api_get_item_visibility(
+                api_get_course_info($course_code),
+                'learnpath',
+                $row['id'],
+                $session_id
+            );
 
             if (!empty($row['created_on']) && $row['created_on'] != '0000-00-00 00:00:00') {
                 $row['created_on'] = $row['created_on'];
@@ -147,12 +174,14 @@ class LearnpathList
                 'lp_scorm_debug'    => $row['debug'],
                 'lp_display_order'  => $row['display_order'],
                 'lp_preview_image'  => stripslashes($row['preview_image']),
-                'autolaunch'        => $row['autolunch'],
+                'autolaunch'        => $row['autolaunch'],
                 'session_id'        => $row['session_id'],
                 'created_on'        => $row['created_on'],
                 'modified_on'       => $row['modified_on'],
                 'publicated_on'     => $row['publicated_on'],
-                'expired_on'        => $row['expired_on']
+                'expired_on'        => $row['expired_on'],
+                //'category_id'       => $row['category_id'],
+                'subscribe_users'   => $row['subscribe_users']
             );
             $names[$row['name']] = $row['id'];
         }
@@ -164,7 +193,7 @@ class LearnpathList
      * This applies a transformation internally on list and ref_list and returns a copy of the refs list
      * @return	array	List of references to learnpath objects
      */
-    function get_refs()
+    public function get_refs()
     {
         foreach ($this->list as $id => $dummy) {
             $this->ref_list[$id] = new learnpath($this->course_code, $id, $this->user_id);
@@ -177,10 +206,11 @@ class LearnpathList
      * Gets a table of the different learnpaths we have at the moment
      * @return	array	Learnpath info as [lp_id] => ([lp_type]=> ..., [lp_name]=>...,[lp_desc]=>...,[lp_path]=>...)
      */
-    function get_flat_list()
+    public function get_flat_list()
     {
         return $this->list;
     }
+
     /**
      *  Gets a list of lessons  of the given course_code and session_id
      *  This functions doesn't need user_id
@@ -188,24 +218,22 @@ class LearnpathList
      *  @param int  $session_id Id of session
      *  @return array List of lessons with lessons id as keys
      */
-    static function  get_course_lessons($course_code, $session_id)
+    public static function  get_course_lessons($course_code, $session_id)
     {
         $tbl_course_lp = Database::get_course_table(TABLE_LP_MAIN);
         $course = api_get_course_info($course_code);
-        //QUery
-        $sql = "SELECT * FROM $tbl_course_lp
-        WHERE c_id = %s ";  //TODO AND session_id = %s ?
+        // @todo AND session_id = %s ?
+        $sql = "SELECT * FROM $tbl_course_lp WHERE c_id = %s ";
         $sql_query = sprintf($sql, $course['real_id']);
         $result = Database::query($sql_query);
 
         $lessons = array();
-        while ($row = Database::fetch_array($result))
-        {
-            if (api_get_item_visibility($course, 'learnpath', $row['id'],  $session_id))
-            {
+        while ($row = Database::fetch_array($result)) {
+            if (api_get_item_visibility($course, 'learnpath', $row['id'],  $session_id)) {
                 $lessons[$row['id']] = $row;
             }
         }
+
         return $lessons;
     }
 }

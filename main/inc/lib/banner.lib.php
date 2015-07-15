@@ -68,29 +68,7 @@ function get_tabs() {
             $navigation['session_my_progress']['url'] = api_get_path(WEB_CODE_PATH).'auth/my_progress.php';
             $navigation['session_my_progress']['title'] = get_lang('MyProgress');
             $navigation['session_my_progress']['key'] = 'my-progress';
-	}
-
-
-    // Social
-    /*
-	if (api_get_setting('allow_social_tool')=='true') {
-		$navigation['social']['url'] = api_get_path(WEB_CODE_PATH).'social/home.php';
-
-        // get count unread message and total invitations
-        $count_unread_message = MessageManager::get_number_of_messages(true);
-
-        $number_of_new_messages_of_friend   = SocialManager::get_message_number_invitation_by_user_id(api_get_user_id());
-        $group_pending_invitations = GroupPortalManager::get_groups_by_user(api_get_user_id(), GROUP_USER_PERMISSION_PENDING_INVITATION,false);
-        $group_pending_invitations = 0;
-        if (!empty($group_pending_invitations )) {
-	        $group_pending_invitations = count($group_pending_invitations);
-        }
-        $total_invitations = intval($number_of_new_messages_of_friend) + $group_pending_invitations + intval($count_unread_message);
-        $total_invitations = (!empty($total_invitations) ? Display::badge($total_invitations) :'');
-
-		$navigation['social']['title'] = get_lang('SocialNetwork'). $total_invitations;
-	}
-    */
+    }
 
 	// Social
 	if (api_get_setting('allow_social_tool')=='true') {
@@ -230,7 +208,7 @@ function return_notification_menu()
             if ((api_get_setting('showonline', 'world') == 'true' && !$user_id) ||
                 (api_get_setting('showonline', 'users') == 'true' && $user_id)
             ) {
-                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonline.php" target="_top" title="'.get_lang('UsersOnline').'" >'.
+                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonline.php" target="_self" title="'.get_lang('UsersOnline').'" >'.
                             Display::return_icon('user.png', get_lang('UsersOnline'), array(), ICON_SIZE_TINY).' '.$number.'</a></li>';
             }
         }
@@ -241,7 +219,7 @@ function return_notification_menu()
                 api_get_setting('showonline', 'course') == 'true' &&
                 isset($_course['sysCode'])
             ) {
-                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonline.php?cidReq='.$_course['sysCode'].'" target="_top">'.
+                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonline.php?cidReq='.$_course['sysCode'].'" target="_self">'.
                         Display::return_icon('course.png', get_lang('UsersOnline').' '.get_lang('InThisCourse'), array(), ICON_SIZE_TINY).' '.$number_online_in_course.' </a></li>';
             }
         }
@@ -250,7 +228,7 @@ function return_notification_menu()
 
             // Display the who's online for the session
             if (isset($user_id) && api_get_session_id() != 0) {
-                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonlinesession.php?id_coach='.$user_id.'&amp;referer='.urlencode($_SERVER['REQUEST_URI']).'" target="_top">'.
+                $html .= '<li><a href="'.api_get_path(WEB_PATH).'whoisonlinesession.php?id_coach='.$user_id.'&amp;referer='.urlencode($_SERVER['REQUEST_URI']).'" target="_self">'.
                         Display::return_icon('session.png', get_lang('UsersConnectedToMySessions'), array(), ICON_SIZE_TINY).' </a></li>';
             }
         //}
@@ -482,7 +460,7 @@ function return_menu()
                 $current = '';
             }
             if (!empty($navigation_info['title'])) {
-                $pre_lis .= '<li'.$current.'><a href="'.$navigation_info['url'].'" target="_top">'.$navigation_info['title'].'</a></li>';
+                $pre_lis .= '<li'.$current.'><a href="'.$navigation_info['url'].'" target="_self">'.$navigation_info['title'].'</a></li>';
             }
         }
         $lis = $pre_lis.$lis;
@@ -628,7 +606,7 @@ function return_breadcrumb($interbreadcrumb, $language_file, $nameTools)
             if ($navigation_info['url'] == '#') {
                 $final_navigation[$index] = $navigation_info['title'];
             } else {
-                $final_navigation[$index] = '<a href="'.$navigation_info['url'].'" target="_top">'.$navigation_info['title'].'</a>';
+                $final_navigation[$index] = '<a href="'.$navigation_info['url'].'" target="_self">'.$navigation_info['title'].'</a>';
             }
             $counter++;
         }

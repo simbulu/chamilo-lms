@@ -22,7 +22,7 @@ class GroupManager
     /**
      * infinite
      */
-    const INFINITE  = 99999;
+    const INFINITE = 99999;
     /**
      * No limit on the number of users in a group
      */
@@ -54,7 +54,7 @@ class GroupManager
     /**
      *
      */
-    private function __construct()
+    public function __construct()
     {
     }
 
@@ -73,12 +73,12 @@ class GroupManager
 
     /**
      * Get list of groups for current course.
-     * @param int $category The id of the category from which the groups are
+     * @param int $categoryId The id of the category from which the groups are
      * requested
      * @param string $course_code Default is current course
      * @return array An array with all information about the groups.
      */
-    public static function get_group_list($category = null, $course_code = null, $status = null)
+    public static function get_group_list($categoryId = null, $course_code = null, $status = null)
     {
         $course_info = api_get_course_info($course_code);
         $session_id = api_get_session_id();
@@ -109,8 +109,8 @@ class GroupManager
 
         $sql .= " WHERE 1=1 ";
 
-        if ($category != null) {
-            $sql .= "  AND  g.category_id = '".intval($category)."' ";
+        if (!is_null($categoryId)) {
+            $sql .= " AND g.category_id = '".intval($categoryId)."' ";
             $session_condition = api_get_session_condition($session_id);
             if (!empty($session_condition)) {
                 $sql .= $session_condition;
@@ -161,36 +161,58 @@ class GroupManager
         $_course = api_get_course_info();
         $session_id = api_get_session_id();
         $course_id  = $_course['real_id'];
-
-
         $currentCourseRepository = $_course['path'];
         $category = self :: get_category($category_id);
 
         $places = intval($places);
-        if ($places == 0) {
-            //if the amount of users per group is not filled in, use the setting from the category
-            $places = $category['max_student'];
-        } else {
-            if ($places > $category['max_student'] && $category['max_student'] != 0) {
+
+        if ($category) {
+            if ($places == 0) {
+                //if the amount of users per group is not filled in, use the setting from the category
                 $places = $category['max_student'];
+            } else {
+                if ($places > $category['max_student'] && $category['max_student'] != 0) {
+                    $places = $category['max_student'];
+                }
             }
+            $docState = $category['doc_state'];
+            $calendarState = $category['calendar_state'];
+            $workState = $category['work_state'];
+            $anonuncementState = $category['announcements_state'];
+            $forumState = $category['forum_state'];
+            $wikiState = $category['wiki_state'];
+            $chatState = $category['chat_state'];
+            $selfRegAllowed = $category['self_reg_allowed'];
+            $selfUnregAllwoed = $category['self_unreg_allowed'];
+
+        } else {
+            $docState = self::TOOL_PRIVATE;
+            $calendarState = self::TOOL_PRIVATE;
+            $workState = self::TOOL_PRIVATE;
+            $anonuncementState = self::TOOL_PRIVATE;
+            $forumState = self::TOOL_PRIVATE;
+            $wikiState = self::TOOL_PRIVATE;
+            $chatState = self::TOOL_PRIVATE;
+            $selfRegAllowed = 0;
+            $selfUnregAllwoed = 0;
         }
 
         $table_group = Database :: get_course_table(TABLE_GROUP);
         $sql = "INSERT INTO ".$table_group." SET
-                c_id = $course_id ,
+                c_id = $course_id,
+                status = 1,
                 category_id='".Database::escape_string($category_id)."',
                 max_student = '".$places."',
-                doc_state = '".$category['doc_state']."',
-                calendar_state = '".$category['calendar_state']."',
-                work_state = '".$category['work_state']."',
-                announcements_state = '".$category['announcements_state']."',
-                forum_state = '".$category['forum_state']."',
-                wiki_state = '".$category['wiki_state']."',
-                chat_state = '".$category['chat_state']."',
-                self_registration_allowed = '".$category['self_reg_allowed']."',
-                self_unregistration_allowed = '".$category['self_unreg_allowed']."',
-                session_id='".Database::escape_string($session_id)."'";
+                doc_state = '".$docState."',
+                calendar_state = '".$calendarState."',
+                work_state = '".$workState."',
+                announcements_state = '".$anonuncementState."',
+                forum_state = '".$forumState."',
+                wiki_state = '".$wikiState."',
+                chat_state = '".$chatState."',
+                self_registration_allowed = '".$selfRegAllowed."',
+                self_unregistration_allowed = '".$selfUnregAllwoed."',
+                session_id='".intval($session_id)."'";
 
         Database::query($sql);
         $lastId = Database::insert_id();
@@ -218,14 +240,14 @@ class GroupManager
 
             /* Stores the directory path into the group table */
             $sql = "UPDATE ".$table_group." SET
-                    name = '".Database::escape_string($name)."',
-                    secret_directory = '".$unique_name."'
+                        name = '".Database::escape_string($name)."',
+                        secret_directory = '".$unique_name."'
                     WHERE c_id = $course_id AND id ='".$lastId."'";
 
             Database::query($sql);
 
             // create a forum if needed
-            if ($category['forum_state'] >= 0) {
+            if ($forumState >= 0) {
                 require_once api_get_path(SYS_CODE_PATH).'forum/forumconfig.inc.php';
                 require_once api_get_path(SYS_CODE_PATH).'forum/forumfunction.inc.php';
 
@@ -254,11 +276,11 @@ class GroupManager
                 $values['allow_new_threads_group']['allow_new_threads'] = 1;
                 $values['default_view_type_group']['default_view_type'] = api_get_setting('default_forum_view');
                 $values['group_forum'] = $lastId;
-                if ($category['forum_state'] == '1') {
+                if ($forumState == '1') {
                     $values['public_private_group_forum_group']['public_private_group_forum']='public';
-                } elseif ($category['forum_state'] == '2') {
+                } elseif ($forumState == '2') {
                     $values['public_private_group_forum_group']['public_private_group_forum']='private';
-                } elseif ($category['forum_state'] == '0') {
+                } elseif ($forumState == '0') {
                     $values['public_private_group_forum_group']['public_private_group_forum']='unavailable';
                 }
                 store_forum($values);
@@ -326,7 +348,7 @@ class GroupManager
     {
         $options['where'] = array(" usergroup.course_id = ? " =>  api_get_real_course_id());
         $obj = new UserGroup();
-        $classes = $obj->get_usergroup_in_course($options);
+        $classes = $obj->getUserGroupInCourse($options);
         $group_ids = array();
         foreach ($classes as $class) {
             $users_ids = $obj->get_users_by_usergroup($class['id']);
@@ -378,17 +400,18 @@ class GroupManager
         }
 
         // Unsubscribe all users
-        self :: unsubscribe_all_users($group_ids);
-        self ::unsubscribe_all_tutors($group_ids);
+        self::unsubscribe_all_users($group_ids);
+        self::unsubscribe_all_tutors($group_ids);
 
-        $sql = "SELECT id, secret_directory, session_id FROM $group_table
+        $sql = "SELECT id, secret_directory, session_id
+                FROM $group_table
                 WHERE c_id = $course_id AND id IN (".implode(' , ', $group_ids).")";
         $db_result = Database::query($sql);
 
         while ($group = Database::fetch_object($db_result)) {
             // move group-documents to garbage
             $source_directory = api_get_path(SYS_COURSE_PATH).$course_info['path']."/document".$group->secret_directory;
-            //File to renamed
+            // File to renamed
             $destination_dir = api_get_path(SYS_COURSE_PATH).$course_info['path']."/document".$group->secret_directory.'_DELETED_'.$group->id;
 
             if (!empty($group->secret_directory)) {
@@ -407,14 +430,20 @@ class GroupManager
             }
         }
 
+        $sql = "DELETE FROM ".$forum_table."
+                WHERE c_id = $course_id AND forum_of_group IN ('".implode("' , '", $group_ids)."')";
+        $result = Database::query($sql);
+
+        // Delete item properties of this group.
+        $itemPropertyTable = Database::get_course_table(TABLE_ITEM_PROPERTY);
+        $sql = "DELETE FROM ".$itemPropertyTable."
+                WHERE c_id = $course_id AND to_group_id IN ('".implode("' , '", $group_ids)."')";
+        $result = Database::query($sql);
+
         // delete the groups
         $sql = "DELETE FROM ".$group_table."
                 WHERE c_id = $course_id AND id IN ('".implode("' , '", $group_ids)."')";
         Database::query($sql);
-
-        $sql = "DELETE FROM ".$forum_table."
-                WHERE c_id = $course_id AND forum_of_group IN ('".implode("' , '", $group_ids)."')";
-        $result = Database::query($sql);
 
         return Database::affected_rows($result);
     }
@@ -494,6 +523,7 @@ class GroupManager
         if (Database::num_rows($res)) {
             $group = Database::fetch_array($res, 'ASSOC');
         }
+
         return $group;
     }
 
@@ -521,6 +551,7 @@ class GroupManager
         }
         $sql .= " ORDER BY name";
         $result = Database::query($sql);
+
         return Database::store_result($result, 'ASSOC');
     }
 
@@ -646,8 +677,9 @@ class GroupManager
         if (empty($id)) {
             return array();
         }
+
         $course_info = api_get_course_info($course_code);
-        $course_id     = $course_info['real_id'];
+        $course_id = $course_info['real_id'];
         $id = intval($id);
         $table_group_cat = Database :: get_course_table(TABLE_GROUP_CATEGORY);
         $sql = "SELECT * FROM $table_group_cat
@@ -701,7 +733,7 @@ class GroupManager
         }
 
         $course_info = api_get_course_info($course_code);
-        $course_id     = $course_info['real_id'];
+        $course_id = $course_info['real_id'];
 
         $group_id = intval($group_id);
         $sql = "SELECT gc.* FROM $table_group_cat gc, $table_group g
@@ -802,19 +834,15 @@ class GroupManager
                     max_student = '".Database::escape_string($maximum_number_of_students)."' ";
         Database::query($sql);
         $categoryId = Database::insert_id();
+        if ($categoryId) {
 
-        // @todo check if this code do something ... virtual course category?
-        if ($categoryId == self::VIRTUAL_COURSE_CATEGORY) {
-            $sql = "UPDATE  ".$table_group_category." SET id = ". ($categoryId +1)."
-                    WHERE c_id = $course_id AND id = $categoryId";
+            $sql = "UPDATE $table_group_category SET id = iid
+                    WHERE iid = $categoryId";
             Database::query($sql);
-            $categoryId = $categoryId +1;
+            return $categoryId;
         }
 
-        $sql = "UPDATE $table_group_category SET id = iid WHERE iid = $categoryId";
-        Database::query($sql);
-
-        return $categoryId;
+        return false;
     }
 
     /**
@@ -920,6 +948,7 @@ class GroupManager
         $sql .= ' GROUP BY gu.user_id ORDER BY current_max DESC LIMIT 1';
         $res = Database::query($sql);
         $obj = Database::fetch_object($res);
+
         return $obj->current_max;
     }
 
@@ -1386,14 +1415,17 @@ class GroupManager
      */
     public static function can_user_subscribe($user_id, $group_id)
     {
-        $category = self :: get_category_from_group($group_id);
-        $result = !self :: is_subscribed($user_id, $group_id);
-        $result &= (self :: number_of_students($group_id) < self :: maximum_number_of_students($group_id));
-        if ($category['groups_per_user'] == self::GROUP_PER_MEMBER_NO_LIMIT) {
-            $category['groups_per_user'] = self::INFINITE;
+        $category = self::get_category_from_group($group_id);
+        $result = !self:: is_subscribed($user_id, $group_id);
+        $result = self :: number_of_students($group_id) < self :: maximum_number_of_students($group_id);
+        if ($category) {
+            if ($category['groups_per_user'] == self::GROUP_PER_MEMBER_NO_LIMIT) {
+                $category['groups_per_user'] = self::INFINITE;
+            }
+            $result = (self::user_in_number_of_groups($user_id, $category['id']) < $category['groups_per_user']);
         }
-        $result &= (self :: user_in_number_of_groups($user_id, $category['id']) < $category['groups_per_user']);
-        $result &= !self :: is_tutor_of_group($user_id, $group_id);
+
+        $result = !self::is_tutor_of_group($user_id, $group_id);
 
         return $result;
     }
@@ -1408,6 +1440,7 @@ class GroupManager
     public static function can_user_unsubscribe($user_id, $group_id)
     {
         $result = self :: is_subscribed($user_id, $group_id);
+
         return $result;
     }
 
@@ -1422,10 +1455,8 @@ class GroupManager
         $table_user = Database :: get_main_table(TABLE_MAIN_USER);
         $table_group_user = Database :: get_course_table(TABLE_GROUP_USER);
         $order_clause = api_sort_by_first_name() ? ' ORDER BY u.firstname, u.lastname' : ' ORDER BY u.lastname, u.firstname';
-        global $_configuration;
-        if (isset($_configuration['order_user_list_by_official_code']) &&
-             $_configuration['order_user_list_by_official_code']
-        ) {
+        $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
+        if ($orderListByOfficialCode === 'true') {
             $order_clause = " ORDER BY u.official_code, u.firstname, u.lastname";
         }
 
@@ -1468,10 +1499,8 @@ class GroupManager
         $table_group_tutor = Database :: get_course_table(TABLE_GROUP_TUTOR);
         $order_clause = api_sort_by_first_name() ? ' ORDER BY u.firstname, u.lastname' : ' ORDER BY u.lastname, u.firstname';
 
-        global $_configuration;
-        if (isset($_configuration['order_user_list_by_official_code']) &&
-            $_configuration['order_user_list_by_official_code']
-        ) {
+        $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
+        if ($orderListByOfficialCode === 'true') {
             $order_clause = " ORDER BY u.official_code, u.firstname, u.lastname";
         }
 
@@ -1754,23 +1783,23 @@ class GroupManager
     }
 
     /**
-     *    Get a combined list of all users of the real course $course_code
-     *        and all users in virtual courses linked to this course $course_code
-     *    Filter user list: remove duplicate users; plus
-     *        remove users that
-     *        - are already in the current group $group_id;
-     *        - do not have student status in these courses;
-     *        - are not appointed as tutor (group assistent) for this group;
-     *        - have already reached their maximum # of groups in this course.
+     * Get a combined list of all users of the real course $course_code
+     *     and all users in virtual courses linked to this course $course_code
+     * Filter user list: remove duplicate users; plus
+     *     remove users that
+     *     - are already in the current group $group_id;
+     *     - do not have student status in these courses;
+     *     - are not appointed as tutor (group assistent) for this group;
+     *     - have already reached their maximum # of groups in this course.
      *
-     *    Originally to get the correct list of users a big SQL statement was used,
-     *    but this has become more complicated now there is not just one real course but many virtual courses.
-     *    Still, that could have worked as well.
+     * Originally to get the correct list of users a big SQL statement was used,
+     * but this has become more complicated now there is not just one real course but many virtual courses.
+     * Still, that could have worked as well.
      *
-     *    @version 1.1.3
-     *    @author Roan Embrechts
+     * @version 1.1.3
+     * @author Roan Embrechts
      */
-    public static function get_complete_list_of_users_that_can_be_added_to_group ($course_code, $group_id)
+    public static function get_complete_list_of_users_that_can_be_added_to_group($course_code, $group_id)
     {
         $_course = api_get_course_info();
         $_user = api_get_user_info();
@@ -1780,14 +1809,11 @@ class GroupManager
         $real_course_code = $_course['sysCode'];
         $real_course_info = api_get_course_info($real_course_code);
         $real_course_user_list = CourseManager :: get_user_list_from_course_code($real_course_code);
-        //get list of all virtual courses
-        $user_subscribed_course_list = CourseManager :: get_list_of_virtual_courses_for_specific_user_and_real_course($_user['user_id'], $real_course_code);
-        //add real course to the list
-        $user_subscribed_course_list[] = $real_course_info;
-        if (!is_array($user_subscribed_course_list)) {
-            return;
-        }
-        //for all courses...
+
+        // add real course to the list
+        $user_subscribed_course_list = array($real_course_info);
+
+        // for all courses...
         foreach ($user_subscribed_course_list as $this_course) {
             $this_course_code = $this_course['code'];
             $course_user_list = CourseManager :: get_user_list_from_course_code($this_course_code);
@@ -1904,31 +1930,29 @@ class GroupManager
 
         switch ($tool) {
             case self::GROUP_TOOL_FORUM :
-                $state_key = 'forum_state';
+                $key = 'forum_state';
                 break;
             case self::GROUP_TOOL_DOCUMENTS :
-                $state_key = 'doc_state';
+                $key = 'doc_state';
                 break;
             case self::GROUP_TOOL_CALENDAR :
-                $state_key = 'calendar_state';
+                $key = 'calendar_state';
                 break;
             case self::GROUP_TOOL_ANNOUNCEMENT :
-                $state_key = 'announcements_state';
+                $key = 'announcements_state';
                 break;
             case self::GROUP_TOOL_WORK :
-                $state_key = 'work_state';
+                $key = 'work_state';
                 break;
             case self::GROUP_TOOL_WIKI :
-                $state_key = 'wiki_state';
+                $key = 'wiki_state';
                 break;
             case self::GROUP_TOOL_CHAT :
-                $state_key = 'chat_state';
+                $key = 'chat_state';
                 break;
             default:
                 return false;
         }
-
-        $user_is_in_group = self::is_user_in_group($user_id, $group_id);
 
         // Check group properties
         $groupInfo = self::get_group_properties($group_id);
@@ -1937,26 +1961,89 @@ class GroupManager
             return false;
         }
 
-        if (!$user_is_in_group) {
+        if ($groupInfo['status'] == 0) {
             return false;
+        }
+
+        if (!isset($groupInfo[$key])) {
+            return false;
+        }
+
+        if (api_is_allowed_to_edit(false, true)) {
+            return true;
+        }
+
+        $status = $groupInfo[$key];
+
+        switch ($status) {
+            case self::TOOL_NOT_AVAILABLE:
+                return false;
+                break;
+            case self::TOOL_PUBLIC:
+                return true;
+                break;
+            case self::TOOL_PRIVATE:
+                $userIsInGroup = self::is_user_in_group($user_id, $group_id);
+                if ($userIsInGroup) {
+                    return true;
+                }
+                break;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param int $userId
+     * @param array $groupInfo
+     *
+     * @return bool
+     */
+    public static function userHasAccessToBrowse($userId, $groupInfo, $sessionId = 0)
+    {
+        if (empty($groupInfo)) {
+            return false;
+        }
+
+        if (api_is_platform_admin()) {
+            return true;
+        }
+
+        if (api_is_allowed_to_edit(false, true)) {
+            return true;
+        }
+
+        $groupId = $groupInfo['id'];
+        $tutors = self::get_subscribed_tutors($groupId, true);
+
+        if (in_array($userId, $tutors)) {
+            return true;
         }
 
         if ($groupInfo['status'] == 0) {
             return false;
         }
 
-        if ($groupInfo[$state_key] == self::TOOL_NOT_AVAILABLE) {
-            return false;
-        } elseif ($groupInfo[$state_key] == self::TOOL_PUBLIC) {
+        if (
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_FORUM) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_DOCUMENTS) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_CALENDAR) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_ANNOUNCEMENT) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_WORK) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_WIKI) ||
+            self::user_has_access($userId, $groupId, self::GROUP_TOOL_CHAT)
+        ) {
+
             return true;
-        } elseif (api_is_allowed_to_edit(false, true)) {
-            return true;
-        } elseif ($groupInfo[$state_key] == self::TOOL_PRIVATE && !$user_is_in_group) {
-            return false;
-        } else {
-            return $user_is_in_group;
         }
+
+        if (api_is_course_coach() && $groupInfo['session_id'] == $sessionId) {
+            return true;
+        }
+
+        return false;
     }
+
 
     /**
      * Get all groups where a specific user is subscribed
@@ -1996,7 +2083,7 @@ class GroupManager
         $table_group = Database::get_course_table(TABLE_GROUP);
         $user_id = intval($user_id);
         $course_id = api_get_course_int_id();
-        $sql = "SELECT DISTINCT name
+        $sql = "SELECT DISTINCT g.*
                FROM $table_group g
                LEFT JOIN $table_group_user gu
                ON (gu.group_id = g.id AND g.c_id = gu.c_id)
@@ -2007,9 +2094,10 @@ class GroupManager
                   (gu.user_id = $user_id OR tu.user_id = $user_id) ";
         $res = Database::query($sql);
         $groups = array();
-        while ($group = Database::fetch_array($res)) {
-            $groups[] = $group['name'];
+        while ($group = Database::fetch_array($res, 'ASSOC')) {
+            $groups[] = $group;
         }
+
         return $groups;
     }
 
@@ -2042,14 +2130,20 @@ class GroupManager
         $_course = api_get_course_info();
 
         $category = self :: get_category_from_group($group_ids[0]);
-        $groups_per_user = $category['groups_per_user'];
+        $number_groups_per_user = self::GROUP_PER_MEMBER_NO_LIMIT;
+        $categoryId = 0;
+        if ($category) {
+            $groups_per_user = $category['groups_per_user'];
+            $number_groups_per_user = ($groups_per_user == self::GROUP_PER_MEMBER_NO_LIMIT ? self::INFINITE : $groups_per_user);
+            $categoryId = $category['id'];
+        }
 
         $group_table = Database :: get_course_table(TABLE_GROUP);
         $group_user_table = Database :: get_course_table(TABLE_GROUP_USER);
         $session_id = api_get_session_id();
-        $complete_user_list = CourseManager :: get_real_and_linked_user_list($_course['sysCode'], true, $session_id);
-        $number_groups_per_user = ($groups_per_user == self::GROUP_PER_MEMBER_NO_LIMIT ? self::INFINITE : $groups_per_user);
+        $complete_user_list = CourseManager :: get_real_and_linked_user_list($_course['code'], true, $session_id);
         $course_id = api_get_course_int_id();
+
         /*
          * Retrieve all the groups where enrollment is still allowed
          * (reverse) ordered by the number of place available
@@ -2079,10 +2173,12 @@ class GroupManager
          * of group they are already enrolled
          */
         for ($i = 0; $i < count($complete_user_list); $i ++) {
-
-            //find # of groups the user is enrolled in
-            $number_of_groups = self :: user_in_number_of_groups($complete_user_list[$i]["user_id"],$category['id']);
-            //add # of groups to user list
+            // find # of groups the user is enrolled in
+            $number_of_groups = self:: user_in_number_of_groups(
+                $complete_user_list[$i]["user_id"],
+                $categoryId
+            );
+            // add # of groups to user list
             $complete_user_list[$i]['number_groups_left'] = $number_groups_per_user - $number_of_groups;
         }
         //first sort by user_id to filter out duplicates
@@ -2097,8 +2193,10 @@ class GroupManager
     /**
      * @param array $group_list
      * @param int $category_id
+     *
+     * @return string
      */
-    static function process_groups($group_list, $category_id = null)
+    public static function process_groups($group_list, $category_id = null)
     {
         global $origin, $charset;
         $category_id = intval($category_id);
@@ -2111,7 +2209,7 @@ class GroupManager
 
         $orig = isset($origin) ? $origin : null;
 
-        $hideGroup = api_get_configuration_value('hide_course_group_if_no_tools_available');
+        $hideGroup = api_get_setting('hide_course_group_if_no_tools_available');
 
         foreach ($group_list as $this_group) {
 
@@ -2124,39 +2222,18 @@ class GroupManager
             // Create a new table-row
             $row = array();
 
-            if (!api_is_allowed_to_edit(false, true)) {
-                if ($this_group['status'] == 0) {
-                    continue;
-                }
-            }
-
             // Checkbox
             if (api_is_allowed_to_edit(false, true) && count($group_list) > 1) {
                 $row[] = $this_group['id'];
             }
 
-
-            // Group name
-            if ((api_is_allowed_to_edit(false, true) ||
-                    (
-                    in_array($user_id, $tutorsids_of_group) ||
-                    $this_group['is_member'] ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_FORUM) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_DOCUMENTS) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_CALENDAR) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_ANNOUNCEMENT) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_WORK) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_WIKI) ||
-                    self::user_has_access($user_id, $this_group['id'], self::GROUP_TOOL_CHAT)
-                    )
-                )
-                && !(api_is_course_coach() && intval($this_group['session_id']) != $session_id)
-            ) {
-
+            if (GroupManager::userHasAccessToBrowse($user_id, $this_group, $session_id)) {
+                // Group name
                 $groupNameClass = null;
                 if ($this_group['status'] == 0) {
                     $groupNameClass = 'muted';
                 }
+
                 $group_name = '<a class="'.$groupNameClass.'" href="group_space.php?cidReq='.api_get_course_id().'&amp;origin='.$orig.'&amp;gidReq='.$this_group['id'].'">'.
                     Security::remove_XSS($this_group['name']).'</a> ';
                 if (!empty($user_id) && !empty($this_group['id_tutor']) && $user_id == $this_group['id_tutor']) {
@@ -2171,7 +2248,7 @@ class GroupManager
                 $group_name .= $session_img;
                 $row[] = $group_name.'<br />'.stripslashes(trim($this_group['description']));
             } else {
-                if ($hideGroup) {
+                if ($hideGroup === 'true') {
                     continue;
                 }
                 $row[] = $this_group['name'].'<br />'.stripslashes(trim($this_group['description']));
@@ -2219,6 +2296,7 @@ class GroupManager
                     $row[] = '-';
                 }
             }
+
             $url = api_get_path(WEB_CODE_PATH).'group/';
             // Edit-links
             if (api_is_allowed_to_edit(false, true) &&
@@ -2258,7 +2336,19 @@ class GroupManager
             $group_data[] = $row;
         } // end loop
 
-        $table = new SortableTableFromArrayConfig($group_data, 1, 20, 'group_category_'.$category_id);
+        // If no groups then don't show the table (only for students)
+        if (!api_is_allowed_to_edit(true, false)) {
+            if (empty($group_data)) {
+                return '';
+            }
+        }
+
+        $table = new SortableTableFromArrayConfig(
+            $group_data,
+            1,
+            20,
+            'group_category_'.$category_id
+        );
         $table->set_additional_parameters(array('category' => $category_id));
         $column = 0;
         if (api_is_allowed_to_edit(false, true) and count($group_list) > 1) {
@@ -2268,10 +2358,13 @@ class GroupManager
         $table->set_header($column++, get_lang('GroupTutor'));
         $table->set_header($column++, get_lang('Registered'), false);
 
-        if (!api_is_allowed_to_edit(false, true)) { // If self-registration allowed
+        if (!api_is_allowed_to_edit(false, true)) {
+            // If self-registration allowed
             $table->set_header($column++, get_lang('GroupSelfRegistration'), false);
         }
-        if (api_is_allowed_to_edit(false, true)) { // Only for course administrator
+
+        if (api_is_allowed_to_edit(false, true)) {
+            // Only for course administrator
             $table->set_header($column++, get_lang('Modify'), false);
             $form_actions = array();
             $form_actions['fill_selected'] = get_lang('FillGroup');
@@ -2281,7 +2374,8 @@ class GroupManager
                 $table->set_form_actions($form_actions, 'group');
             }
         }
-        $table->display();
+
+        return $table->return_table();
     }
 
     /**
@@ -2357,7 +2451,6 @@ class GroupManager
                 $elementsFound['categories'][] = $categoryId;
             } else {
                 $groupInfo = self::getGroupByName($data['group']);
-
                 $categoryInfo = self::getCategoryByTitle($data['category']);
                 $categoryId = null;
                 if (!empty($categoryInfo)) {

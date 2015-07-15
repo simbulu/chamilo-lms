@@ -5,6 +5,7 @@
  * Gradebook controller
  * @package chamilo.gradebook
  */
+
 // $cidReset : This is the main difference with gradebook.php, here we say,
 // basically, that we are inside a course, and many things depend from that
 //$cidReset = false;
@@ -270,7 +271,7 @@ if (isset($_GET['movelink'])) {
 if (isset($_GET['visiblecat'])) {
     GradebookUtils::block_students();
 
-    if (isset ($_GET['set_visible'])) {
+    if (isset($_GET['set_visible'])) {
         $visibility_command= 1;
     } else {
         $visibility_command= 0;
@@ -387,7 +388,10 @@ if (isset($_GET['deletelink'])) {
         $link= LinkFactory :: load($get_delete_link);
         if ($link[0] != null) {
             // Clean forum qualify
-            $sql = 'UPDATE '.$tbl_forum_thread.' SET thread_qualify_max=0,thread_weight=0,thread_title_qualify=""
+            $sql = 'UPDATE '.$tbl_forum_thread.' SET
+                        thread_qualify_max=0,
+                        thread_weight=0,
+                        thread_title_qualify=""
 					WHERE c_id = '.$course_id.' AND thread_id = (
 					    SELECT ref_id FROM '.$tbl_grade_links.'
 					    WHERE id='.$get_delete_link.' AND type = '.LINK_FORUM_THREAD.'
@@ -441,6 +445,10 @@ switch ($action) {
             $category_to_lock[0]->lock_all_items(0);
             $confirmation_message = get_lang('EvaluationHasBeenUnLocked');
         }
+        break;
+    case 'export_table':
+        //table will be export below
+        ob_start();
         break;
 }
 
@@ -626,8 +634,14 @@ if (isset($_GET['studentoverview'])) {
     $alleval= $cats[0]->get_evaluations($stud_id, true);
     $alllink= $cats[0]->get_links($stud_id, true);
     if (isset ($_GET['exportpdf'])) {
-        $datagen = new GradebookDataGenerator ($allcat,$alleval, $alllink);
-        $header_names = array(get_lang('Name'),get_lang('Description'),get_lang('Weight'),get_lang('Date'),get_lang('Results'));
+        $datagen = new GradebookDataGenerator($allcat,$alleval, $alllink);
+        $header_names = array(
+            get_lang('Name'),
+            get_lang('Description'),
+            get_lang('Weight'),
+            get_lang('Date'),
+            get_lang('Results'),
+        );
         $data_array = $datagen->get_data(GradebookDataGenerator :: GDG_SORT_NAME,0,null,true);
         $newarray = array();
         foreach ($data_array as $data) {
@@ -641,7 +655,18 @@ if (isset($_GET['studentoverview'])) {
         $pdf->line(50,790,550,790);
         $pdf->line(50,40,550,40);
         $pdf->ezSetY(750);
-        $pdf->ezTable($newarray,$header_names,'',array('showHeadings'=>1,'shaded'=>1,'showLines'=>1,'rowGap'=>3,'width'=> 500));
+        $pdf->ezTable(
+            $newarray,
+            $header_names,
+            '',
+            array(
+                'showHeadings' => 1,
+                'shaded' => 1,
+                'showLines' => 1,
+                'rowGap' => 3,
+                'width' => 500,
+            )
+        );
         $pdf->ezStream();
         exit;
     }
@@ -698,7 +723,6 @@ if (isset($_GET['studentoverview'])) {
         }
         unset($cats);
     }
-
     $cats = Category::load($category, null, null, null, null, null, false);
 
     //with this fix the teacher only can view 1 gradebook
@@ -731,6 +755,8 @@ $no_qualification = false;
 // Show certificate link.
 $certificate = array();
 
+echo '<div class="actions" align="right">';
+
 if ($category != '0') {
     $cat = new Category();
     $category_id   = intval($_GET['selectcat']);
@@ -745,13 +771,25 @@ if ($category != '0') {
                 $stud_id
             );
             if (!empty($certificate)) {
-                echo '<div class="actions" align="right">';
-                echo $certificate['pdf_link'];
-                echo '</div>';
+                echo Display::url(
+                    get_lang('CertificateToPdf'),
+                    $certificate['pdf_url'],
+                    ['class' => 'btn btn-default']
+                );
             }
         }
     }
 }
+
+if (!api_is_allowed_to_edit(null, true)) {
+    echo Display::url(
+        get_lang('ReportToPdf'),
+        api_get_self()."?".api_get_self()."&action=export_table",
+        ['class' => 'btn btn-default']
+    );
+}
+
+echo '</div>';
 
 if (api_is_allowed_to_edit(null, true)) {
     // Tool introduction
@@ -819,14 +857,14 @@ if (isset($first_time) && $first_time==1 && api_is_allowed_to_edit(null,true)) {
                             $gradebook =  new Gradebook();
                             $params = array();
 
-                            $params['name']             = $component['acronym'];
-                            $params['description']      = $component['title'];
-                            $params['user_id']          = api_get_user_id();
-                            $params['parent_id']        = $cats[0]->get_id();
-                            $params['weight']           = $component['percentage'];
-                            $params['session_id']       = api_get_session_id();
-                            $params['course_code']      = api_get_course_id();
-                            $params['grade_model_id']   = api_get_session_id();
+                            $params['name'] = $component['acronym'];
+                            $params['description'] = $component['title'];
+                            $params['user_id'] = api_get_user_id();
+                            $params['parent_id'] = $cats[0]->get_id();
+                            $params['weight'] = $component['percentage'];
+                            $params['session_id'] = api_get_session_id();
+                            $params['course_code'] = api_get_course_id();
+                            $params['grade_model_id'] = api_get_session_id();
 
                             $gradebook->save($params);
                         }
@@ -838,6 +876,7 @@ if (isset($first_time) && $first_time==1 && api_is_allowed_to_edit(null,true)) {
                 }
             }
         }
+
 
         $i = 0;
         $allcat = array();
@@ -872,9 +911,55 @@ if (isset($first_time) && $first_time==1 && api_is_allowed_to_edit(null,true)) {
                         Display::display_normal_message(get_lang('GradeModel').': '.$grade_models[$grade_model_id]['name']);
                     }
                 }
-                $gradebooktable = new GradebookTable($cat, $allcat, $alleval, $alllink, $addparams);
-                $gradebooktable->display();
-                echo $gradebooktable->getGraph();
+
+                $exportToPdf = false;
+                if ($action == 'export_table') {
+                    $exportToPdf = true;
+                }
+
+                $gradebooktable = new GradebookTable(
+                    $cat,
+                    $allcat,
+                    $alleval,
+                    $alllink,
+                    $addparams,
+                    $exportToPdf
+                );
+
+                if (api_is_allowed_to_edit()) {
+                    $gradebooktable->td_attributes = [
+                        4 => 'class=centered'
+                    ];
+                } else {
+                    $gradebooktable->td_attributes = [
+                        3 => 'class=centered',
+                        4 => 'class=centered',
+                        5 => 'class=centered',
+                        6 => 'class=centered',
+                        7 => 'class=centered'
+                    ];
+                }
+
+                $table = $gradebooktable->return_table();
+                $graph = $gradebooktable->getGraph();
+
+                if ($action == 'export_table') {
+                    ob_clean();
+                    $params = array(
+                        //'filename' => get_lang('FlatView') . '_' . api_get_utc_datetime(),
+                        'pdf_title' => get_lang('Report'),
+                        'course_code' => api_get_course_id(),
+                        'session_info' => api_get_session_info(api_get_session_id()),
+                        'add_signatures' => false,
+                        'student_info' => api_get_user_info()
+                    );
+                    $pdf = new PDF('A4', $params['orientation'], $params);
+                    $pdf->html_to_pdf_with_template($table.$graph);
+                } else {
+                    echo $table;
+                    echo $graph;
+                }
+
             }
         }
     }

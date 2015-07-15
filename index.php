@@ -14,6 +14,7 @@ $cidReset = true;
 
 require_once 'main/inc/global.inc.php';
 require_once 'main/chat/chat_functions.lib.php';
+//require_once 'main/auth/external_login/facebook.inc.php';
 
 // The section (for the tabs).
 $this_section = SECTION_CAMPUS;
@@ -23,6 +24,11 @@ if (!api_is_anonymous()) {
     $header_title = " ";
 }
 
+// Facebook connexion, if activated
+/*if (api_is_facebook_auth_activated() && !api_get_user_id()) {
+    facebookConnect();
+}
+*/
 $controller = new IndexManager($header_title);
 
 //Actions
@@ -111,11 +117,6 @@ if (api_get_setting('display_categories_on_homepage') == 'true') {
     $controller->tpl->assign('course_category_block', $controller->return_courses_in_categories());
 }
 
-// Facebook connexion, if activated
-if (api_is_facebook_auth_activated() && !api_get_user_id()) {
-    facebook_connect();
-}
-
 $controller->set_login_form();
 
 //@todo move this inside the IndexManager
@@ -135,8 +136,8 @@ $announcements_block = null;
 
 
 // Display the Site Use Cookie Warning Validation
-$useCookieValidation = api_get_configuration_value('cookie_warning');
-if ($useCookieValidation) {
+$useCookieValidation = api_get_setting('cookie_warning');
+if ($useCookieValidation === 'true') {
     if (isset($_POST['acceptCookies'])) {
         api_set_site_use_cookie_warning_cookie();
     } else if (!api_site_use_cookie_warning_cookie_exist()) {

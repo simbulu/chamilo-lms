@@ -216,6 +216,7 @@ switch ($action) {
                 );
 
                 // Check whether the document is in the database.
+
                 if (!empty($documentInfo)) {
                     $deleteDocument = DocumentManager::delete_document(
                         $courseInfo,
@@ -284,7 +285,8 @@ switch ($action) {
     case 'downloadfolder':
         if (api_get_setting('students_download_folders') == 'true'
             || api_is_allowed_to_edit()
-            || api_is_platform_admin()) {
+            || api_is_platform_admin()
+        ) {
             // Get the document data from the ID
             $document_data = DocumentManager::get_document_data_by_id(
                 $document_id,
@@ -292,6 +294,7 @@ switch ($action) {
                 false,
                 $sessionId
             );
+
             if ($sessionId != 0 && !$document_data) {
                 // If there is a session defined and asking for the
                 // document * from the session* didn't work, try it from the
@@ -585,7 +588,7 @@ if (isset($document_id) && empty($action)) {
     $document_id = DocumentManager::get_document_id($courseInfo, $curdirpath);
 
     if (!$document_id) {
-        $document_id = DocumentManager::get_document_id($courseInfo, $curdirpath);
+        $document_id = DocumentManager::get_document_id($courseInfo, $curdirpath, 0);
     }
 
     $document_data = DocumentManager::get_document_data_by_id(
@@ -593,6 +596,7 @@ if (isset($document_id) && empty($action)) {
         api_get_course_id(),
         true
     );
+
     $parent_id = $document_data['parent_id'];
 }
 
@@ -670,17 +674,14 @@ if (isset($_GET['curdirpath']) &&
 
 // Is the document tool visible?
 // Check whether the tool is actually visible
-$table_course_tool = Database::get_course_table(TABLE_TOOL_LIST);
+/*$table_course_tool = Database::get_course_table(TABLE_TOOL_LIST);
 $course_id = api_get_course_int_id();
-$tool_sql = 'SELECT visibility FROM '.$table_course_tool.
-            ' WHERE c_id = '.$course_id.' AND name = "'.TOOL_DOCUMENT.'" LIMIT 1';
+$tool_sql = 'SELECT visibility FROM '.$table_course_tool.'
+             WHERE c_id = '.$course_id.' AND name = "'.TOOL_DOCUMENT.'"
+             LIMIT 1';
 $tool_result = Database::query($tool_sql);
 $tool_row = Database::fetch_array($tool_result);
-$tool_visibility = $tool_row['visibility'];
-
-if ($tool_visibility == '0' && $groupId == '0' && !($is_allowed_to_edit || $group_member_with_upload_rights)) {
-    api_not_allowed(true);
-}
+$tool_visibility = $tool_row['visibility'];*/
 
 $htmlHeadXtra[] = '<script>
 function confirmation (name) {
@@ -1335,6 +1336,7 @@ if ($is_allowed_to_edit) {
                 Display::return_message(get_lang('ViModProb'), 'error')
             );
         }
+
         header('Location: '.$currentUrl);
         exit;
     }
@@ -1617,7 +1619,7 @@ if ($is_allowed_to_edit ||
     if ($is_certificate_mode) {
         $actions .= Display::url(
             Display::return_icon('upload_certificate.png', get_lang('UploadCertificate'), '', ICON_SIZE_MEDIUM),
-            api_get_path(WEB_CODE_PATH).'document/upload.php?'.api_get_cidreq().'&id='.$current_folder_id
+            api_get_path(WEB_CODE_PATH).'document/upload.php?'.api_get_cidreq().'&id='.$current_folder_id.'&certificate=true'
         );
     } else {
         $actions .= Display::url(
@@ -1949,7 +1951,7 @@ if (count($documentAndFolders) > 1) {
         $table->set_form_actions($form_action, 'ids');
     }
 }
-$flashMessage = Display::getFlashToString();
+
 Display::display_header('', 'Doc');
 
 /* Introduction section (editable by course admins) */
@@ -1959,16 +1961,6 @@ if (!empty($groupId)) {
 } else {
     Display::display_introduction_section(TOOL_DOCUMENT);
 }
-
-$message = Session::read('message');
-
-if (!empty($message)) {
-    echo $message;
-}
-
-echo $flashMessage;
-
-Session::erase('message');
 
 echo $actions;
 echo $templateForm;

@@ -41,7 +41,7 @@
                 {% endif %}
 
                 <div id="software_name">
-                    {{ "Platform"|get_lang }} <a href="{{_p.web}}" target="_blank">{{_s.software_name}} {{_s.system_version}}</a>
+	                <a href="{{_p.web}}" target="_blank">{{ "PoweredByX" |get_lang | format(_s.software_name) }}</a>
                     &copy; {{ "now"|date("Y") }}
                 </div>
                 {#   Plugins for footer section  #}
@@ -65,22 +65,6 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="{{ "Close" | get_lang }}"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="expand-image-modal-title">&nbsp;</h4>
-            </div>
-            <div class="modal-body">
-            </div>
-        </div>
-    </div>
-</div>
-
-{# Global modal, load content by AJAX call to href attribute on anchor tag with 'ajax' class #}
-<div class="modal fade" id="global-modal" tabindex="-1" role="dialog" aria-labelledby="global-modal-title" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="{{ "Close" | get_lang }}">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title" id="global-modal-title">&nbsp;</h4>
             </div>
             <div class="modal-body">
             </div>
@@ -113,6 +97,9 @@
 
             //$('#tabs a:first').tab('show') // Select first tab
         });
+
+        // Fixes bug when loading links inside a tab.
+        $('.tab-wrapper .tab-pane a').unbind();
 
         /**
          * Advanced options
@@ -149,7 +136,17 @@
 
         // Chosen select
         $(".chzn-select").chosen({
-            disable_search_threshold: 10
+            disable_search_threshold: 10,
+            no_results_text: '{{ 'SearchNoResultsFound' | get_lang }}',
+            placeholder_text_multiple: '{{ 'SelectSomeOptions' | get_lang }}',
+            placeholder_text_single: '{{ 'SelectAnOption' | get_lang }}'
+        });
+
+        // Adv multi-select search input.
+        $('.select_class_filter').on('focus', function() {
+            var inputId = $(this).attr('id');
+            inputId = inputId.replace('-filter', '');
+            $("#"+ inputId).filterByText($("#"+inputId+"-filter"));
         });
 
         $(".jp-jplayer audio").addClass('skip');
@@ -181,6 +178,34 @@
         };
         $('.boot-tooltip').tooltip(tip_options);
     });
+
+    // @todo move in a chamilo.js js lib.
+
+    jQuery.fn.filterByText = function(textbox) {
+        return this.each(function() {
+            var select = this;
+            var options = [];
+            $(select).find('option').each(function() {
+                options.push({value: $(this).val(), text: $(this).text()});
+            });
+            $(select).data('options', options);
+
+            $(textbox).bind('change keyup', function() {
+                var options = $(select).empty().data('options');
+                var search = $.trim($(this).val());
+                var regex = new RegExp(search,"gi");
+
+                $.each(options, function(i) {
+                    var option = options[i];
+                    if(option.text.match(regex) !== null) {
+                        $(select).append(
+                            $('<option>').text(option.text).val(option.value)
+                        );
+                    }
+                });
+            });
+        });
+    };
 </script>
 
 {{ execution_stats }}

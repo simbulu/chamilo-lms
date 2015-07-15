@@ -838,12 +838,9 @@ class ImportCsv
                 $agenda->setType('course');
                 $agenda->setSessionId($event['session_id']);
                 $agenda->setSenderId($event['sender_id']);
+                $agenda->setIsAllowedToEdit(true);
 
                 $eventComment = $event['comment'];
-
-                // To use the event comment you need
-                // ALTER TABLE c_calendar_event ADD COLUMN comment TEXT;
-                // add in configuration.php allow_agenda_event_comment = true
 
                 if (empty($courseInfo)) {
                     $this->logger->addInfo(
@@ -1024,8 +1021,8 @@ class ImportCsv
                     $categoryId = isset($session['category_id']) ? $session['category_id'] : null;
 
                     // 2014-06-30
-                    $dateStart = explode('/', $session['DateStart']);
-                    $dateEnd = explode('/', $session['DateEnd']);
+                    $dateStart = str_replace('/', '-', $session['DateStart']);
+                    $dateEnd = str_replace('/', '-', $session['DateEnd']);
                     $visibility = $this->defaultSessionVisibility;
 
                     $coachId = null;
@@ -1034,22 +1031,30 @@ class ImportCsv
                         $coachId = $coachInfo['user_id'];
                     }
 
+                    $coachStartDate = null;
+                    if (!empty($this->daysCoachAccessBeforeBeginning)) {
+                        $day = intval($this->daysCoachAccessBeforeBeginning);
+                        $coachStartDate = date('Y-m-d ', strtotime($dateStart. ' + '.$day.' days'));
+                    }
+
+                    $coachEndDate = null;
+                    if (!empty($this->daysCoachAccessAfterBeginning)) {
+                        $day = intval($this->daysCoachAccessAfterBeginning);
+                        $coachEndDate = date('Y-m-d ', strtotime($dateEnd. ' + '.$day.' days'));
+                    }
+
                     if (empty($sessionId)) {
                         $result = SessionManager::create_session(
                             $session['SessionName'],
-                            $dateStart[0],
-                            $dateStart[1],
-                            $dateStart[2],
-                            $dateEnd[0],
-                            $dateEnd[1],
-                            $dateEnd[2],
-                            $this->daysCoachAccessBeforeBeginning,
-                            $this->daysCoachAccessAfterBeginning,
-                            null,
-                            $coachUserName,
+                            $dateStart,
+                            $dateEnd,
+                            $dateStart,
+                            $dateEnd,
+                            $coachStartDate,
+                            $coachEndDate,
+                            $coachId,
                             $categoryId,
-                            $visibility,
-                            1
+                            $visibility
                         );
 
                         if (is_numeric($result)) {
@@ -1063,43 +1068,21 @@ class ImportCsv
                     } else {
 
                         $sessionInfo = api_get_session_info($sessionId);
-                        $accessBefore = null;
-                        $accessAfter = null;
-
-                        if (empty($sessionInfo['nb_days_access_before_beginning']) ||
-                            (!empty($sessionInfo['nb_days_access_before_beginning']) &&
-                                $sessionInfo['nb_days_access_before_beginning'] < $this->daysCoachAccessBeforeBeginning)
-                        ) {
-                            $accessBefore = intval($this->daysCoachAccessBeforeBeginning);
-                        }
-
-                        $accessAfter = null;
-                        if (empty($sessionInfo['nb_days_access_after_end']) ||
-                            (!empty($sessionInfo['nb_days_access_after_end']) &&
-                                $sessionInfo['nb_days_access_after_end'] < $this->daysCoachAccessAfterBeginning)
-                        ) {
-                            $accessAfter = intval($this->daysCoachAccessAfterBeginning);
-                        }
 
                         $showDescription = isset($sessionInfo['show_description']) ? $sessionInfo['show_description'] : 1;
 
                         $result = SessionManager::edit_session(
                             $sessionId,
                             $session['SessionName'],
-                            $dateStart[0],
-                            $dateStart[1],
-                            $dateStart[2],
-                            $dateEnd[0],
-                            $dateEnd[1],
-                            $dateEnd[2],
-                            $accessBefore,
-                            $accessAfter,
-                            null,
+                            $dateStart,
+                            $dateEnd,
+                            $dateStart,
+                            $dateEnd,
+                            $sessionInfo['coach_access_start_date'],
+                            $sessionInfo['coach_access_end_date'],
                             $coachId,
                             $categoryId,
                             $visibility,
-                            true, //$start_limit =
-                            true, //$end_limit =
                             null, //$description
                             $showDescription // $showDescription = null,
                         );

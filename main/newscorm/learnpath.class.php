@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CourseBundle\Entity\CLpCategory;
 use ChamiloSession as Session;
 
 /**
@@ -66,6 +67,7 @@ class learnpath
     public $lp_view_session_id = 0; // The specific view might be bound to a session.
     public $prerequisite = 0;
     public $use_max_score = 1; // 1 or 0
+    public $subscribeUsers = 0; // Subscribe users or not
     public $created_on      = '';
     public $modified_on     = '';
     public $publicated_on   = '';
@@ -73,6 +75,7 @@ class learnpath
     public $ref = null;
     public $course_int_id;
     public $course_info = array();
+    public $categoryId;
 
     /**
      * Constructor.
@@ -140,9 +143,11 @@ class learnpath
                 $this->hide_toc_frame = $row['hide_toc_frame'];
                 $this->lp_session_id = $row['session_id'];
                 $this->use_max_score = $row['use_max_score'];
+                $this->subscribeUsers = $row['subscribe_users'];
                 $this->created_on = $row['created_on'];
                 $this->modified_on = $row['modified_on'];
                 $this->ref = $row['ref'];
+                $this->categoryId = $row['category_id'];
 
                 if ($row['publicated_on'] != '0000-00-00 00:00:00') {
                     $this->publicated_on = $row['publicated_on'];
@@ -216,13 +221,13 @@ class learnpath
             Database::query($sql);
             $this->lp_view_id = Database::insert_id();
 
-            $sql = "UPDATE $lp_table SET id = iid WHERE iid = ".$this->lp_view_id;
+            if ($this->debug > 2) {
+                error_log('New LP - learnpath::__construct() ' . __LINE__ . ' - inserting new lp_view: ' . $sql, 0);
+            }
 
+            $sql = "UPDATE $lp_table SET id = iid WHERE iid = ".$this->lp_view_id;
             Database::query($sql);
 
-            if ($this->debug > 2) {
-                error_log('New LP - learnpath::__construct() ' . __LINE__ . ' - inserting new lp_view: ' . $sql_ins, 0);
-            }
         }
 
         // Initialise items.
@@ -494,14 +499,14 @@ class learnpath
         if (empty($max_time_allowed)) {
             $max_time_allowed = 0;
         }
-        $sql_count = "	SELECT COUNT(id) AS num
-                        FROM $tbl_lp_item
-                        WHERE
-                            c_id = $course_id AND
-                            lp_id = " . $this->get_id() . " AND
-                            parent_item_id = " . $parent;
+        $sql = "SELECT COUNT(id) AS num
+                FROM $tbl_lp_item
+                WHERE
+                    c_id = $course_id AND
+                    lp_id = " . $this->get_id() . " AND
+                    parent_item_id = " . $parent;
 
-        $res_count = Database::query($sql_count);
+        $res_count = Database::query($sql);
         $row = Database :: fetch_array($res_count);
         $num = $row['num'];
 
@@ -549,14 +554,17 @@ class learnpath
             $sql = 'SELECT SUM(ponderation)
 					FROM ' . Database :: get_course_table(TABLE_QUIZ_QUESTION) . ' as quiz_question
                     INNER JOIN  ' . Database :: get_course_table(TABLE_QUIZ_TEST_QUESTION) . ' as quiz_rel_question
-                    ON quiz_question.id = quiz_rel_question.question_id
-                    WHERE   quiz_rel_question.exercice_id = '.$id." AND
-	            			quiz_question.c_id = $course_id AND
-	            			quiz_rel_question.c_id = $course_id ";
+                    ON
+                        quiz_question.id = quiz_rel_question.question_id AND
+                        quiz_question.c_id = quiz_rel_question.c_id
+                    WHERE
+                        quiz_rel_question.exercice_id = '.$id." AND
+	            		quiz_question.c_id = $course_id AND
+	            		quiz_rel_question.c_id = $course_id ";
             $rsQuiz = Database::query($sql);
             $max_score = Database :: result($rsQuiz, 0, 0);
 
-            //Disabling the exercise if we add it inside a LP
+            // Disabling the exercise if we add it inside a LP
             $exercise = new Exercise();
             $exercise->read($id);
             $exercise->disable();
@@ -708,7 +716,8 @@ class learnpath
         $origin = 'zip',
         $zipname = '',
         $publicated_on = '',
-        $expired_on = ''
+        $expired_on = '',
+        $categoryId = 0
     ) {
         global $charset;
         $course_id = api_get_course_int_id();
@@ -717,6 +726,7 @@ class learnpath
         // Check lp_name doesn't exist, otherwise append something.
         $i = 0;
         $name = Database::escape_string($name);
+        $categoryId = intval($categoryId);
 
         // Session id.
         $session_id = api_get_session_id();
@@ -782,8 +792,8 @@ class learnpath
                     $dsp = $row[0] + 1;
                 }
 
-                $sql = "INSERT INTO $tbl_lp (c_id, lp_type,name,description,path,default_view_mod, default_encoding,display_order,content_maker,content_local,js_lib,session_id, created_on, publicated_on, expired_on)
-                        VALUES ($course_id, $type,'$name','$description','','embedded','UTF-8','$dsp','Chamilo','local','','".$session_id."', '".api_get_utc_datetime()."' , '".$publicated_on."' , '".$expired_on."')";
+                $sql = "INSERT INTO $tbl_lp (c_id, lp_type,name,description,path,default_view_mod, default_encoding,display_order,content_maker,content_local,js_lib,session_id, created_on, publicated_on, expired_on, category_id)
+                        VALUES ($course_id, $type,'$name','$description','','embedded','UTF-8','$dsp','Chamilo','local','','".$session_id."', '".api_get_utc_datetime()."' , '".$publicated_on."' , '".$expired_on."', $categoryId)";
                 Database::query($sql);
                 $id = Database :: insert_id();
                 if ($id > 0) {
@@ -2155,97 +2165,6 @@ class learnpath
     }
 
     /**
-     * Gets the progress value from the progress field in the database (allows use as abstract method)
-     * @param	integer	$lp_id Learnpath ID
-     * @param	integer	$user_id User ID
-     * @param	string	$mode Mode of display ('%','abs' or 'both')
-     * @param	string	$course_code Course code (optional, defaults to '')
-     * @param	boolean	$sincere Whether to return null if no record
-     * was found (true), or 0 (false) (optional, defaults to false)
-     * @param  int     $session_id
-     * @return	integer	Current progress value as found in the database
-     * @deprecated
-     */
-    public static function get_db_progress(
-        $lp_id,
-        $user_id,
-        $mode = '%',
-        $course_code = '',
-        $sincere = false,
-        $session_id = 0
-    ) {
-        $table = Database :: get_course_table(TABLE_LP_VIEW);
-        $lp_id = intval($lp_id);
-        $session_id = intval($session_id);
-        $user_id = intval($user_id);
-        $course_info = api_get_course_info($course_code);
-        $session_condition = api_get_session_condition($session_id);
-        $course_id = $course_info['real_id'];
-
-        $sql = "SELECT * FROM $table
-                WHERE c_id = ".$course_id." AND lp_id = $lp_id AND user_id = $user_id $session_condition";
-        $res = Database::query($sql);
-        $view_id = 0;
-        if (Database :: num_rows($res) > 0) {
-            $row = Database :: fetch_array($res);
-            $progress = $row['progress'];
-            $view_id = $row['id'];
-        } else {
-            if ($sincere) {
-                return null;
-            }
-        }
-
-        if (empty($progress)) {
-            $progress = '0';
-        }
-
-        if ($mode == '%') {
-            return $progress . '%';
-        } else {
-            // Get the number of items completed and the number of items total.
-            $tbl = Database :: get_course_table(TABLE_LP_ITEM);
-            $sql = "SELECT count(*) FROM $tbl
-            		WHERE
-            		    c_id = $course_id AND
-            		    c_id = ".$course_id." AND
-            		    lp_id = " . $lp_id . " AND
-            		    item_type NOT IN('dokeos_chapter','chapter','dir')";
-            $res = Database::query($sql);
-            $row = Database :: fetch_array($res);
-            $total = $row[0];
-            $tbl_item_view = Database :: get_course_table(TABLE_LP_ITEM_VIEW);
-            $tbl_item = Database :: get_course_table(TABLE_LP_ITEM);
-
-            // Trying as also counting browsed and failed items.
-            $sql = "SELECT count(distinct(lp_item_id))
-                    FROM $tbl_item_view as item_view
-                    INNER JOIN $tbl_item as item
-                    ON
-                        item.id = item_view.lp_item_id AND
-                        item_type NOT IN('dokeos_chapter','chapter','dir')
-                    WHERE
-                    	item_view.c_id 	= $course_id AND
-                    	item.c_id 		= $course_id  AND
-                    	lp_view_id 		= $view_id AND
-            			status IN ('passed','completed','succeeded','browsed','failed')";
-            $res = Database::query($sql);
-            $row = Database :: fetch_array($res);
-            $completed = $row[0];
-            if ($mode == 'abs') {
-                return $completed . '/' . $total;
-            } elseif ($mode == 'both') {
-                if ($progress < ($completed / ($total ? $total : 1))) {
-                    $progress = number_format(($completed / ($total ? $total : 1)) * 100, 0);
-                }
-                return $progress . '% (' . $completed . '/' . $total . ')';
-            }
-        }
-
-        return $progress;
-    }
-
-    /**
      * Returns the HTML necessary to print a mediaplayer block inside a page
      * @return string	The mediaplayer HTML
      */
@@ -2338,7 +2257,7 @@ class learnpath
         $sessionId = null
     ) {
         $lp_id = (int)$lp_id;
-        $course = api_get_course_info($courseCode);
+        $courseInfo = api_get_course_info($courseCode);
         $sessionId = intval($sessionId);
 
         if (empty($sessionId)) {
@@ -2347,12 +2266,12 @@ class learnpath
 
         $tbl_learnpath = Database::get_course_table(TABLE_LP_MAIN);
         // Get current prerequisite
-        $sql = "SELECT id, prerequisite, publicated_on, expired_on
+        $sql = "SELECT id, prerequisite, subscribe_users, publicated_on, expired_on
                 FROM $tbl_learnpath
-                WHERE c_id = ".$course['real_id']." AND id = $lp_id";
+                WHERE c_id = ".$courseInfo['real_id']." AND id = $lp_id";
 
         $itemInfo = api_get_item_property_info(
-            $course['real_id'],
+            $courseInfo['real_id'],
             TOOL_LEARNPATH,
             $lp_id,
             $sessionId
@@ -2365,8 +2284,9 @@ class learnpath
 
         $rs  = Database::query($sql);
         $now = time();
-        if (Database::num_rows($rs)>0) {
+        if (Database::num_rows($rs) > 0) {
             $row = Database::fetch_array($rs, 'ASSOC');
+
             $prerequisite = $row['prerequisite'];
             $is_visible = true;
 
@@ -2374,7 +2294,7 @@ class learnpath
                 $progress = self::getProgress(
                     $prerequisite,
                     $student_id,
-                    $course['real_id'],
+                    $courseInfo['real_id'],
                     $sessionId
                 );
                 $progress = intval($progress);
@@ -2410,6 +2330,48 @@ class learnpath
                     if ($now > api_strtotime($row['expired_on'], 'UTC')) {
                         //api_not_allowed();
                         $is_visible = false;
+                    }
+                }
+            }
+
+            // Check if the subscription users/group to a LP is ON
+            if (isset($row['subscribe_users']) && $row['subscribe_users'] == 1) {
+                // Try group
+                $is_visible = false;
+
+                // Checking only the user visibility
+                $userVisibility = api_get_item_visibility(
+                    $courseInfo,
+                    'learnpath',
+                    $row['id'],
+                    $sessionId,
+                    $student_id,
+                    'LearnpathSubscription'
+                );
+
+                if ($userVisibility == 1) {
+                    $is_visible = true;
+                } else {
+                    $userGroups = GroupManager::getAllGroupPerUserSubscription($student_id);
+                    if (!empty($userGroups)) {
+                        foreach ($userGroups as $groupInfo) {
+                            $groupId = $groupInfo['iid'];
+
+                            $userVisibility = api_get_item_visibility(
+                                $courseInfo,
+                                'learnpath',
+                                $row['id'],
+                                $sessionId,
+                                null,
+                                'LearnpathSubscription',
+                                $groupId
+                            );
+
+                            if ($userVisibility == 1) {
+                                $is_visible = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -3270,7 +3232,7 @@ class learnpath
                 $html .= stripslashes($title);
             } else {
                 $this->get_link('http', $item['id'], $toc_list);
-                $html .= '<a href="" onClick="switch_item(' .$mycurrentitemid . ',' .$item['id'] . ');' .'return false;" >' . stripslashes($title) . '</a>';
+                $html .= '<a class="items-list" href="" onClick="switch_item(' .$mycurrentitemid . ',' .$item['id'] . ');' .'return false;" >' . stripslashes($title) . '</a>';
             }
             $html .= "</div>";
 
@@ -3428,11 +3390,23 @@ class learnpath
                         if ($lp_item_type == 'link') {
                             if (Link::is_youtube_link($file)) {
                                 $src  = Link::get_youtube_video_id($file);
-                                $file = 'embed.php?type=youtube&src='.$src;
-                            }
-                            if (Link::isVimeoLink($file)) {
+                                $file = 'embed.php?type=youtube&source='.$src;
+                            } elseif (Link::isVimeoLink($file)) {
                                 $src  = Link::getVimeoLinkId($file);
-                                $file = 'embed.php?type=vimeo&src='.$src;
+                                $file = 'embed.php?type=vimeo&source='.$src;
+                            } else {
+                                // If the current site is HTTPS and the link is
+                                // HTTP, browsers will refuse opening the link
+                                $urlId = api_get_current_access_url_id();
+                                $url = api_get_access_url($urlId, false);
+                                $protocol = substr($url['url'], 0, 5);
+                                if ($protocol === 'https') {
+                                    $linkProtocol = substr($file, 0, 5);
+                                    if ($linkProtocol === 'http:') {
+                                        //this is the special intervention case
+                                        $file = 'embed.php?type=nonhttps&source=' .  urlencode($file);
+                                    }
+                                }
                             }
                         } else {
                             // Check how much attempts of a exercise exits in lp
@@ -5301,7 +5275,6 @@ class learnpath
      * but possibility to do again a completed item.
      *
      * @return boolean true if seriousgame_mode has been set to 1, false otherwise
-     * @deprecated seems not to be used
      * @author ndiechburg <noel@cblue.be>
      **/
     public function set_seriousgame_mode()
@@ -5502,7 +5475,10 @@ class learnpath
 
             // We need to close the form when we are updating the mp3 files.
             if ($update_audio == 'true') {
-                $return .= '<div><button class="save" type="submit" name="save_audio" id="save_audio">' . get_lang('SaveAudioAndOrganization') . '</button></div>'; // TODO: What kind of language variable is this?
+                $return .= '<div class="footer-audio">';
+                $return .= Display::button('save_audio','<i class="fa fa-file-audio-o"></i> '. get_lang('SaveAudioAndOrganization'),array('class'=>'btn btn-primary','type'=>'submit'));
+                $return .= '</div>';
+                //$return .= '<div><button class="btn btn-primary" type="submit" name="save_audio" id="save_audio">' . get_lang('SaveAudioAndOrganization') . '</button></div>'; // TODO: What kind of language variable is this?
             }
         }
 
@@ -5594,7 +5570,7 @@ class learnpath
             }
 
             // The audio column.
-            $return_audio  .= '<td align="center">';
+            $return_audio  .= '<td align="left" style="padding-left:10px;">';
 
             $audio = '';
 
@@ -5808,92 +5784,6 @@ class learnpath
             return $return;
         }
         echo $return;
-    }
-
-    /**
-     * This functions builds the LP tree based on data from the database.
-     * @return string
-     * @deprecated use the return_new_tree() function
-     * @uses dtree.js :: necessary javascript for building this tree
-     */
-    public function build_tree()
-    {
-        $course_id = api_get_course_int_id();
-
-        $return = "<script type=\"text/javascript\">\n";
-        $return .= "\tm = new dTree('m');\n\n";
-        $return .= "\tm.config.folderLinks		= true;\n";
-        $return .= "\tm.config.useCookies		= true;\n";
-        $return .= "\tm.config.useIcons			= true;\n";
-        $return .= "\tm.config.useLines			= true;\n";
-        $return .= "\tm.config.useSelection		= true;\n";
-        $return .= "\tm.config.useStatustext	= false;\n\n";
-        $menu = 0;
-        $parent = '';
-        $return .= "\tm.add(" . $menu . ", -1, '" . addslashes(Security::remove_XSS(($this->name))) . "');\n";
-        $tbl_lp_item = Database :: get_course_table(TABLE_LP_ITEM);
-
-        $sql = " SELECT
-                    id,
-                    title,
-                    description,
-                    item_type,
-                    path,
-                    parent_item_id,
-                    previous_item_id,
-                    next_item_id,
-                    max_score,
-                    min_score,
-                    mastery_score,
-                    display_order
-                 FROM $tbl_lp_item
-                 WHERE c_id = ".$course_id." AND lp_id = " . intval($this->lp_id);
-        $result = Database::query($sql);
-        $arrLP = array ();
-
-        while ($row = Database :: fetch_array($result)) {
-            $row['title'] = Security :: remove_XSS($row['title']);
-            $row['description'] = Security :: remove_XSS($row['description']);
-            $arrLP[] = array(
-                'id' 				=> $row['id'],
-                'item_type' 		=> $row['item_type'],
-                'title' 			=> $row['title'],
-                'path' 				=> $row['path'],
-                'description' 		=> $row['description'],
-                'parent_item_id' 	=> $row['parent_item_id'],
-                'previous_item_id' 	=> $row['previous_item_id'],
-                'next_item_id' 		=> $row['next_item_id'],
-                'max_score' 		=> $row['max_score'],
-                'min_score' 		=> $row['min_score'],
-                'mastery_score' 	=> $row['mastery_score'],
-                'display_order' 	=> $row['display_order']
-            );
-        }
-
-        $this->tree_array($arrLP);
-        $arrLP = $this->arrMenu;
-        unset ($this->arrMenu);
-        for ($i = 0; $i < count($arrLP); $i++) {
-            $title = addslashes($arrLP[$i]['title']);
-            $menu_page = api_get_self() . '?cidReq=' . Security :: remove_XSS($_GET['cidReq']) . '&action=view_item&id=' . $arrLP[$i]['id'] . '&lp_id=' . $_SESSION['oLP']->lp_id;
-            $icon_name = str_replace(' ', '', $arrLP[$i]['item_type']);
-            if (file_exists('../img/lp_' . $icon_name . '.png')) {
-                $return .= "\tm.add(" . $arrLP[$i]['id'] . ", " . $arrLP[$i]['parent_item_id'] . ", '" . $title . "', '" . $menu_page . "', '', '', '../img/lp_" . $icon_name . ".png', '../img/lp_" . $icon_name . ".png');\n";
-            } else
-                if (file_exists('../img/lp_' . $icon_name . '.gif')) {
-                    $return .= "\tm.add(" . $arrLP[$i]['id'] . ", " . $arrLP[$i]['parent_item_id'] . ", '" . $title . "', '" . $menu_page . "', '', '', '../img/lp_" . $icon_name . ".gif', '../img/lp_" . $icon_name . ".gif');\n";
-                } else {
-                    $return .= "\tm.add(" . $arrLP[$i]['id'] . ", " . $arrLP[$i]['parent_item_id'] . ", '" . $title . "', '" . $menu_page . "', '', '', '../img/folder_document.gif', '../img/folder_document.gif');\n";
-                }
-            if ($menu < $arrLP[$i]['id'])
-                $menu = $arrLP[$i]['id'];
-        }
-
-        $return .= "\n\tdocument.write(m);\n";
-        $return .= "\t if(!m.selectedNode) m.s(1);";
-        $return .= "</script>\n";
-
-        return $return;
     }
 
     /**
@@ -6324,7 +6214,6 @@ class learnpath
 
         // Get all the docs.
         $documents = $this->get_documents(true);
-
         // Get all the exercises.
         $exercises = $this->get_exercises();
 
@@ -9313,15 +9202,12 @@ class learnpath
                             $organization->appendChild($my_item);
                         }
 
-                        // Include export scripts.
-                        require_once api_get_path(SYS_CODE_PATH).'exercice/export/scorm/scorm_export.php';
-
                         // Get the path of the file(s) from the course directory root
                         //$my_file_path = $item->get_file_path('scorm/'.$this->path.'/');
                         $my_file_path = 'quiz_'.$item->get_id().'.html';
                         // Write the contents of the exported exercise into a (big) html file
                         // to later pack it into the exported SCORM. The file will be removed afterwards.
-                        $contents = export_exercise($exe_id, true);
+                        $contents = ScormSection::export_exercise_to_scorm($exe_id, true);
                         $tmp_file_path = $archive_path.$temp_dir_short.'/'.$my_file_path;
                         $res = file_put_contents($tmp_file_path, $contents);
                         if ($res === false) { error_log('Could not write into file '.$tmp_file_path.' '.__FILE__.' '.__LINE__, 0); }
@@ -9672,7 +9558,12 @@ EOD;
         // Clean possible temporary files.
         foreach ($files_cleanup as $file) {
             $res = unlink($file);
-            if ($res === false) { error_log('Could not delete temp file '.$file.' '.__FILE__.' '.__LINE__, 0); }
+            if ($res === false) {
+                error_log(
+                    'Could not delete temp file '.$file.' '.__FILE__.' '.__LINE__,
+                    0
+                );
+            }
         }
         $name = api_replace_dangerous_char($this->get_name()).'.zip';
         DocumentManager::file_send_for_download($temp_zip_file, true, $name);
@@ -9847,20 +9738,20 @@ EOD;
      * @param int $lp_id
      * @param string $status
      */
-    public function set_autolunch($lp_id, $status)
+    public function set_autolaunch($lp_id, $status)
     {
         $course_id = api_get_course_int_id();
         $lp_id   = intval($lp_id);
         $status  = intval($status);
         $lp_table = Database::get_course_table(TABLE_LP_MAIN);
 
-        // Setting everything to autolunch = 0
-        $attributes['autolunch'] = 0;
+        // Setting everything to autolaunch = 0
+        $attributes['autolaunch'] = 0;
         $where = array('session_id = ? AND c_id = ? '=> array(api_get_session_id(), $course_id));
         Database::update($lp_table, $attributes, $where);
         if ($status == 1) {
-            //Setting my lp_id to autolunch = 1
-            $attributes['autolunch'] = 1;
+            //Setting my lp_id to autolaunch = 1
+            $attributes['autolaunch'] = 1;
             $where = array('id = ? AND session_id = ? AND c_id = ?'=> array($lp_id, api_get_session_id(), $course_id));
             Database::update($lp_table, $attributes, $where );
         }
@@ -9927,7 +9818,17 @@ EOD;
     public function verify_document_size($s)
     {
         $post_max = ini_get('post_max_size');
+        if (substr($post_max, -1, 1) == 'M') {
+            $post_max = intval(substr($post_max, 0, -1)) * 1024 * 1024;
+        } elseif (substr($post_max, -1, 1) == 'G') {
+            $post_max = intval(substr($post_max, 0, -1)) * 1024 * 1024 * 1024;
+        }
         $upl_max = ini_get('upload_max_filesize');
+        if (substr($upl_max, -1, 1) == 'M') {
+            $upl_max = intval(substr($upl_max, 0, -1)) * 1024 * 1024;
+        } elseif (substr($upl_max, -1, 1) == 'G') {
+            $upl_max = intval(substr($upl_max, 0, -1)) * 1024 * 1024 * 1024;
+        }
         $documents_total_space = DocumentManager::documents_total_space();
         $course_max_space = DocumentManager::get_course_quota();
         $total_size = filesize($s) + $documents_total_space;
@@ -10011,6 +9912,181 @@ EOD;
     }
 
     /**
+     * @param array $params
+     */
+    public static function createCategory($params)
+    {
+        $em = Database::getManager();
+        $item = new CLpCategory();
+        $item->setName($params['name']);
+        $item->setCId($params['c_id']);
+        $em->persist($item);
+        $em->flush();
+    }
+    /**
+     * @param array $params
+     */
+    public static function updateCategory($params)
+    {
+        $em = Database::getManager();
+        /** @var CLpCategory $item */
+        $item = $em->find('ChamiloCourseBundle:CLpCategory', $params['id']);
+        if ($item) {
+            $item->setName($params['name']);
+            $em->merge($item);
+            $em->flush();
+        }
+    }
+
+    /**
+     * @param int $id
+     */
+    public static function moveUpCategory($id)
+    {
+        $em = Database::getManager();
+        /** @var CLpCategory $item */
+        $item = $em->find('ChamiloCourseBundle:CLpCategory', $id);
+        if ($item) {
+            $position = $item->getPosition() - 1;
+            $item->setPosition($position);
+            $em->persist($item);
+            $em->flush();
+        }
+    }
+
+    /**
+     * @param int $id
+     */
+    public static function moveDownCategory($id)
+    {
+        $em = Database::getManager();
+        /** @var CLpCategory $item */
+        $item = $em->find('ChamiloCourseBundle:CLpCategory', $id);
+        if ($item) {
+            $position = $item->getPosition() + 1;
+            $item->setPosition($position);
+            $em->persist($item);
+            $em->flush();
+        }
+    }
+
+    /**
+     * @param int $courseId
+     * @return int|mixed
+     */
+    public static function getCountCategories($courseId)
+    {
+        if (empty($course_id)) {
+            return 0;
+        }
+        $em = Database::getManager();
+        $query = $em->createQuery('SELECT COUNT(u.id) FROM ChamiloCourseBundle:CLpCategory u WHERE u.cId = :id');
+        $query->setParameter('id', $courseId);
+
+        return $query->getSingleScalarResult();
+    }
+
+    /**
+     * @param int $courseId
+     *
+     * @return mixed
+     */
+    public static function getCategories($courseId)
+    {
+        $em = Database::getManager();
+        //Default behaviour
+        /*$items = $em->getRepository('ChamiloCourseBundle:CLpCategory')->findBy(
+            array('cId' => $course_id),
+            array('name' => 'ASC')
+        );*/
+
+        // Using doctrine extensions
+        $items = $em->getRepository('ChamiloCourseBundle:CLpCategory')->getBySortableGroupsQuery(
+            array('cId' => $courseId)
+        )->getResult();
+
+        return $items;
+    }
+
+    /**
+     * @param int $id
+     *
+     * @return mixed
+     */
+    public static function getCategory($id)
+    {
+        $em = Database::getManager();
+        $item = $em->find('ChamiloCourseBundle:CLpCategory', $id);
+
+        return $item;
+    }
+
+    /**
+     * @param int $courseId
+     * @return array
+     */
+    public static function getCategoryByCourse($courseId)
+    {
+        $em = Database::getManager();
+        $items = $em->getRepository('ChamiloCourseBundle:CLpCategory')->findBy(array('cId' => $courseId));
+
+        return $items;
+    }
+
+    /**
+     * @param int $id
+     *
+     * @return mixed
+     */
+    public static function deleteCategory($id)
+    {
+        $em = Database::getManager();
+        $item = $em->find('ChamiloCourseBundle:CLpCategory', $id);
+        if ($item) {
+
+            $courseId = $item->getCId();
+            $query = $em->createQuery('SELECT u FROM ChamiloCourseBundle:CLp u WHERE u.cId = :id AND u.categoryId = :catId');
+            $query->setParameter('id', $courseId);
+            $query->setParameter('catId', $item->getId());
+            $lps = $query->getResult();
+
+            // Setting category = 0.
+            if ($lps) {
+                foreach ($lps as $lpItem) {
+                    $lpItem->setCategoryId(0);
+                }
+            }
+
+            // Removing category.
+            $em->remove($item);
+            $em->flush();
+        }
+    }
+
+    /**
+     * @param int $courseId
+     * @param bool $addSelectOption
+     *
+     * @return mixed
+     */
+    static function getCategoryFromCourseIntoSelect($courseId, $addSelectOption = false)
+    {
+        $items = self::getCategoryByCourse($courseId);
+        $cats = array();
+        if ($addSelectOption) {
+            $cats = array(get_lang('SelectACategory'));
+        }
+
+        if (!empty($items)) {
+            foreach ($items as $cat) {
+                $cats[$cat->getId()] = $cat->getName();
+            }
+        }
+
+        return $cats;
+    }
+
+    /**
      * Return the scorm item type object with spaces replaced with _
      * The return result is use to build a css classname like scorm_type_$return
      * @param $in_type
@@ -10050,6 +10126,241 @@ EOD;
         }
 
         return false;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCategoryId()
+    {
+        return $this->categoryId;
+    }
+
+    /**
+     * @param int $categoryId
+     * @return bool
+     */
+    public function setCategoryId($categoryId)
+    {
+        $this->categoryId = intval($categoryId);
+
+        $courseId = api_get_course_int_id();
+        $lp_table = Database :: get_course_table(TABLE_LP_MAIN);
+        $lp_id = $this->get_id();
+        $sql = "UPDATE $lp_table SET category_id = ".$this->categoryId."
+                WHERE c_id = $courseId AND id = $lp_id";
+        Database::query($sql);
+
+        return true;
+    }
+
+    /**
+     * Get whether this is a learning path with the possibility to subscribe
+     * users or not
+     * @return int
+     */
+    public function getSubscribeUsers()
+    {
+        return $this->subscribeUsers;
+    }
+
+    /**
+     * Set whether this is a learning path with the possibility to subscribe
+     * users or not
+     * @param int $subscribeUsers (0 = false, 1 = true)
+     */
+    public function setSubscribeUsers($value)
+    {
+        if ($this->debug > 0) {
+            error_log('New LP - In learnpath::set_subscribe_users()', 0);
+        }
+        $this->subscribeUsers = intval($value);;
+        $lp_table = Database :: get_course_table(TABLE_LP_MAIN);
+        $lp_id = $this->get_id();
+        $sql = "UPDATE $lp_table SET subscribe_users = ".$this->subscribeUsers."
+                WHERE c_id = ".$this->course_int_id." AND id = $lp_id";
+        Database::query($sql);
+
+        return true;
+    }
+
+    /**
+     * Calculate the count of stars for a user in this LP
+     * @param int $sessionId Optional. The session ID
+     * @return int The count of stars
+     */
+    public function getCalculateStars($sessionId = 0)
+    {
+        $stars = 0;
+
+        $progress = self::getProgress($this->lp_id, $this->user_id, $this->course_int_id, $sessionId);
+
+        if ($progress > 50) {
+            $stars++;
+        }
+
+        // Calculate stars chapters evaluation
+        $exercisesItems = $this->getExercisesItems();
+
+        if ($exercisesItems === false) {
+            return $stars;
+        }
+
+        $totalResult = 0;
+
+        foreach ($exercisesItems as $exerciseItem) {
+            $exerciseResultInfo = Event::getExerciseResultsByUser(
+                $this->user_id,
+                $exerciseItem->ref,
+                $this->course_int_id,
+                $sessionId,
+                $this->lp_id,
+                $exerciseItem->db_id
+            );
+
+            $exerciseResult = 0;
+
+            foreach ($exerciseResultInfo as $result) {
+                $exerciseResult += $result['exe_result'] * 100 / $result['exe_weighting'];
+            }
+
+            $exerciseAverage = $exerciseResult / (count($exerciseResultInfo) > 0 ? count($exerciseResultInfo) : 1);
+
+            $totalResult += $exerciseAverage;
+        }
+
+        $totalExerciseAverage = $totalResult / (count($exercisesItems) > 0 ? count($exercisesItems) : 1);
+
+        if ($totalExerciseAverage >= 50) {
+            $stars++;
+        }
+
+        if ($totalExerciseAverage >= 80) {
+            $stars++;
+        }
+
+        // Calculate star for final evaluation
+        $finalEvaluationItem = $this->getFinalEvaluationItem();
+
+        if ($finalEvaluationItem === false) {
+            return $stars;
+        }
+
+        $evaluationResultInfo = Event::getExerciseResultsByUser(
+            $this->user_id,
+            $finalEvaluationItem->ref,
+            $this->course_int_id,
+            $sessionId,
+            $this->lp_id,
+            $finalEvaluationItem->db_id
+        );
+
+        $evaluationResult = 0;
+
+        foreach ($evaluationResultInfo as $result) {
+            $evaluationResult += $result['exe_result'] * 100 / $result['exe_weighting'];
+        }
+
+        $evaluationAverage = $evaluationResult / (count($evaluationResultInfo) > 0 ? count($evaluationResultInfo) : 1);
+
+        if ($evaluationAverage >= 80) {
+            $stars++;
+        }
+
+        return $stars;
+    }
+
+    /**
+     * Get the items of exercise type
+     * @return array The items. Otherwise return false
+     */
+    public function getExercisesItems()
+    {
+        $exercises = [];
+
+        foreach ($this->items as $item) {
+            if ($item->type != 'quiz') {
+                continue;
+            }
+
+            $exercises[] = $item;
+        }
+
+        array_pop($exercises);
+
+        return $exercises;
+    }
+
+    /**
+     * Get the item of exercise type (evaluation type)
+     * @return array The final evaluation. Otherwise return false
+     */
+    public function getFinalEvaluationItem()
+    {
+        $exercises = [];
+
+        foreach ($this->items as $item) {
+            if ($item->type != 'quiz') {
+                continue;
+            }
+
+            $exercises[] = $item;
+        }
+
+        return array_pop($exercises);
+    }
+
+    /**
+     * Calculate the total points achieved for the current user in this learning path
+     * @param int $sessionId Optional. The session Id
+     * @return int
+     */
+    public function getCalculateScore($sessionId = 0)
+    {
+        // Calculate stars chapters evaluation
+        $exercisesItems = $this->getExercisesItems();
+        $finalEvaluationItem = $this->getFinalEvaluationItem();
+
+        $totalExercisesResult = 0;
+        $totalEvaluationResult = 0;
+
+        if ($exercisesItems !== false) {
+            foreach ($exercisesItems as $exerciseItem) {
+                $exerciseResultInfo = Event::getExerciseResultsByUser(
+                    $this->user_id,
+                    $exerciseItem->ref,
+                    $this->course_int_id,
+                    $sessionId,
+                    $this->lp_id,
+                    $exerciseItem->db_id
+                );
+
+                $exerciseResult = 0;
+
+                foreach ($exerciseResultInfo as $result) {
+                    $exerciseResult += $result['exe_result'];
+                }
+
+                $totalExercisesResult += $exerciseResult;
+            }
+        }
+
+        if ($finalEvaluationItem !== false) {
+            $evaluationResultInfo = Event::getExerciseResultsByUser(
+                $this->user_id,
+                $finalEvaluationItem->ref,
+                $this->course_int_id,
+                $sessionId,
+                $this->lp_id,
+                $finalEvaluationItem->db_id
+            );
+
+            foreach ($evaluationResultInfo as $result) {
+                $totalEvaluationResult += $result['exe_result'];
+            }
+        }
+
+        return $totalExercisesResult + $totalEvaluationResult;
     }
 }
 

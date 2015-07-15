@@ -5,6 +5,7 @@ namespace Chamilo\UserBundle\Entity;
 
 //use Chamilo\CoreBundle\Entity\UserFieldValues;
 use Chamilo\CoreBundle\Entity\ExtraFieldValues;
+use Chamilo\CoreBundle\Entity\UsergroupRelUser;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Event\LifecycleEventArgs;
 use Doctrine\ORM\Mapping as ORM;
@@ -268,6 +269,13 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
     protected $salt;
 
     /**
+     * @var \DateTime
+     *
+     * @ORM\Column(name="last_login", type="datetime", nullable=true, unique=false)
+     */
+    protected $lastLogin;
+
+    /**
      * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\CourseRelUser", mappedBy="user")
      **/
     protected $courses;
@@ -474,7 +482,7 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
                 new Assert\Regex(array(
                         'pattern' => '/[0-9]{2}/',
                         'htmlPattern' => '/[0-9]{2}/')
-                )
+                ),
             )
             ;
     }
@@ -682,11 +690,12 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
     }
 
     /**
+     * @todo don't use api_get_person_name
      * @return string
      */
     public function getCompleteName()
     {
-        return $this->lastname .', '. $this->firstname;
+        return api_get_person_name($this->firstname, $this->lastname);
     }
 
     /**
@@ -697,8 +706,9 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
     {
         $classSubscription = $this->getClasses();
         $classList = array();
+        /** @var UsergroupRelUser $subscription */
         foreach ($classSubscription as $subscription) {
-            $class = $subscription->getClass();
+            $class = $subscription->getUsergroup();
             $classList[] = $class->getName();
         }
         $classString = !empty($classList) ? ' ['.implode(', ', $classList).']' : null;
@@ -1370,6 +1380,30 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
     }
 
     /**
+     * Set lastLogin
+     *
+     * @param \DateTime $lastLogin
+     *
+     * @return User
+     */
+    public function setLastLogin(\DateTime $lastLogin)
+    {
+        $this->lastLogin = $lastLogin;
+
+        return $this;
+    }
+
+    /**
+     * Get lastLogin
+     *
+     * @return \DateTime
+     */
+    public function getLastLogin()
+    {
+        return $this->lastLogin;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getExtraFields()
@@ -1404,7 +1438,7 @@ class User extends BaseUser //implements ParticipantInterface, ThemeUser
     /**
      * {@inheritdoc}
      */
-    public function addExtraFields(UserFieldValues $extraFieldValue)
+    public function addExtraFields(ExtraFieldValues $extraFieldValue)
     {
         //if (!$this->hasExtraField($attribute)) {
         $extraFieldValue->setUser($this);

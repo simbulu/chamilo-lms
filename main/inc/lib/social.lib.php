@@ -445,11 +445,6 @@ class SocialManager extends UserManager
      */
     public static function get_logged_user_course_html($my_course, $count)
     {
-        global $nosession, $nbDigestEntries, $orderKey, $digest, $thisCourseSysCode;
-        if (!$nosession) {
-            global $now, $date_start, $date_end;
-        }
-        //initialise
         $result = '';
         // Table definitions
         $main_user_table = Database :: get_main_table(TABLE_MAIN_USER);
@@ -467,95 +462,51 @@ class SocialManager extends UserManager
 
         //display course entry
         $result .= '<div id="div_'.$count.'">';
-        //$result .= '<h3><img src="../img/nolines_plus.gif" id="btn_'.$count.'" onclick="toogle_course(this,\''.$course_id.'\' )">';
         $result .= $s_htlm_status_icon;
 
         //show a hyperlink to the course, unless the course is closed and user is not course admin
-        if ($course_visibility != COURSE_VISIBILITY_HIDDEN && ($course_visibility != COURSE_VISIBILITY_CLOSED || $user_in_course_status == COURSEMANAGER)) {
-           //$result .= '<a href="javascript:void(0)" id="ln_'.$count.'"  onclick=toogle_course(this,\''.$course_id.'\');>&nbsp;'.$course_title.'</a>';
+        if ($course_visibility != COURSE_VISIBILITY_HIDDEN &&
+            ($course_visibility != COURSE_VISIBILITY_CLOSED || $user_in_course_status == COURSEMANAGER)
+        ) {
            $result .= $course_title;
         } else {
             $result .= $course_title." "." ".get_lang('CourseClosed')."";
         }
         $result .= '</h3>';
-        //$current_course_settings = CourseManager :: get_access_settings($my_course['k']);
-        // display the what's new icons
-        /*if ($nbDigestEntries > 0) {
-            reset($digest);
-            $result .= '<ul>';
-            while (list ($key2) = each($digest[$thisCourseSysCode])) {
-                $result .= '<li>';
-                if ($orderKey[1] == 'keyTools') {
-                    $result .= "<a href=\"$toolsList[$key2] [\"path\"] $thisCourseSysCode \">";
-                    $result .= "$toolsList[$key2][\"name\"]</a>";
-                } else {
-                    $result .= api_convert_and_format_date($key2, DATE_FORMAT_LONG, date_default_timezone_get());
-                }
-                $result .= '</li>';
-                $result .= '<ul>';
-                reset($digest[$thisCourseSysCode][$key2]);
-                while (list ($key3, $dataFromCourse) = each($digest[$thisCourseSysCode][$key2])) {
-                    $result .= '<li>';
-                    if ($orderKey[2] == 'keyTools') {
-                        $result .= "<a href=\"$toolsList[$key3] [\"path\"] $thisCourseSysCode \">";
-                        $result .= "$toolsList[$key3][\"name\"]</a>";
-                    } else {
-                        $result .= api_convert_and_format_date($key3, DATE_FORMAT_LONG, date_default_timezone_get());
-                    }
-                    $result .= '<ul compact="compact">';
-                    reset($digest[$thisCourseSysCode][$key2][$key3]);
-                    while (list ($key4, $dataFromCourse) = each($digest[$thisCourseSysCode][$key2][$key3])) {
-                        $result .= '<li>';
-                        $result .= htmlspecialchars(substr(strip_tags($dataFromCourse), 0, CONFVAL_NB_CHAR_FROM_CONTENT));
-                        $result .= '</li>';
-                    }
-                    $result .= '</ul>';
-                    $result .= '</li>';
-                }
-                $result .= '</ul>';
-                $result .= '</li>';
-            }
-            $result .= '</ul>';
-        }*/
         $result .= '</li>';
         $result .= '</div>';
 
-        if (!$nosession) {
-            $session = '';
-            $active = false;
-            if (!empty($my_course['session_name']) && !empty($my_course['id_session'])) {
+        $session = '';
+        $active = false;
+        if (!empty($my_course['session_name']) && !empty($my_course['id_session'])) {
 
-                // Request for the name of the general coach
-                $sql = 'SELECT lastname, firstname
-                        FROM '.$tbl_session.' ts
-                        LEFT JOIN '.$main_user_table.' tu
-                        ON ts.id_coach = tu.user_id
-                        WHERE ts.id='.(int) $my_course['id_session'].' LIMIT 1';
-                $rs = Database::query($sql);
-                $sessioncoach = Database::store_result($rs);
-                $sessioncoach = $sessioncoach[0];
+            // Request for the name of the general coach
+            $sql = 'SELECT lastname, firstname
+                    FROM '.$tbl_session.' ts
+                    LEFT JOIN '.$main_user_table.' tu
+                    ON ts.id_coach = tu.user_id
+                    WHERE ts.id='.(int) $my_course['id_session'].' LIMIT 1';
+            $rs = Database::query($sql);
+            $sessioncoach = Database::store_result($rs);
+            $sessioncoach = $sessioncoach[0];
 
-                $session = array();
-                $session['title'] = $my_course['session_name'];
-                if ($my_course['date_start'] == '0000-00-00') {
-                    $session['dates'] = get_lang('WithoutTimeLimits');
-                    if (api_get_setting('show_session_coach') === 'true') {
-                        $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($sessioncoach['firstname'], $sessioncoach['lastname']);
-                    }
-                    $active = true;
-                } else {
-                    $session ['dates'] = ' - '.get_lang('From').' '.$my_course['date_start'].' '.get_lang('To').' '.$my_course['date_end'];
-                    if (api_get_setting('show_session_coach') === 'true') {
-                        $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($sessioncoach['firstname'], $sessioncoach['lastname']);
-                    }
-                    $active = ($date_start <= $now && $date_end >= $now) ? true : false;
+            $session = array();
+            $session['title'] = $my_course['session_name'];
+            if ($my_course['access_start_date'] == '0000-00-00') {
+                $session['dates'] = get_lang('WithoutTimeLimits');
+                if (api_get_setting('show_session_coach') === 'true') {
+                    $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($sessioncoach['firstname'], $sessioncoach['lastname']);
+                }
+                $active = true;
+            } else {
+                $session ['dates'] = ' - '.get_lang('From').' '.$my_course['access_start_date'].' '.get_lang('To').' '.$my_course['access_end_date'];
+                if (api_get_setting('show_session_coach') === 'true') {
+                    $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($sessioncoach['firstname'], $sessioncoach['lastname']);
                 }
             }
-            $my_course['id_session'] = isset($my_course['id_session']) ? $my_course['id_session'] : 0;
-            $output = array($my_course['user_course_cat'], $result, $my_course['id_session'], $session, 'active' => $active);
-        } else {
-            $output = array($my_course['user_course_cat'], $result);
         }
+        $my_course['id_session'] = isset($my_course['id_session']) ? $my_course['id_session'] : 0;
+        $output = array($my_course['user_course_cat'], $result, $my_course['id_session'], $session);
 
         return $output;
     }
@@ -597,42 +548,50 @@ class SocialManager extends UserManager
             'browse_groups'
         );
 
-        // get count unread message and total invitations
-        /*$count_unread_message = MessageManager::get_number_of_messages(true);
-        $count_unread_message = !empty($count_unread_message) ? Display::badge($count_unread_message) : null;*/
+        $template = new Template(null, false, false, false, false, false);
 
-        /*$number_of_new_messages_of_friend = SocialManager::get_message_number_invitation_by_user_id(api_get_user_id());
-        $group_pending_invitations = GroupPortalManager::get_groups_by_user(api_get_user_id(), GROUP_USER_PERMISSION_PENDING_INVITATION, false);
-        $group_pending_invitations = count($group_pending_invitations);
-        $total_invitations = $number_of_new_messages_of_friend + $group_pending_invitations;
-        $total_invitations = (!empty($total_invitations) ? Display::badge($total_invitations) : '');*/
-
-        $html = '<div class="avatar-profile">';
         if (in_array($show, $show_groups) && !empty($group_id)) {
             // Group image
-            $group_info = GroupPortalManager::get_group_data($group_id);
-            $big = GroupPortalManager::get_picture_group(
+            $userGroup = new UserGroup();
+            $group_info = $userGroup->get($group_id);
+
+            $userGroupImage = $userGroup->get_picture_group(
                 $group_id,
-                $group_info['picture_uri'],
+                $group_info['picture'],
                 160,
                 GROUP_IMAGE_SIZE_BIG
             );
 
-            $html .= Display::url('<img src='.$big['file'].' class="social-groups-image" /> </a><br /><br />', api_get_path(WEB_CODE_PATH).'social/groups.php?id='.$group_id);
-            if (GroupPortalManager::is_group_admin($group_id, api_get_user_id())) {
-                $html .= '<div id="edit_image">
-                            <a href="'.api_get_path(WEB_CODE_PATH).'social/group_edit.php?id='.$group_id.'">'.
-                    get_lang('EditGroup').'</a></div>';
-            }
+            $template->assign('show_group', true);
+            $template->assign('group_id', $group_id);
+            $template->assign('user_group_image', $userGroupImage);
+            $template->assign(
+                'user_is_group_admin',
+                $userGroup->is_group_admin(
+                    $group_id,
+                    api_get_user_id()
+                )
+            );
         } else {
-            $big_image = UserManager::getUserPicture($user_id, USER_IMAGE_SIZE_BIG);
-            $normal_image = UserManager::getUserPicture($user_id, USER_IMAGE_SIZE_ORIGINAL);
-
-            $html .= '<a class="expand-image" href="'.$big_image.'"><img class="img-responsive" src='.$normal_image.' /> </a>';
+            $template->assign('show_user', true);
+            $template->assign(
+                'user_image',
+                [
+                    'big' => UserManager::getUserPicture(
+                        $user_id,
+                        USER_IMAGE_SIZE_BIG
+                    ),
+                    'normal' => UserManager::getUserPicture(
+                        $user_id,
+                        USER_IMAGE_SIZE_ORIGINAL
+                    )
+                ]
+            );
         }
-        $html .= '</div>';
 
-        return $html;
+        $skillBlock = $template->get_template('social/avatar_block.tpl');
+
+        return $template->fetch($skillBlock);
     }
 
     /**
@@ -665,6 +624,8 @@ class SocialManager extends UserManager
         if (empty($user_id)) {
             $user_id = api_get_user_id();
         }
+        $usergroup = new UserGroup();
+
         $user_info = api_get_user_info($user_id, true);
         $current_user_id = api_get_user_id();
         $current_user_info = api_get_user_info($current_user_id, true);
@@ -693,7 +654,7 @@ class SocialManager extends UserManager
         $count_unread_message = !empty($count_unread_message) ? Display::badge($count_unread_message) : null;
 
         $number_of_new_messages_of_friend = SocialManager::get_message_number_invitation_by_user_id(api_get_user_id());
-        $group_pending_invitations = GroupPortalManager::get_groups_by_user(
+        $group_pending_invitations = $usergroup->get_groups_by_user(
             api_get_user_id(),
             GROUP_USER_PERMISSION_PENDING_INVITATION,
             false
@@ -737,7 +698,7 @@ class SocialManager extends UserManager
         }
 
         if (in_array($show, $show_groups) && !empty($group_id)) {
-            $html .= GroupPortalManager::show_group_column_information(
+            $html .= $usergroup->show_group_column_information(
                 $group_id,
                 api_get_user_id(),
                 $show
@@ -1538,15 +1499,31 @@ class SocialManager extends UserManager
             $profileEditionLink = Display::getProfileEditionLink($userId);
         }
 
-        $userInfo = api_get_user_info($userId, true);
+        $userInfo = api_get_user_info($userId, true, false, true);
         $template->assign('user', $userInfo);
         $template->assign('socialAvatarBlock', $socialAvatarBlock);
         $template->assign('profileEditionLink', $profileEditionLink);
-        $template->assign('social_avatar_block', $template->fetch('default/social/user_block.tpl'));
+
+        if (api_get_setting('gamification_mode') === '1') {
+            $gamificationPoints = GamificationUtils::getTotalUserPoints(
+                $userId,
+                $userInfo['status']
+            );
+
+            $template->assign('gamification_points', $gamificationPoints);
+        }
+
+        $templateName = $template->get_template('social/user_block.tpl');
+
+        if (in_array($groupBlock, ['groups', 'group_edit', 'member_list'])) {
+            $templateName = $template->get_template('social/group_block.tpl');
+        }
+
+        $template->assign('social_avatar_block', $template->fetch($templateName));
     }
 
     /**
-     * @param $user_id
+     * @param int $user_id
      * @param $link_shared
      * @param $show_full_profile
      * @return string
@@ -1557,15 +1534,13 @@ class SocialManager extends UserManager
         $friends = SocialManager::get_friends($user_id, USER_RELATION_TYPE_FRIEND);
         $number_of_images = 30;
         $number_friends = count($friends);
-
-        $friendHtml = '<div class="nav-list"><h3>'.get_lang('SocialFriend').'<span>(' . $number_friends . ')</span></h3></div>';
-
+        $friendHtml = '';
         if ($number_friends != 0) {
             if ($number_friends > $number_of_images) {
                 if (api_get_user_id() == $user_id) {
-                    $friendHtml.= ' : <span><a href="friends.php">'.get_lang('SeeAll').'</a></span>';
+                    $friendHtml.= ' <span><a href="friends.php">'.get_lang('SeeAll').'</a></span>';
                 } else {
-                    $friendHtml.= ' : <span>'
+                    $friendHtml.= ' <span>'
                         .'<a href="'.api_get_path(WEB_CODE_PATH).'social/profile_friends_and_groups.inc.php'
                         .'?view=friends&height=390&width=610&user_id='.$user_id.'"'
                         .'class="ajax" title="'.get_lang('SeeAll').'" >'.get_lang('SeeAll').'</a></span>';
@@ -1589,11 +1564,14 @@ class SocialManager extends UserManager
                     }
 
                     $friendHtml.= '<li class="">';
+                    $friendHtml.= '<div>';
+
                     // the height = 92 must be the same in the image_friend_network span style in default.css
                     $friends_profile = UserManager::getUserPicture($friend['friend_user_id'], USER_IMAGE_SIZE_SMALL);
                     $friendHtml.= '<img src="'.$friends_profile.'" id="imgfriend_'.$friend['friend_user_id'].'" title="'.$name_user.'"/>';
                     $link_shared = (empty($link_shared)) ? '' : '&'.$link_shared;
                     $friendHtml.= $statusIcon .'<a href="profile.php?' .'u=' . $friend['friend_user_id'] . $link_shared . '">' . $name_user .'</a>';
+                    $friendHtml.= '</div>';
                     $friendHtml.= '</li>';
                 }
                 $j++;
@@ -1603,6 +1581,8 @@ class SocialManager extends UserManager
             $friendHtml.= '<div class="">'.get_lang('NoFriendsInYourContactList').'<br />'
                 .'<a class="btn btn-primary" href="'.api_get_path(WEB_PATH).'whoisonline.php"><i class="fa fa-search"></i> '. get_lang('TryAndFindSomeFriends').'</a></div>';
         }
+
+        $friendHtml = Display::panel($friendHtml, get_lang('SocialFriend').' (' . $number_friends . ')' );
 
         return $friendHtml;
     }
@@ -1646,4 +1626,34 @@ class SocialManager extends UserManager
 
         return $html;
     }
+
+    /**
+     * Get HTML code block for user skills
+     * @param int $userId The user ID
+     * @return string
+     */
+    public static function getSkillBlock($userId)
+    {
+        if (api_get_setting('allow_skills_tool') !== 'true') {
+            return null;
+        }
+
+        $skill = new Skill();
+
+        $ranking = $skill->get_user_skill_ranking($userId);
+        $skills = $skill->get_user_skills($userId, true);
+
+        $template = new Template(null, false, false, false, false, false);
+        $template->assign('ranking', $ranking);
+        $template->assign('skills', $skills);
+        $template->assign(
+            'show_skills_report_link',
+            api_is_student() || api_is_student_boss() || api_is_drh()
+        );
+
+        $skillBlock = $template->get_template('social/skills_block.tpl');
+
+        return $template->fetch($skillBlock);
+    }
+
 }

@@ -65,6 +65,9 @@ $form->addRule('lp_name', get_lang('ThisFieldIsRequired'), 'required');
 
 $form->addElement('hidden', 'lp_encoding');
 
+$items = learnpath::getCategoryFromCourseIntoSelect(api_get_course_int_id(), true);
+$form->addElement('select', 'category_id', get_lang('Category'), $items);
+
 // Origin
 /*
 $origin_select = $form->addElement('select', 'lp_maker', get_lang('Origin'));
@@ -136,13 +139,14 @@ if (api_get_setting('search_enabled') === 'true') {
     }
 }
 
-$defaults['lp_encoding']    = Security::remove_XSS($_SESSION['oLP']->encoding);
-$defaults['lp_name']        = Security::remove_XSS($_SESSION['oLP']->get_name());
-$defaults['lp_author']      = Security::remove_XSS($_SESSION['oLP']->get_author());
+$defaults['lp_encoding'] = Security::remove_XSS($_SESSION['oLP']->encoding);
+$defaults['lp_name'] = Security::remove_XSS($_SESSION['oLP']->get_name());
+$defaults['lp_author'] = Security::remove_XSS($_SESSION['oLP']->get_author());
 $defaults['hide_toc_frame'] = Security::remove_XSS($_SESSION['oLP']->get_hide_toc_frame());
+$defaults['category_id'] = intval($_SESSION['oLP']->getCategoryId());
 
-$expired_on     = $_SESSION['oLP'] ->expired_on;
-$publicated_on  = $_SESSION['oLP'] ->publicated_on;
+$expired_on = $_SESSION['oLP']->expired_on;
+$publicated_on = $_SESSION['oLP']->publicated_on;
 
 // Prerequisites
 $form->addElement('html','<div class="form-group">');
@@ -181,6 +185,8 @@ if (api_is_platform_admin()) {
     $defaults['use_max_score'] = $_SESSION['oLP']->use_max_score;
 }
 
+$form->addElement('checkbox', 'subscribe_users', null, get_lang('SubscribeUsersToLP'));
+
 $enableLpExtraFields = false;
 
 if ($enableLpExtraFields) {
@@ -206,7 +212,8 @@ if ($enableLpExtraFields) {
 
 $defaults['publicated_on']  = ($publicated_on!='0000-00-00 00:00:00' && !empty($publicated_on))? api_get_local_time($publicated_on) : date('Y-m-d 12:00:00');
 $defaults['expired_on']     = ($expired_on   !='0000-00-00 00:00:00' && !empty($expired_on) )? api_get_local_time($expired_on): date('Y-m-d 12:00:00',time()+84600);
-
+//$defaults['max_attempts'] = $_SESSION['oLP']->get_max_attempts();
+$defaults['subscribe_users'] = $_SESSION['oLP']->getSubscribeUsers();
 $form->setDefaults($defaults);
 
 Display::display_header(get_lang('CourseSettings'), 'Path');

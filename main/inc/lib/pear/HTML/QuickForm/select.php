@@ -46,9 +46,9 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @since     1.0
      * @access    private
      */
-    var $_options = array();
+    protected $_options = array();
 
-    var $_optgroups = array();
+    private $_optgroups = array();
 
     /**
      * Default values of the SELECT
@@ -57,7 +57,9 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      * @since     1.0
      * @access    private
      */
-    var $_values = null;
+    protected $_values = null;
+
+    private $columnsSize;
 
     // }}}
     // {{{ constructor
@@ -80,8 +82,14 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
         $attributes = null
     ) {
         if (is_array($attributes) || empty($attributes)) {
-            $attributes['class'] = 'form-control';
+            $oldClass = '';
+            if (!empty($attributes['class'])) {
+                $oldClass = $attributes['class'];
+            }
+            $attributes['class'] = $oldClass.' form-control';
         }
+        $columnsSize = isset($attributes['cols-size']) ? $attributes['cols-size'] : null;
+        $this->setColumnsSize($columnsSize);
         parent::__construct($elementName, $elementLabel, $attributes);
         $this->_persistantFreeze = true;
         $this->_type = 'select';
@@ -259,6 +267,22 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
     // {{{ setMultiple()
 
     /**
+     * @return null
+     */
+    public function getColumnsSize()
+    {
+        return $this->columnsSize;
+    }
+
+    /**
+     * @param null $columnsSize
+     */
+    public function setColumnsSize($columnsSize)
+    {
+        $this->columnsSize = $columnsSize;
+    }
+
+    /**
      * Sets the select mutiple attribute
      *
      * @param     bool    $multiple  Whether the select supports multi-selections
@@ -367,6 +391,11 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
             $this->setSelected($values);
         }
         foreach ($arr as $key => $val) {
+            // Fix in order to use list of entities.
+            if (is_object($val)) {
+                $key = $val->getId();
+                $val = $val->__toString();
+            }
             // Warning: new API since release 2.3
             $this->addOption($val, $key);
         }
@@ -524,12 +553,14 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
             $strHtml .= $tabs . '<select' . $attrString . ">\n";
 
             $strValues = is_array($this->_values)? array_map('strval', $this->_values): array();
+
             foreach ($this->_options as $option) {
+
                 if (!empty($strValues) && in_array($option['attr']['value'], $strValues, true)) {
                     $option['attr']['selected'] = 'selected';
                 }
-                $strHtml .= $tabs . "\t<option" . $this->_getAttrString($option['attr']) . '>' .
-                            $option['text'] . "</option>\n";
+                $strHtml .= $tabs . "<option" . $this->_getAttrString($option['attr']) . '>' .
+                    $option['text'] . "</option>";
             }
             foreach ($this->_optgroups as $optgroup) {
                 $strHtml .= $tabs . "<optgroup label=" . $optgroup['label'].">";
@@ -652,8 +683,22 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
      */
     public function getTemplate($layout)
     {
-        /*$size = $this->getInputSize();
-        $size = empty($size) ? '8' : $size;*/
+        $size = $this->getColumnsSize();
+
+        if (empty($size)) {
+            $size = array(2, 8, 2);
+        } else {
+            if (is_array($size)) {
+                if (count($size) == 1) {
+                    $size = array(2, intval($size[0]), 2);
+                } elseif (count($size) != 3) {
+                    $size = array(2, 8, 2);
+                }
+                // else just keep the $size array as received
+            } else {
+                $size = array(2, intval($size), 2);
+            }
+        }
 
         switch ($layout) {
             case FormValidator::LAYOUT_INLINE:
@@ -669,11 +714,11 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
             case FormValidator::LAYOUT_HORIZONTAL:
                 return '
                 <div class="form-group {error_class}">
-                    <label {label-for} class="col-sm-2 control-label" >
+                    <label {label-for} class="col-sm-'.$size[0].' control-label" >
                         <!-- BEGIN required --><span class="form_required">*</span><!-- END required -->
                         {label}
                     </label>
-                    <div class="col-sm-8">
+                    <div class="col-sm-'.$size[1].'">
                         {icon}
                         {element}
 
@@ -685,7 +730,7 @@ class HTML_QuickForm_select extends HTML_QuickForm_element
                             <span class="help-inline">{error}</span>
                         <!-- END error -->
                     </div>
-                    <div class="col-sm-2">
+                    <div class="col-sm-'.$size[2].'">
                         <!-- BEGIN label_3 -->
                             {label_3}
                         <!-- END label_3 -->

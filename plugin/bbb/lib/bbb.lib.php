@@ -133,6 +133,9 @@ class bbb
         // Generate a pseudo-global-unique-id to avoid clash of conferences on
         // the same BBB server with several Chamilo portals
         $params['remote_id'] = uniqid(true, true);
+        // Each simultaneous conference room needs to have a different
+        // voice_bridge composed of a 5 digits number, so generating a random one
+        $params['voice_bridge'] = rand(10000,99999);
 
         if ($this->debug) {
             error_log("enter create_meeting ".print_r($params, 1));
@@ -161,7 +164,7 @@ class bbb
                 'moderatorPw' => $moderatorPassword, 					// Match this value in getJoinMeetingURL() to join as moderator.
                 'welcomeMsg' => $welcomeMessage, 					// ''= use default. Change to customize.
                 'dialNumber' => '', 					// The main number to call into. Optional.
-                'voiceBridge' => '12345', 					// PIN to join voice. Required.
+                'voiceBridge' => $params['voice_bridge'], 					// PIN to join voice. Required.
                 'webVoice' => '', 						// Alphanumeric to join voice. Optional.
                 'logoutUrl' =>  $this->logout_url,
                 'maxParticipants' => $max, 				// Optional. -1 = unlimitted. Not supported in BBB. [number]
@@ -496,7 +499,7 @@ class bbb
                                         ),
                                         api_get_self().'?'.
                                         api_get_cidreq().
-                                        '&action=delete_record&id='.$record['recordId']
+                                        '&action=delete_record&id='.$meetingDB['id']
                                     );
                                     if ($meetingDB['visibility'] == 0) {
                                         $actionLinks .= Display::url(
@@ -728,22 +731,39 @@ class bbb
      */
     public function deleteRecord($id)
     {
-        if (empty($id) or $id != intval($id)) {
+        if (empty($id)) {
             return false;
         }
-        $meetingData = Database::select('*', $this->table, array('where' => array('id = ?' => array($id))), 'first');
+
+        $meetingData = Database::select(
+            '*',
+            $this->table,
+            array('where' => array('id = ?' => array($id))),
+            'first'
+        );
+
         $recordingParams = array(
-           /*
-            * NOTE: Set the recordId below to a valid id after you have
-            * created a recorded meeting, and received a real recordID
-            * back from your BBB server using the
-            * getRecordingsWithXmlResponseArray method.
-            */
+            /*
+             * NOTE: Set the recordId below to a valid id after you have
+             * created a recorded meeting, and received a real recordID
+             * back from your BBB server using the
+             * getRecordingsWithXmlResponseArray method.
+             */
 
             // REQUIRED - We have to know which recording:
             'recordId' => $meetingData['remote_id'],
         );
-        return $this->api->deleteRecordingsWithXmlResponseArray($recordingParams);
+
+        $result = $this->api->deleteRecordingsWithXmlResponseArray($recordingParams);
+
+        if (!empty($result) && isset($result['deleted']) && $result['deleted'] == 'true') {
+            Database::delete(
+                $this->table,
+                array('id = ?' => array($id))
+            );
+        }
+
+        return $result;
     }
 
     /**

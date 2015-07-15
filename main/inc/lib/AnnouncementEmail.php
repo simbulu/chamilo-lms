@@ -33,9 +33,9 @@ class AnnouncementEmail
     {
         if (empty($course)) {
             $course = api_get_course_int_id();
-            $course = CourseManager::get_course_information_by_id($course);
+            $course = api_get_course_info_by_id($course);
         } else if (is_numeric($course)) {
-            $course = CourseManager::get_course_information_by_id($course);
+            $course = api_get_course_info_by_id($course);
         }
         $this->course = $course;
         $this->session_id = api_get_session_id();
@@ -291,8 +291,10 @@ class AnnouncementEmail
     /**
      * Send emails to users.
      * @param bool $sendToUsersInSession
+     * @param bool $sendToDrhUsers send a copy of the message to the DRH users
+     * related to the main user
      */
-    public function send($sendToUsersInSession = false)
+    public function send($sendToUsersInSession = false, $sendToDrhUsers = false)
     {
         $sender = $this->sender();
         $subject = $this->subject();
@@ -306,7 +308,9 @@ class AnnouncementEmail
                 $user['user_id'],
                 $subject,
                 $message,
-                $sender['user_id']
+                $sender['user_id'],
+                $sendToDrhUsers,
+                true
             );
         }
 
@@ -326,7 +330,9 @@ class AnnouncementEmail
                                 $user['user_id'],
                                 $subject,
                                 $message,
-                                $sender['user_id']
+                                $sender['user_id'],
+                                false,
+                                true
                             );
                         }
                     }

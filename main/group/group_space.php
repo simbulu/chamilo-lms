@@ -24,7 +24,6 @@ require_once api_get_path(SYS_CODE_PATH).'forum/forumconfig.inc.php';
 $group_id = api_get_group_id();
 $user_id = api_get_user_id();
 $current_group = GroupManager::get_group_properties($group_id);
-
 if (empty($current_group)) {
     api_not_allowed(true);
 }
@@ -37,35 +36,10 @@ $interbreadcrumb[] = array('url' => 'group.php', 'name' => get_lang('Groups'));
 
 $forums_of_groups = get_forums_of_group($current_group['id']);
 
-/*$forum_state_public = 0;
-if (is_array($forums_of_groups)) {
-    foreach ($forums_of_groups as $key => $value) {
-        if ($value['forum_group_public_private'] == 'public') {
-            $forum_state_public = 1;
-        }
-    }
-}
-
-if ($current_group['doc_state'] != 1 &&
-    $current_group['calendar_state'] != 1 &&
-    $current_group['work_state'] != 1 &&
-    $current_group['announcements_state'] != 1 &&
-    $current_group['wiki_state'] != 1 &&
-    $current_group['chat_state'] != 1 &&
-    $forum_state_public != 1
-) {
-
-}*/
-
-if (!api_is_allowed_to_edit(null, true) &&
-    (!GroupManager::is_user_in_group($user_id, $group_id) ||
-        $current_group['status']  == 0
-    )
-) {
+if (!GroupManager::userHasAccessToBrowse($user_id, $current_group, api_get_session_id())) {
     api_not_allowed(true);
 }
 
-/*	Header */
 Display::display_header($nameTools.' '.Security::remove_XSS($current_group['name']), 'Group');
 
 /*	Introduction section (editable by course admin) */
@@ -127,20 +101,12 @@ if (isset($_GET['action'])) {
 
 /*	Main Display Area */
 
-$course_code = api_get_course_id();
-$is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
-    api_get_user_id(),
-    $course_code
-);
-
-// Edit the group.
-
 $edit_url = '';
-if (api_is_allowed_to_edit(false, true) or
+if (api_is_allowed_to_edit(false, true) ||
     GroupManager::is_tutor_of_group(api_get_user_id(), api_get_group_id())
 ) {
     $my_origin = isset($origin) ? $origin : '';
-    $edit_url =  '<a href="'.api_get_path(WEB_CODE_PATH).'group/settings.php?cidReq='.api_get_course_id().'&origin='.$my_origin.'&gidReq='.api_get_group_id().'">'.
+    $edit_url =  '<a href="'.api_get_path(WEB_CODE_PATH).'group/settings.php?'.api_get_cidreq().'&origin='.$my_origin.'">'.
         Display::return_icon('edit.png', get_lang('EditGroup'),'',ICON_SIZE_SMALL).'</a>';
 }
 
@@ -156,7 +122,7 @@ if (!empty($current_group['description'])) {
  * Group Tools
  */
 // If the user is subscribed to the group or the user is a tutor of the group then
-if (api_is_allowed_to_edit(false, true) OR
+if (api_is_allowed_to_edit(false, true) ||
     GroupManager::is_user_in_group(api_get_user_id(), $current_group['id'])
 ) {
     $actions_array = array();
@@ -166,14 +132,16 @@ if (api_is_allowed_to_edit(false, true) OR
     if (is_array($forums_of_groups)) {
         if ($current_group['forum_state'] != GroupManager::TOOL_NOT_AVAILABLE ) {
             foreach ($forums_of_groups as $key => $value) {
+
                 //*!empty($user_subscribe_to_current_group) && */
                 if ($value['forum_group_public_private'] == 'public' ||
                     ($value['forum_group_public_private'] == 'private') ||
                     !empty($user_is_tutor) ||
                     api_is_allowed_to_edit(false, true)
                 ) {
+
                     $actions_array[] = array(
-                        'url' => '../forum/viewforum.php?forum='.$value['forum_id'].'&gidReq='.Security::remove_XSS($current_group['id']).'&origin=group',
+                        'url' => '../forum/viewforum.php?forum='.$value['forum_id'].'&'.api_get_cidreq().'&origin=group',
                         'content' => Display::return_icon('forum.png', get_lang('Forum').': '.$value['forum_title'] , array(), 32)
                     );
                 }
@@ -222,6 +190,7 @@ if (api_is_allowed_to_edit(false, true) OR
             'content' => Display::return_icon('wiki.png', get_lang('GroupWiki'), array(), 32)
         );
     }
+
     if ($current_group['chat_state'] != GroupManager::TOOL_NOT_AVAILABLE) {
         // Link to the chat area of this group
         if (api_get_course_setting('allow_open_chat_window')) {
@@ -266,7 +235,7 @@ if (api_is_allowed_to_edit(false, true) OR
     if ($current_group['doc_state'] == GroupManager::TOOL_PUBLIC) {
         // Link to the documents area of this group
         $actions_array[] = array(
-            'url' => '../document/document.php?'.api_get_cidreq().'&origin='.$origin,
+            'url' => '../document/document.php?'.api_get_cidreq(),
             'content' => Display::return_icon('folder.png', get_lang('GroupDocument'), array(), ICON_SIZE_MEDIUM)
         );
     }

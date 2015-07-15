@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace Chamilo\CourseBundle\Entity;
 
@@ -34,6 +35,7 @@ class CCalendarEvent
      * @ORM\Column(name="c_id", type="integer")
      */
     private $cId;
+
     /**
      * @var string
      *
@@ -82,6 +84,28 @@ class CCalendarEvent
      * @ORM\Column(name="all_day", type="integer", nullable=false)
      */
     private $allDay;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="comment", type="text", nullable=true)
+     */
+    private $comment;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="color", type="string", length=100, nullable=true)
+     */
+    private $color;
+
+    /**
+     * @var Room
+     *
+     * @ORM\ManyToOne(targetEntity="Chamilo\CoreBundle\Entity\Room")
+     * @ORM\JoinColumn(name="room_id", referencedColumnName="id")
+     **/
+    private $room;
 
     /**
      * Set title
@@ -289,4 +313,64 @@ class CCalendarEvent
     {
         return $this->cId;
     }
+
+    /**
+     * @return string
+     */
+    public function getComment()
+    {
+        return $this->comment;
+    }
+
+    /**
+     * @param string $comment
+     *
+     * @return CCalendarEvent
+     */
+    public function setComment($comment)
+    {
+        $this->comment = $comment;
+
+        return $this;
+    }
+
+    /**
+     * @return Room
+     */
+    public function getRoom()
+    {
+        return $this->room;
+    }
+
+    /**
+     * @param Room $room
+     * @return $this
+     */
+    public function setRoom($room)
+    {
+        $this->room = $room;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getColor()
+    {
+        return $this->color;
+    }
+
+    /**
+     * @param string $color
+     *
+     * @return $this
+     */
+    public function setColor($color)
+    {
+        $this->color = $color;
+
+        return $this;
+    }
+
 }

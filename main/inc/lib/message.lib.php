@@ -195,7 +195,8 @@ class MessageManager
         $parent_id = 0,
         $edit_message_id = 0,
         $topic_id = 0,
-        $sender_id = null
+        $sender_id = null,
+        $directMessage = false
     ) {
         $table_message = Database::get_main_table(TABLE_MESSAGE);
         $group_id = intval($group_id);
@@ -289,8 +290,8 @@ class MessageManager
 
             if (empty($group_id)) {
                 //message in outbox for user friend or group
-                $sql = "INSERT INTO $table_message (user_sender_id, user_receiver_id, msg_status, send_date, title, content, group_id, parent_id, update_date ) ".
-                    " VALUES ('$user_sender_id', '$receiver_user_id', '4', '".$now."','$clean_subject','$clean_content', '$group_id', '$parent_id', '".$now."')";
+                $sql = "INSERT INTO $table_message (user_sender_id, user_receiver_id, msg_status, send_date, title, content, group_id, parent_id, update_date )
+                        VALUES ('$user_sender_id', '$receiver_user_id', '4', '".$now."','$clean_subject','$clean_content', '$group_id', '$parent_id', '".$now."')";
                 Database::query($sql);
                 $outbox_last_id = Database::insert_id();
 
@@ -316,19 +317,24 @@ class MessageManager
             $sender_info = api_get_user_info($user_sender_id);
 
             if (empty($group_id)) {
+                $type = Notification::NOTIFICATION_TYPE_MESSAGE;
+                if ($directMessage) {
+                    $type = Notification::NOTIFICATION_TYPE_DIRECT_MESSAGE;
+                }
                 $notification->save_notification(
-                    Notification::NOTIFICATION_TYPE_MESSAGE,
+                    $type,
                     array($receiver_user_id),
                     $subject,
                     $content,
                     $sender_info
                 );
             } else {
-                $group_info = GroupPortalManager::get_group_data($group_id);
+                $usergroup = new UserGroup();
+                $group_info = $usergroup->get($group_id);
                 $group_info['topic_id'] = $topic_id;
                 $group_info['msg_id'] = $inbox_last_id;
 
-                $user_list = GroupPortalManager::get_users_by_group($group_id, false, array(), 0, 1000);
+                $user_list = $usergroup->get_users_by_group($group_id, false, array(), 0, 1000);
 
                 // Adding more sense to the message group
                 $subject = sprintf(get_lang('ThereIsANewMessageInTheGroupX'), $group_info['name']);
@@ -337,7 +343,10 @@ class MessageManager
                 foreach ($user_list as $user_data) {
                     $new_user_list[] = $user_data['user_id'];
                 }
-                $group_info = array('group_info' => $group_info, 'user_info' => $sender_info);
+                $group_info = array(
+                    'group_info' => $group_info,
+                    'user_info' => $sender_info,
+                );
                 $notification->save_notification(
                     Notification::NOTIFICATION_TYPE_GROUP,
                     $new_user_list,
@@ -346,21 +355,32 @@ class MessageManager
                     $group_info
                 );
             }
+
             return $inbox_last_id;
         }
+
         return false;
     }
 
     /**
-     * A handy way to send message
+     * @param int $receiver_user_id
+     * @param int $subject
+     * @param string $message
+     * @param int $sender_id
+     * @param bool $sendCopyToDrhUsers send copy to related DRH users
+     * @param bool $directMessage
+     *
+     * @return bool
      */
     public static function send_message_simple(
         $receiver_user_id,
         $subject,
         $message,
-        $sender_id = null
+        $sender_id = null,
+        $sendCopyToDrhUsers = false,
+        $directMessage = false
     ) {
-        return MessageManager::send_message(
+        $result = MessageManager::send_message(
             $receiver_user_id,
             $subject,
             $message,
@@ -370,8 +390,34 @@ class MessageManager
             null,
             null,
             null,
-            $sender_id
+            $sender_id,
+            $directMessage
         );
+
+        if ($sendCopyToDrhUsers) {
+
+            $userInfo = api_get_user_info($receiver_user_id);
+            $drhList = UserManager::getDrhListFromUser($receiver_user_id);
+            if (!empty($drhList)) {
+                foreach ($drhList as $drhInfo) {
+                    $message = sprintf(
+                            get_lang('CopyOfOriginalMessageSentToX'),
+                            $userInfo['complete_name']
+                        ).' <br />'.$message;
+
+                    MessageManager::send_message_simple(
+                        $drhInfo['user_id'],
+                        $subject,
+                        $message,
+                        $sender_id,
+                        false,
+                        $directMessage
+                    );
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -509,10 +555,11 @@ class MessageManager
                 $message_user_id = $sender_user_id;
             }
 
-            // User-reserved directory where photos have to be placed.
+            // User-reserved directory where photos have to be placed.*
+            $userGroup = new UserGroup();
 
             if (!empty($group_id)) {
-                $path_user_info = GroupPortalManager::get_group_picture_path_by_id($group_id, 'system', true);
+                $path_user_info = $userGroup->get_group_picture_path_by_id($group_id, 'system', true);
             } else {
                 $path_user_info['dir'] = UserManager::getUserPathById($message_user_id, 'system');
             }
@@ -558,7 +605,8 @@ class MessageManager
             $new_path = $path.'_DELETED_'.$attach_id;
 
             if (!empty($group_id)) {
-                $path_user_info = GroupPortalManager::get_group_picture_path_by_id($group_id, 'system', true);
+                $userGroup = new UserGroup();
+                $path_user_info = $userGroup->get_group_picture_path_by_id($group_id, 'system', true);
             } else {
                 $path_user_info['dir'] = UserManager::getUserPathById($message_uid, 'system');
             }
@@ -1083,27 +1131,28 @@ class MessageManager
                 $html = '';
                 // topics
                 $user_sender_info = api_get_user_info($topic['user_sender_id']);
-
-                $name = api_get_person_name($user_sender_info['firstname'], $user_sender_info['lastname']);
+                $name = $user_sender_info['complete_name'];
 
                 $html .= '<div class="row">';
 
                 $items = $topic['count'];
                 $reply_label = ($items == 1) ? get_lang('GroupReply') : get_lang('GroupReplies');
-
-                $html .= '<div class="col-md-1">';
-                $html .= Display::div(Display::tag('span', $items).$reply_label, array('class' => 'group_discussions_replies'));
-                $html .= '</div>';
-
+                $label =  Display::label($items.' '.$reply_label);
                 $topic['title'] = trim($topic['title']);
 
                 if (empty($topic['title'])) {
                     $topic['title'] = get_lang('Untitled');
                 }
 
-                $html .= '<div class="col-md-4">';
-                $html .= Display::tag('h4', Display::url(Security::remove_XSS($topic['title'], STUDENT, true), 'group_topics.php?id='.$group_id.'&topic_id='.$topic['id']));
-
+                $html .= '<div class="col-md-8">';
+                $html .= Display::tag(
+                    'h4',
+                    Display::url(
+                        Security::remove_XSS($topic['title'], STUDENT, true),
+                        api_get_path(WEB_CODE_PATH).'social/group_topics.php?id='.$group_id.'&topic_id='.$topic['id']
+                    )
+                );
+                $actions = '';
                 if ($my_group_role == GROUP_USER_PERMISSION_ADMIN ||
                     $my_group_role == GROUP_USER_PERMISSION_MODERATOR
                 ) {
@@ -1120,7 +1169,7 @@ class MessageManager
                 } else {
                     $date .= '<div class="message-group-date"> <i>'.get_lang('Created').' '.date_to_str_ago($topic['send_date']).'</i></div>';
                 }
-                $html .= $date.$actions;
+                $html .= $date.$label.$actions;
                 $html .= '</div>';
 
                 $image = $user_sender_info['avatar'];
@@ -1201,10 +1250,10 @@ class MessageManager
         $topic_page_nr = isset($_GET['topics_page_nr']) ? intval($_GET['topics_page_nr']) : null;
         $links.= '<div id="message-reply-link">';
         if (($my_group_role == GROUP_USER_PERMISSION_ADMIN || $my_group_role == GROUP_USER_PERMISSION_MODERATOR) || $main_message['user_sender_id'] == $current_user_id) {
-            $links.= '<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?view_panel=1&height=390&width=610&&user_friend='.$current_user_id.'&group_id='.$group_id.'&message_id='.$main_message['id'].'&action=edit_message_group&anchor_topic=topic_'.$main_message['id'].'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$main_message['id'].'" class="group_message_popup" title="'.get_lang('Edit').'">';
+            $links.= '<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?height=400&width=800&&user_friend='.$current_user_id.'&group_id='.$group_id.'&message_id='.$main_message['id'].'&action=edit_message_group&anchor_topic=topic_'.$main_message['id'].'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$main_message['id'].'" class="ajax btn" title="'.get_lang('Edit').'">';
             $links.= Display :: return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL).'</a>';
         }
-        $links.= '&nbsp;&nbsp;<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?view_panel=1&height=390&width=610&&user_friend='.api_get_user_id().'&group_id='.$group_id.'&message_id='.$main_message['id'].'&action=reply_message_group&anchor_topic=topic_'.$main_message['id'].'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$main_message['id'].'" class="group_message_popup" title="'.get_lang('Reply').'">';
+        $links.= '&nbsp;&nbsp;<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?height=400&width=800&user_friend='.api_get_user_id().'&group_id='.$group_id.'&message_id='.$main_message['id'].'&action=reply_message_group&anchor_topic=topic_'.$main_message['id'].'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$main_message['id'].'" class="ajax btn" title="'.get_lang('Reply').'">';
         $links.= Display :: return_icon('talk.png', get_lang('Reply')).'</a>';
         $links.= '</div>';
 
@@ -1246,9 +1295,10 @@ class MessageManager
 
                 $links.= '<div id="message-reply-link">';
                 if (($my_group_role == GROUP_USER_PERMISSION_ADMIN || $my_group_role == GROUP_USER_PERMISSION_MODERATOR) || $topic['user_sender_id'] == $current_user_id) {
-                    $links.= '<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?view_panel=1&height=390&width=610&&user_friend='.$current_user_id.'&group_id='.$group_id.'&message_id='.$topic['id'].'&action=edit_message_group&anchor_topic=topic_'.$topic_id.'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$topic_id.'" class="group_message_popup" title="'.get_lang('Edit').'">'.Display :: return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL).'</a>';
+                    $links.= '<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?height=400&width=800&&user_friend='.$current_user_id.'&group_id='.$group_id.'&message_id='.$topic['id'].'&action=edit_message_group&anchor_topic=topic_'.$topic_id.'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$topic_id.'" class="ajax btn" title="'.get_lang('Edit').'">'.
+                        Display :: return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL).'</a>';
                 }
-                $links.= '&nbsp;&nbsp;<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?view_panel=1&height=390&width=610&&user_friend='.api_get_user_id().'&group_id='.$group_id.'&message_id='.$topic['id'].'&action=reply_message_group&anchor_topic=topic_'.$topic_id.'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$topic_id.'" class="group_message_popup" title="'.get_lang('Reply').'">';
+                $links.= '&nbsp;&nbsp;<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?height=400&width=800&&user_friend='.api_get_user_id().'&group_id='.$group_id.'&message_id='.$topic['id'].'&action=reply_message_group&anchor_topic=topic_'.$topic_id.'&topics_page_nr='.$topic_page_nr.'&items_page_nr='.$items_page_nr.'&topic_id='.$topic_id.'" class="ajax btn" title="'.get_lang('Reply').'">';
                 $links.= Display :: return_icon('talk.png', get_lang('Reply')).'</a>';
                 $links.= '</div>';
 
@@ -1417,6 +1467,12 @@ class MessageManager
         return $form->return_form();
     }
 
+    /**
+     * @param $id
+     * @param array $params
+     * @param string $display
+     * @return string
+     */
     public static function generate_invitation_form($id, $params = array())
     {
         $form = new FormValidator('send_invitation');

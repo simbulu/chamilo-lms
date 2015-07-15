@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS user (
   openid varchar(255) DEFAULT NULL,
   theme varchar(255) DEFAULT NULL,
   hr_dept_id smallint unsigned NOT NULL default 0,
+  last_login datetime default NULL,
   PRIMARY KEY (id),
   UNIQUE KEY username (username)
 );
@@ -141,7 +142,6 @@ CREATE TABLE IF NOT EXISTS course (
   last_edit datetime default NULL,
   creation_date datetime default NULL,
   expiration_date datetime default NULL,
-  target_course_code varchar(40) default NULL,
   subscribe tinyint NOT NULL default '1',
   unsubscribe tinyint NOT NULL default '1',
   registration_code varchar(255) NOT NULL default '',
@@ -316,7 +316,6 @@ CREATE TABLE IF NOT EXISTS course_rel_user (
   user_id int unsigned NOT NULL default '0',
   status tinyint NOT NULL default '5',
   role varchar(60) default NULL,
-  group_id int NOT NULL default '0',
   tutor_id int unsigned NOT NULL default '0',
   sort int default NULL,
   user_course_cat int default '0',
@@ -2566,29 +2565,29 @@ CREATE TABLE IF NOT EXISTS group_rel_tag (
 ALTER TABLE group_rel_tag ADD INDEX ( group_id );
 ALTER TABLE group_rel_tag ADD INDEX ( tag_id );
 
-DROP TABLE IF EXISTS group_rel_user;
-CREATE TABLE IF NOT EXISTS group_rel_user (
-    id int NOT NULL AUTO_INCREMENT,
-    group_id int NOT NULL,
-    user_id int NOT NULL,
-    relation_type int NOT NULL,
-    PRIMARY KEY (id)
-);
-ALTER TABLE group_rel_user ADD INDEX ( group_id );
-ALTER TABLE group_rel_user ADD INDEX ( user_id );
-ALTER TABLE group_rel_user ADD INDEX ( relation_type );
-
-DROP TABLE IF EXISTS group_rel_group;
-CREATE TABLE IF NOT EXISTS group_rel_group (
-	id int NOT NULL AUTO_INCREMENT,
-	group_id int NOT NULL,
-	subgroup_id int NOT NULL,
-	relation_type int NOT NULL,
-	PRIMARY KEY (id)
-);
-ALTER TABLE group_rel_group ADD INDEX ( group_id );
-ALTER TABLE group_rel_group ADD INDEX ( subgroup_id );
-ALTER TABLE group_rel_group ADD INDEX ( relation_type );
+# DROP TABLE IF EXISTS group_rel_user;
+# CREATE TABLE IF NOT EXISTS group_rel_user (
+#     id int NOT NULL AUTO_INCREMENT,
+#     group_id int NOT NULL,
+#     user_id int NOT NULL,
+#     relation_type int NOT NULL,
+#     PRIMARY KEY (id)
+# );
+# ALTER TABLE group_rel_user ADD INDEX ( group_id );
+# ALTER TABLE group_rel_user ADD INDEX ( user_id );
+# ALTER TABLE group_rel_user ADD INDEX ( relation_type );
+#
+# DROP TABLE IF EXISTS group_rel_group;
+# CREATE TABLE IF NOT EXISTS group_rel_group (
+# 	id int NOT NULL AUTO_INCREMENT,
+# 	group_id int NOT NULL,
+# 	subgroup_id int NOT NULL,
+# 	relation_type int NOT NULL,
+# 	PRIMARY KEY (id)
+# );
+# ALTER TABLE group_rel_group ADD INDEX ( group_id );
+# ALTER TABLE group_rel_group ADD INDEX ( subgroup_id );
+# ALTER TABLE group_rel_group ADD INDEX ( relation_type );
 
 DROP TABLE IF EXISTS announcement_rel_group;
 CREATE TABLE IF NOT EXISTS announcement_rel_group (
@@ -3454,10 +3453,10 @@ CREATE TABLE c_forum_thread  (
  c_id INT NOT NULL,
  thread_title varchar(255) default NULL,
  forum_id int default NULL,
- thread_replies int default 0,
+ thread_replies int UNSIGNED default 0,
  thread_poster_id int default NULL,
  thread_poster_name varchar(100) default '',
- thread_views int default 0,
+ thread_views int UNSIGNED default 0,
  thread_last_post int default NULL,
  thread_date datetime default '0000-00-00 00:00:00',
  thread_sticky tinyint unsigned default 0,
@@ -3689,6 +3688,7 @@ CREATE TABLE c_calendar_event(
   parent_event_id INT NULL,
   session_id int unsigned NOT NULL default 0,
   all_day INT NOT NULL DEFAULT 0,
+  comment TEXT,
   PRIMARY KEY (id, c_id)
 );
 
@@ -4603,5 +4603,5 @@ CREATE TABLE c_attendance_calendar_rel_group (
 
 -- Version
 LOCK TABLES settings_current WRITE;
-UPDATE settings_current SET selected_value = '1.10.0.39' WHERE variable = 'chamilo_database_version';
+UPDATE settings_current SET selected_value = '1.10.0.43' WHERE variable = 'chamilo_database_version';
 UNLOCK TABLES;

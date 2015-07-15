@@ -77,7 +77,7 @@ if (!empty($hook)) {
 
 /* Users */
 
-$blocks['users']['icon'] = Display::return_icon('members.gif', get_lang('Users'), array(), ICON_SIZE_SMALL, false);
+$blocks['users']['icon'] = Display::return_icon('members.gif', get_lang('Users'), array(), ICON_SIZE_MEDIUM, false);
 $blocks['users']['label'] = api_ucfirst(get_lang('Users'));
 $blocks['users']['class'] = 'block-admin-users';
 
@@ -107,8 +107,6 @@ if (api_is_platform_admin()) {
         array('url' => 'user_import.php', 'label' => get_lang('ImportUserListXMLCSV')),
         array('url' => 'user_update_import.php', 'label' => get_lang('EditUserListCSV')),
     );
-    $items[] = array('url' => 'group_add.php', 'label' => get_lang('AddGroups'));
-    $items[] = array('url' => 'group_list.php', 'label' => get_lang('GroupList'));
 
     if (isset($extAuthSource) && isset($extAuthSource['extldap']) && count($extAuthSource['extldap']) > 0) {
         $items[] = array('url' => 'ldap_users_list.php', 'label' => get_lang('ImportLDAPUsersIntoPlatform'));
@@ -264,7 +262,7 @@ $blocks['sessions']['icon'] = Display::return_icon(
     'session.png',
     get_lang('Sessions'),
     array(),
-    ICON_SIZE_SMALL,
+    ICON_SIZE_MEDIUM,
     false
 );
 $blocks['sessions']['label'] = api_ucfirst(get_lang('Sessions'));
@@ -290,18 +288,23 @@ $search_form = ' <form method="GET" class="form-inline" action="session_list.php
                 </form>';
 $blocks['sessions']['search_form'] = $search_form;
 $items = array();
-$items[] = array('url' => 'session_list.php', 'label' => get_lang('ListSession'));
-$items[] = array('url' => 'session_add.php', 'label' => get_lang('AddSession'));
-$items[] = array('url' => 'session_category_list.php', 'label' => get_lang('ListSessionCategory'));
-$items[] = array('url' => 'session_import.php', 'label' => get_lang('ImportSessionListXMLCSV'));
-$items[] = array('url' => 'session_import_drh.php', 'label' => get_lang('ImportSessionDrhList'));
+$sessionPath = api_get_path(WEB_CODE_PATH).'session/';
+
+$items[] = array('url' => $sessionPath.'session_list.php', 'label' => get_lang('ListSession'));
+$items[] = array('url' => $sessionPath.'session_add.php', 'label' => get_lang('AddSession'));
+$items[] = array('url' => $sessionPath.'session_category_list.php', 'label' => get_lang('ListSessionCategory'));
+$items[] = array('url' => $sessionPath.'session_import.php', 'label' => get_lang('ImportSessionListXMLCSV'));
+$items[] = array('url' => $sessionPath.'session_import_drh.php', 'label' => get_lang('ImportSessionDrhList'));
 if (isset($extAuthSource) && isset($extAuthSource['ldap']) && count($extAuthSource['ldap']) > 0) {
     $items[] = array(
         'url' => 'ldap_import_students_to_session.php',
         'label' => get_lang('ImportLDAPUsersIntoSession')
     );
 }
-$items[] = array('url' => 'session_export.php', 'label' => get_lang('ExportSessionListXMLCSV'));
+$items[] = array(
+    'url' => $sessionPath.'session_export.php',
+    'label' => get_lang('ExportSessionListXMLCSV'),
+);
 $items[] = array(
     'url' => '../coursecopy/copy_course_session.php',
     'label' => get_lang('CopyFromCourseInSessionToAnotherSession')
@@ -326,7 +329,7 @@ if (api_is_platform_admin()) {
         'settings.png',
         get_lang('System'),
         array(),
-        ICON_SIZE_SMALL,
+        ICON_SIZE_MEDIUM,
         false
     );
     $blocks['settings']['label'] = api_ucfirst(get_lang('System'));
@@ -345,7 +348,9 @@ if (api_is_platform_admin()) {
     if (is_dir(api_get_path(SYS_TEST_PATH) . 'datafiller/')) {
         $items[] = array('url' => 'filler.php', 'label' => get_lang('DataFiller'));
     }
+
     $items[] = array('url' => 'archive_cleanup.php', 'label' => get_lang('ArchiveDirCleanup'));
+    $items[] = array('url' => 'resource_sequence.php', 'label' => get_lang('ResourcesSequencing'));
 
     if (isset($_configuration['db_manager_enabled']) &&
         $_configuration['db_manager_enabled'] == true &&
@@ -363,7 +368,6 @@ if (api_is_platform_admin()) {
 
     $blocks['settings']['items'] = $items;
     $blocks['settings']['extra'] = null;
-
     $blocks['settings']['search_form'] = null;
 
     // Skills
@@ -372,7 +376,7 @@ if (api_is_platform_admin()) {
             'logo.png',
             get_lang('Skills'),
             array(),
-            ICON_SIZE_SMALL,
+            ICON_SIZE_MEDIUM,
             false
         );
         $blocks['skills']['label'] = get_lang('Skills');
@@ -400,7 +404,7 @@ if (api_is_platform_admin()) {
 
     /* Chamilo.org */
 
-    $blocks['chamilo']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_SMALL, false);
+    $blocks['chamilo']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
     $blocks['chamilo']['label'] = 'Chamilo.org';
     $blocks['chamilo']['class'] = 'block-admin-chamilo';
 
@@ -423,8 +427,8 @@ if (api_is_platform_admin()) {
     $blocks['chamilo']['extra'] = null;
     $blocks['chamilo']['search_form'] = null;
 
-    //Version check
-    $blocks['version_check']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_SMALL, false);
+    // Version check
+    $blocks['version_check']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
     $blocks['version_check']['label'] = get_lang('VersionCheck');
     $blocks['version_check']['extra'] = '<div class="admin-block-version"></div>';
     $blocks['version_check']['search_form'] = null;
@@ -448,8 +452,8 @@ $admin_ajax_url = api_get_path(WEB_AJAX_PATH) . 'admin.ajax.php';
 $tpl = new Template();
 
 // Display the Site Use Cookie Warning Validation
-$useCookieValidation = api_get_configuration_value('cookie_warning');
-if ($useCookieValidation) {
+$useCookieValidation = api_get_setting('cookie_warning');
+if ($useCookieValidation === 'true') {
     if (isset($_POST['acceptCookies'])) {
         api_set_site_use_cookie_warning_cookie();
     } else if (!api_site_use_cookie_warning_cookie_exist()) {

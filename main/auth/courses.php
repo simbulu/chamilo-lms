@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+use \Chamilo\CoreBundle\Entity\SequenceResource;
 
 /**
 * Template (front controller in MVC pattern) used for distpaching
@@ -15,43 +16,16 @@ require_once '../inc/global.inc.php';
 
 $ctok = Security::get_existing_token();
 
-if (api_get_setting('show_courses_descriptions_in_catalog') == 'true') {
-    $htmlHeadXtra[] = '
-    <script>
-    $(document).ready(function() {
-        $(\'.ajax\').click(function() {
-            var url     = this.href;
-            var dialog  = $("#dialog");
-            if ($("#dialog").length == 0) {
-                dialog  = $(\'<div id="dialog" style="display:hidden"></div>\').appendTo(\'body\');
-            }
-
-            // load remote content
-            dialog.load(
-                url,
-                {},
-                function(responseText, textStatus, XMLHttpRequest) {
-                    dialog.dialog({
-                    modal : true,
-                    width : 540,
-                    height : 400
-                });
-            });
-            //prevent the browser to follow the link
-            return false;
-        });
-    });
-    </script>';
-}
-
 // Get Limit data
 $limit = getLimitArray();
 
 // Section for the tabs.
 $this_section = SECTION_COURSES;
 
-// Access rights: anonymous users can't do anything useful here.
-api_block_anonymous_users();
+if (api_get_configuration_value('course_catalog_published') !== 'true') {
+    // Access rights: anonymous users can't do anything useful here.
+    api_block_anonymous_users();
+}
 
 $user_can_view_page = false;
 
@@ -77,7 +51,8 @@ $actions = array(
     'display_random_courses',
     'subscribe_user_with_password',
     'display_sessions',
-    'subscribe_to_session'
+    'subscribe_to_session',
+    'search_tag'
 );
 
 $action = CoursesAndSessionsCatalog::is(CATALOG_SESSIONS) ? 'display_sessions' : 'display_random_courses';
@@ -120,14 +95,23 @@ if (isset($_GET['move'])) {
 // We are moving the course of the user to a different user defined course category (=Sort My Courses).
 if (isset($_POST['submit_change_course_category'])) {
     if ($ctok == $_POST['sec_token']) {
-        $courses_controller->change_course_category($_POST['course_2_edit_category'], $_POST['course_categories']);
+        $courses_controller->change_course_category(
+            $_POST['course_2_edit_category'],
+            $_POST['course_categories']
+        );
     }
 }
 
 // We edit course category
-if (isset($_POST['submit_edit_course_category']) && isset($_POST['title_course_category']) && strlen(trim($_POST['title_course_category'])) > 0) {
+if (isset($_POST['submit_edit_course_category']) &&
+    isset($_POST['title_course_category']) &&
+    strlen(trim($_POST['title_course_category'])) > 0
+) {
     if ($ctok == $_POST['sec_token']) {
-        $courses_controller->edit_course_category($_POST['title_course_category'], $_POST['edit_course_category']);
+        $courses_controller->edit_course_category(
+            $_POST['title_course_category'],
+            $_POST['edit_course_category']
+        );
     }
 }
 
@@ -140,7 +124,10 @@ if ($action == 'deletecoursecategory' && isset($_GET['id'])) {
 }
 
 // We are creating a new user defined course category (= Create Course Category).
-if (isset($_POST['create_course_category']) && isset($_POST['title_course_category']) && strlen(trim($_POST['title_course_category'])) > 0) {
+if (isset($_POST['create_course_category']) &&
+    isset($_POST['title_course_category']) &&
+    strlen(trim($_POST['title_course_category'])) > 0
+) {
     if ($ctok == $_POST['sec_token']) {
         $courses_controller->add_course_category($_POST['title_course_category']);
     }
@@ -176,7 +163,11 @@ if (isset($_POST['unsubscribe'])) {
 
 switch ($action) {
     case 'subscribe_user_with_password':
-        $courses_controller->subscribe_user($_POST['subscribe_user_with_password'], $_POST['search_term'], $_POST['category_code']);
+        $courses_controller->subscribe_user(
+            $_POST['subscribe_user_with_password'],
+            $_POST['search_term'],
+            $_POST['category_code']
+        );
         exit;
         break;
     case 'createcoursecategory':
@@ -219,8 +210,31 @@ switch ($action) {
         $courses_controller->sessionsList($action, $nameTools, $limit);
         break;
     case 'subscribe_to_session':
-        $registrationAllowed = api_get_configuration_value('catalog_allow_session_auto_subscription');
-        if ($registrationAllowed) {
+        $registrationAllowed = api_get_setting('catalog_allow_session_auto_subscription');
+        if ($registrationAllowed === 'true') {
+            $entityManager = Database::getManager();
+            $repository = $entityManager->getRepository('ChamiloCoreBundle:SequenceResource');
+
+            $sequences = $repository->getRequirements(
+                $_GET['session_id'],
+                SequenceResource::SESSION_TYPE
+            );
+
+            if (count($sequences) > 0) {
+                $requirementsData = SecuenceResourceManager::checkRequirementsForUser(
+                    $sequences,
+                    api_get_user_id(),
+                    SequenceResource::SESSION_TYPE
+                );
+
+                $continueWithSubscription = SecuenceResourceManager::checkSequenceAreCompleted($requirementsData);
+
+                if (!$continueWithSubscription) {
+                    header('Location: ' .  api_get_path(WEB_CODE_PATH) . 'auth/courses.php');
+                    exit;
+                }
+            }
+
             SessionManager::suscribe_users_to_session(
                 $_GET['session_id'],
                 array($_GET['user_id'])
@@ -245,5 +259,8 @@ switch ($action) {
             exit;
         }
         //else show error message?
+        break;
+    case 'search_tag':
+        $courses_controller->sessionsListByCoursesTag($limit);
         break;
 }

@@ -778,7 +778,7 @@ function store_forum($values, $courseInfo = array(), $returnId = false)
  * forum category and also the threads and replies inside these forums
  * @todo config setting for recovery or not
  * (see also the documents tool: real delete or not).
- * @return void
+ * @return string
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  * @version february 2006, dokeos 1.8
  */
@@ -789,6 +789,8 @@ function deleteForumCategoryThread($content, $id)
     $table_forums_post = Database::get_course_table(TABLE_FORUM_POST);
     $table_forum_thread = Database::get_course_table(TABLE_FORUM_THREAD);
     $course_id = api_get_course_int_id();
+    $groupId = api_get_group_id();
+    $userId = api_get_user_id();
     $id = intval($id);
 
     // Delete all attachment file about this tread id.
@@ -800,28 +802,37 @@ function deleteForumCategoryThread($content, $id)
     }
 
     $tool_constant = null;
-    $return_message = null;
+    $return_message = '';
 
     if ($content == 'forumcategory') {
         $tool_constant = TOOL_FORUM_CATEGORY;
         $return_message = get_lang('ForumCategoryDeleted');
 
         if (!empty($forum_list)) {
-            $sql = "SELECT forum_id FROM ".$table_forums."WHERE c_id = $course_id AND forum_category='".$id."'";
+            $sql = "SELECT forum_id FROM ".$table_forums."
+                    WHERE c_id = $course_id AND forum_category='".$id."'";
             $result = Database::query($sql);
             $row = Database::fetch_array($result);
             foreach ($row as $arr_forum) {
                 $forum_id = $arr_forum['forum_id'];
-                api_item_property_update($_course, 'forum', $forum_id, 'delete', api_get_user_id());
+                api_item_property_update(
+                    $_course,
+                    'forum',
+                    $forum_id,
+                    'delete',
+                    api_get_user_id()
+                );
             }
         }
     }
+
     if ($content == 'forum') {
         $tool_constant = TOOL_FORUM;
         $return_message = get_lang('ForumDeleted');
 
         if (!empty($number_threads)) {
-            $sql = "SELECT thread_id FROM".$table_forum_thread."WHERE c_id = $course_id AND forum_id='".$id."'";
+            $sql = "SELECT thread_id FROM".$table_forum_thread."
+                    WHERE c_id = $course_id AND forum_id='".$id."'";
             $result = Database::query($sql);
             $row = Database::fetch_array($result);
             foreach ($row as $arr_forum) {
@@ -830,16 +841,19 @@ function deleteForumCategoryThread($content, $id)
             }
         }
     }
+
     if ($content == 'thread') {
         $tool_constant = TOOL_FORUM_THREAD;
         $return_message = get_lang('ThreadDeleted');
     }
+
     api_item_property_update(
         $_course,
         $tool_constant,
         $id,
         'delete',
-        api_get_user_id()
+        $userId,
+        $groupId
     );
 
     // Check if this returns a true and if so => return $return_message, if not => return false;
@@ -950,25 +964,37 @@ function check_if_last_post_of_thread($thread_id)
  */
 function display_visible_invisible_icon($content, $id, $current_visibility_status, $additional_url_parameters = '')
 {
+    echo return_visible_invisible_icon($content, $id, $current_visibility_status, $additional_url_parameters);
+}
+/**
+ * @param $content what is it that we want to make (in)visible: forum category, forum, thread, post
+ * @param $id the id of the content we want to make invisible
+ * @param $current_visibility_status what is the current status of the visibility (0 = invisible, 1 = visible)
+ * @return string HTML
+ */
+function return_visible_invisible_icon($content, $id, $current_visibility_status, $additional_url_parameters = '')
+{
+    $html = '';
     $id = Security::remove_XSS($id);
     if ($current_visibility_status == '1') {
-        echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&';
+        $html .= '<a href="' . api_get_self() . '?' . api_get_cidreq() . '&';
         if (is_array($additional_url_parameters)) {
             foreach ($additional_url_parameters as $key => $value) {
-                echo $key.'='.$value.'&amp;';
+                $html .= $key . '=' . $value . '&';
             }
         }
-        echo 'action=invisible&amp;content='.$content.'&amp;id='.$id.'">'.Display::return_icon('visible.png', get_lang('MakeInvisible'), array(), ICON_SIZE_SMALL).'</a>';
+       $html.='action=invisible&content='.$content.'&id='.$id.'">'.Display::return_icon('visible.png', get_lang('MakeInvisible'), array(), ICON_SIZE_SMALL).'</a>';
     }
     if ($current_visibility_status == '0') {
-        echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&amp;';
+        $html .= '<a href="' . api_get_self() . '?' . api_get_cidreq() . '&';
         if (is_array($additional_url_parameters)) {
             foreach ($additional_url_parameters as $key => $value) {
-                echo $key.'='.$value.'&amp;';
+                $html .= $key . '=' . $value . '&';
             }
         }
-        echo 'action=visible&amp;content='.$content.'&amp;id='.$id.'">'.Display::return_icon('invisible.png', get_lang('MakeVisible'), array(), ICON_SIZE_SMALL).'</a>';
+       $html .= 'action=visible&content=' . $content . '&id=' . $id . '">' . Display::return_icon('invisible.png', get_lang('MakeVisible'), array(), ICON_SIZE_SMALL) . '</a>';
     }
+    return $html;
 }
 
 /**
@@ -984,33 +1010,39 @@ function display_visible_invisible_icon($content, $id, $current_visibility_statu
  */
 function display_lock_unlock_icon($content, $id, $current_lock_status, $additional_url_parameters = '')
 {
+    echo return_lock_unlock_icon($content, $id, $current_lock_status, $additional_url_parameters);
+}
+function return_lock_unlock_icon($content, $id, $current_lock_status, $additional_url_parameters = '')
+{
+    $html = '';
     $id = intval($id);
     //check if the forum is blocked due
     if ($content == 'thread') {
         if (api_resource_is_locked_by_gradebook($id, LINK_FORUM_THREAD)) {
-            echo Display::return_icon('lock_na.png', get_lang('ResourceLockedByGradebook'), array(), ICON_SIZE_SMALL);
+            $html .= Display::return_icon('lock_na.png', get_lang('ResourceLockedByGradebook'), array(), ICON_SIZE_SMALL);
 
-            return;
+            return $html;
         }
     }
     if ($current_lock_status == '1') {
-        echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&amp;';
+        $html .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&';
         if (is_array($additional_url_parameters)) {
             foreach ($additional_url_parameters as $key => $value) {
-                echo $key.'='.$value.'&amp;';
+                $html .= $key . '=' . $value . '&';
             }
         }
-        echo 'action=unlock&amp;content='.$content.'&amp;id='.$id.'">'.Display::return_icon('lock.png', get_lang('Unlock'), array(), ICON_SIZE_SMALL).'</a>';
+        $html.= 'action=unlock&content='.$content.'&id='.$id.'">'.Display::return_icon('lock.png', get_lang('Unlock'), array(), ICON_SIZE_SMALL).'</a>';
     }
     if ($current_lock_status == '0') {
-        echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&amp;';
+        $html .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&';
         if (is_array($additional_url_parameters)) {
             foreach ($additional_url_parameters as $key => $value) {
-                echo $key.'='.$value.'&amp;';
+                $html .= $key . '=' . $value . '&';
             }
         }
-        echo 'action=lock&amp;content='.$content.'&amp;id='.$id.'">'.Display::return_icon('unlock.png', get_lang('Lock'), array(), ICON_SIZE_SMALL).'</a>';
+        $html .= 'action=lock&content=' . $content . '&id=' . $id . '">' . Display::return_icon('unlock.png', get_lang('Lock'), array(), ICON_SIZE_SMALL) . '</a>';
     }
+    return $html;
 }
 
 /**
@@ -1028,6 +1060,10 @@ function display_lock_unlock_icon($content, $id, $current_lock_status, $addition
  */
 function display_up_down_icon($content, $id, $list)
 {
+    echo return_up_down_icon($content, $id, $list);
+}
+function return_up_down_icon($content, $id, $list)
+{
     $id = strval(intval($id));
     $total_items = count($list);
     $position = 0;
@@ -1044,19 +1080,19 @@ function display_up_down_icon($content, $id, $list)
     }
 
     if ($position > 1) {
-        $return_value = '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=move&amp;direction=up&amp;content='.$content.'&amp;forumcategory='.$forumCategory.'&amp;id='.$id.'" title="'.get_lang('MoveUp').'">'.
+        $return_value = '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=move&direction=up&content='.$content.'&forumcategory='.$forumCategory.'&id='.$id.'" title="'.get_lang('MoveUp').'">'.
             Display::return_icon('up.png', get_lang('MoveUp'), array(), ICON_SIZE_SMALL).'</a>';
     } else {
         $return_value = Display::return_icon('up_na.png', '-', array(), ICON_SIZE_SMALL);
     }
 
     if ($position < $total_items) {
-        $return_value .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=move&amp;direction=down&amp;content='.$content.'&amp;forumcategory='.$forumCategory.'&amp;id='.$id.'" title="'.get_lang('MoveDown').'" >'.
+        $return_value .= '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=move&direction=down&content='.$content.'&forumcategory='.$forumCategory.'&id='.$id.'" title="'.get_lang('MoveDown').'" >'.
             Display::return_icon('down.png', get_lang('MoveDown'), array(), ICON_SIZE_SMALL).'</a>';
     } else {
         $return_value .= Display::return_icon('down_na.png', '-', array(), ICON_SIZE_SMALL);
     }
-    echo $return_value;
+    return $return_value;
 }
 
 /**
@@ -1208,19 +1244,20 @@ function move_up_down($content, $direction, $id)
     // The SQL statement
     if ($content == 'forumcategory') {
         $sql = "SELECT *
-                FROM".$table_categories." forum_categories, ".$table_item_property." item_properties
+                FROM $table_categories forum_categories, $table_item_property item_properties
                 WHERE
                     forum_categories.c_id = $course_id AND
                     item_properties.c_id = $course_id AND
                     forum_categories.cat_id=item_properties.ref AND
-                    item_properties.tool='".TOOL_FORUM_CATEGORY."'
+                    item_properties.tool='" . TOOL_FORUM_CATEGORY . "'
                 ORDER BY forum_categories.cat_order $sort_direction";
     }
     if ($content == 'forum') {
-        $sql = "SELECT * FROM".$table."
+        $sql = "SELECT *
+            FROM $table
             WHERE
                 c_id = $course_id AND
-                forum_category='".Database::escape_string($forum_category)."'
+                forum_category='" . Database::escape_string($forum_category) . "'
             ORDER BY forum_order $sort_direction";
     }
     // echo $sql.'<br />';
@@ -1272,7 +1309,14 @@ function class_visible_invisible($current_visibility_status)
         return 'class="invisible"';
     }
 }
-
+function return_visible_invisible($current_visibility_status)
+{
+    $current_visibility_status = intval($current_visibility_status);
+    if ($current_visibility_status == 0) {
+        $status='invisible';
+        return $status;
+    }
+}
 /**
  * Retrieve all the information off the forum categories (or one specific) for the current course.
  * The categories are sorted according to their sorting order (cat_order
@@ -1422,7 +1466,12 @@ function get_forums(
         $session_id = $sessionId;
     }
 
-    $condition_session = api_get_session_condition($session_id, true, false, 'item_properties.session_id');
+    $condition_session = api_get_session_condition(
+        $session_id,
+        true,
+        false,
+        'item_properties.session_id'
+    );
     $course_id = $course_info['real_id'];
 
     $forum_list = array();
@@ -1437,12 +1486,12 @@ function get_forums(
         $sql = "SELECT * FROM $table_forums forum
                 INNER JOIN ".$table_item_property." item_properties
                 ON (
-                    forum.forum_id=item_properties.ref AND
+                    forum.forum_id = item_properties.ref AND
                     forum.c_id = item_properties.c_id
                 )
                 WHERE
                     item_properties.visibility=1 AND
-                    item_properties.tool='".TOOL_FORUM."'
+                    item_properties.tool = '".TOOL_FORUM."'
                     $condition_session AND
                     forum.c_id = $course_id AND
                     item_properties.c_id = $course_id
@@ -1777,6 +1826,7 @@ function get_threads($forum_id, $course_code = null)
     // since we are merging these we would have the post.locked value but in fact we want the thread.locked value
     // This is why it is added to the end of the field selection
     $groupCondition = api_get_group_id() != 0 ? " AND item_properties.to_group_id = '$groupId' AND item_properties.c_id = '$course_id'" : "";
+
     $sql = "SELECT
                 thread.*,
                 item_properties.*,
@@ -1787,10 +1837,10 @@ function get_threads($forum_id, $course_code = null)
             FROM $table_threads thread
             INNER JOIN $table_item_property item_properties
             ON
-                thread.thread_id=item_properties.ref AND
+                thread.thread_id = item_properties.ref AND
+                item_properties.c_id = thread.c_id AND
                 item_properties.c_id = $course_id AND
-                thread.c_id = $course_id AND
-                item_properties.tool='".TABLE_FORUM_THREAD."'$groupCondition
+                item_properties.tool = '".TABLE_FORUM_THREAD."' $groupCondition
             LEFT JOIN $table_users users
                 ON thread.thread_poster_id=users.user_id
             WHERE
@@ -1799,11 +1849,7 @@ function get_threads($forum_id, $course_code = null)
             ORDER BY thread.thread_sticky DESC, thread.thread_date DESC";
 
     if (api_is_allowed_to_edit()) {
-        // important note:  it might seem a little bit awkward that we have 'thread.locked as locked' in the sql statement
-        // because we also have thread.* in it. This is because thread has a field locked and post also has the same field
-        // since we are merging these we would have the post.locked value but in fact we want the thread.locked value
-        //This is why it is added to the end of the field selection
-        $groupCondition = api_get_group_id() != 0 ? " AND item_properties.to_group_id = '$groupId' AND item_properties.c_id = '$course_id'" : "";
+
         $sql = "SELECT
                     thread.*,
                     item_properties.*,
@@ -1836,54 +1882,71 @@ function get_threads($forum_id, $course_code = null)
 
 /**
  * Retrieve all posts of a given thread
- *
+ * @param int $threadId The thread ID
+ * @param string $orderDirection Optional. The direction for sort the posts
+ * @param boolean $recursive Optional. If the list is recursive
+ * @param int $postId Optional. The post ID for recursive list
+ * @param int $depth Optional. The depth to indicate the indent
  * @return array containing all the information about the posts of a given thread
- *
- * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
- * @version february 2006, dokeos 1.8
  */
-function get_posts($thread_id)
+function getPosts($threadId, $orderDirection = 'ASC', $recursive = false, $postId = 0, $depth = -1)
 {
-    $table_users = Database :: get_main_table(TABLE_MAIN_USER);
-    $table_posts = Database :: get_course_table(TABLE_FORUM_POST);
+    $list = [];
 
-    $course_id = api_get_course_int_id();
-    $sessionId = api_get_session_id();
+    $em = Database::getManager();
 
-    // note: change these SQL so that only the relevant fields of the user table are used
-    /*
-     * INNER JOIN $tableItemProperty i
-                ON i.ref = posts.post_id AND i.c_id = posts.c_id*
-     i.session_id = $sessionId
-     */
-    if (api_is_allowed_to_edit(null, true)) {
-        $sql = "SELECT * FROM $table_posts posts
-                LEFT JOIN $table_users users
-                    ON posts.poster_id = users.user_id
-                WHERE
-                    posts.c_id = $course_id AND
-                    posts.thread_id = ".intval($thread_id)."
+    $whereCondition = [
+        'threadId' => $threadId,
+        'cId' => api_get_course_int_id(),
+        'visible' => 1
+    ];
 
-                ORDER BY posts.post_id ASC";
-    } else {
-        // students can only se the posts that are approved (posts.visible='1')
-        $sql = "SELECT * FROM $table_posts posts
-                LEFT JOIN  $table_users users
-                    ON posts.poster_id=users.user_id
-                WHERE
-                    posts.c_id = $course_id AND
-                    posts.thread_id = ".intval($thread_id)." AND
-                    posts.visible='1'
-                ORDER BY posts.post_id ASC";
-    }
-    $result = Database::query($sql);
-
-    $posts = array();
-    while ($row = Database::fetch_array($result, 'ASSOC')) {
-        $posts[] = $row;
+    if ($recursive) {
+        $whereCondition['postParentId'] = $postId;
     }
 
-    return $posts;
+    $posts = $em->getRepository('ChamiloCourseBundle:CForumPost')->findBy(
+        $whereCondition,
+        ['postId' => $orderDirection]
+    );
+
+    $depth++;
+
+    foreach ($posts as $post) {
+        $user = $em->find('ChamiloUserBundle:User', $post->getPosterId());
+
+        $list[$post->getPostId()] = [
+            'c_id' => $post->getCId(),
+            'post_id' => $post->getPostId(),
+            'post_title' => $post->getPostTitle(),
+            'post_text' => $post->getPostText(),
+            'thread_id' => $post->getThreadId(),
+            'forum_id' => $post->getForumId(),
+            'poster_id' => $post->getPosterId(),
+            'poster_name' => $post->getPosterName(),
+            'post_date' => $post->getPostDate(),
+            'post_notification' => $post->getPostNotification(),
+            'post_parent_id' => $post->getPostParentId(),
+            'visible' => $post->getVisible(),
+            'indent_cnt' => $depth,
+            'user_id' => $user->getUserId(),
+            'username' => $user->getUsername(),
+            'username_canonical' => $user->getUsernameCanonical(),
+            'lastname' => $user->getLastname(),
+            'firstname' => $user->getFirstname(),
+        ];
+
+        if (!$recursive) {
+            continue;
+        }
+
+        $list = array_merge(
+            $list,
+            getPosts($threadId, $orderDirection, $recursive, $post->getPostId(), $depth)
+        );
+    }
+
+    return $list;
 }
 
 /**
@@ -1974,26 +2037,26 @@ function get_thread_users_details($thread_id)
         $session_info = api_get_session_info(api_get_session_id());
         $user_to_avoid = "'".$session_info['id_coach']."', '".$session_info['session_admin_id']."'";
         //not showing coaches
-        $sql = "SELECT DISTINCT user.user_id, user.lastname, user.firstname, thread_id
-                  FROM $t_posts , $t_users user, $t_session_rel_user session_rel_user_rel_course
-                  WHERE poster_id = user.user_id AND
-                  user.user_id = session_rel_user_rel_course.user_id AND
+        $sql = "SELECT DISTINCT user.id, user.lastname, user.firstname, thread_id
+                  FROM $t_posts p, $t_users user, $t_session_rel_user session_rel_user_rel_course
+                  WHERE p.poster_id = user.id AND
+                  user.id = session_rel_user_rel_course.user_id AND
                   session_rel_user_rel_course.status<>'2' AND
                   session_rel_user_rel_course.user_id NOT IN ($user_to_avoid) AND
-                  thread_id = ".intval($thread_id)." AND
+                  p.thread_id = ".intval($thread_id)." AND
                   session_id = ".api_get_session_id()." AND
-                  c_id = $course_id AND
-                  session_rel_user_rel_course.c_id = '".$course_id."' $orderby ";
+                  p.c_id = $course_id AND
+                  session_rel_user_rel_course.c_id = ".$course_id." $orderby ";
     } else {
-        $sql = "SELECT DISTINCT user.user_id, user.lastname, user.firstname, thread_id
-                  FROM $t_posts , $t_users user, $t_course_user course_user
-                  WHERE poster_id = user.user_id
-                  AND user.user_id = course_user.user_id
+        $sql = "SELECT DISTINCT user.id, user.lastname, user.firstname, thread_id
+                  FROM $t_posts p, $t_users user, $t_course_user course_user
+                  WHERE p.poster_id = user.id
+                  AND user.id = course_user.user_id
                   AND course_user.relation_type<>".COURSE_RELATION_TYPE_RRHH."
-                  AND thread_id = ".intval($thread_id)."
+                  AND p.thread_id = ".intval($thread_id)."
                   AND course_user.status NOT IN('1') AND
-                  c_id = $course_id AND
-                  session_rel_user_rel_course.c_id = '".$course_id."' $orderby";
+                  p.c_id = $course_id AND
+                  course_user.c_id = ".$course_id." $orderby";
     }
     $result = Database::query($sql);
 
@@ -2005,9 +2068,8 @@ function get_thread_users_details($thread_id)
  * @param   int Thread ID
  * @param   string  Course DB name (optional)
  * @return  array Array of type ([user_id=>w,lastname=>x,firstname=>y,thread_id=>z],[])
- * @author Jhon Hinojosa<jhon.hinojosa@dokeos.com>,
+ * @author Jhon Hinojosa
  * @todo     this function need to be improved
- * @version octubre 2008, dokeos 1.8
  */
 function get_thread_users_qualify($thread_id)
 {
@@ -2030,33 +2092,33 @@ function get_thread_users_qualify($thread_id)
         $session_info = api_get_session_info(api_get_session_id());
         $user_to_avoid = "'".$session_info['id_coach']."', '".$session_info['session_admin_id']."'";
         //not showing coaches
-        $sql = "SELECT DISTINCT post.poster_id, user.lastname, user.firstname, post.thread_id,user.user_id,qualify.qualify
-                FROM $t_posts post , $t_users user, $t_session_rel_user session_rel_user_rel_course, $t_qualify qualify
-                WHERE poster_id = user.user_id
+        $sql = "SELECT DISTINCT post.poster_id, user.lastname, user.firstname, post.thread_id,user.id,qualify.qualify
+                FROM $t_posts post , $t_users user, $t_session_rel_user scu, $t_qualify qualify
+                WHERE poster_id = user.id
                     AND post.poster_id = qualify.user_id
-                    AND user.user_id = session_rel_user_rel_course.user_id
-                    AND session_rel_user_rel_course.status<>'2'
-                    AND session_rel_user_rel_course.user_id NOT IN ($user_to_avoid)
-                    AND qualify.thread_id = '".Database::escape_string($thread_id)."'
-                    AND post.thread_id = '".Database::escape_string($thread_id)."'
-                    AND session_id = '".api_get_session_id()."'
-                    AND session_rel_user_rel_course.c_id = '".$course_id."' AND
+                    AND user.id = session_rel_user_rel_course.user_id
+                    AND scu.status<>'2'
+                    AND scu.user_id NOT IN ($user_to_avoid)
+                    AND qualify.thread_id = ".intval($thread_id)."
+                    AND post.thread_id = ".intval($thread_id)."
+                    AND session_id = ".api_get_session_id()."
+                    AND scu.c_id = ".$course_id." AND
                     qualify.c_id = $course_id AND
                     post.c_id = $course_id
                 $orderby ";
     } else {
-        $sql = "SELECT DISTINCT post.poster_id, user.lastname, user.firstname, post.thread_id,user.user_id,qualify.qualify
+        $sql = "SELECT DISTINCT post.poster_id, user.lastname, user.firstname, post.thread_id,user.id,qualify.qualify
                 FROM $t_posts post,
                      $t_qualify qualify,
                      $t_users user,
                      $t_course_user course_user
                 WHERE
-                     post.poster_id = user.user_id
+                     post.poster_id = user.id
                      AND post.poster_id = qualify.user_id
-                     AND user.user_id = course_user.user_id
+                     AND user.id = course_user.user_id
                      AND course_user.relation_type<>".COURSE_RELATION_TYPE_RRHH."
-                     AND qualify.thread_id = '".Database::escape_string($thread_id)."'
-                     AND post.thread_id = '".Database::escape_string($thread_id)."'
+                     AND qualify.thread_id = ".intval($thread_id)."
+                     AND post.thread_id = ".intval($thread_id)."
                      AND course_user.status not in('1')
                      AND course_user.c_id = $course_id
                      AND qualify.c_id = $course_id
@@ -2110,24 +2172,24 @@ function get_thread_users_not_qualify($thread_id)
         $session_info = api_get_session_info(api_get_session_id());
         $user_to_avoid = "'".$session_info['id_coach']."', '".$session_info['session_admin_id']."'";
         //not showing coaches
-        $sql = "SELECT DISTINCT user.user_id, user.lastname, user.firstname, post.thread_id
+        $sql = "SELECT DISTINCT user.id, user.lastname, user.firstname, post.thread_id
                 FROM $t_posts post , $t_users user, $t_session_rel_user session_rel_user_rel_course
-                WHERE poster_id = user.user_id
-                    AND user.user_id NOT IN (".$cad.")
-                    AND user.user_id = session_rel_user_rel_course.user_id
+                WHERE poster_id = user.id
+                    AND user.id NOT IN (".$cad.")
+                    AND user.id = session_rel_user_rel_course.user_id
                     AND session_rel_user_rel_course.status<>'2'
                     AND session_rel_user_rel_course.user_id NOT IN ($user_to_avoid)
-                    AND post.thread_id = '".Database::escape_string($thread_id)."'
-                    AND session_id = '".api_get_session_id()."'
-                    AND session_rel_user_rel_course.c_id = '".$course_id."' AND post.c_id = $course_id $orderby ";
+                    AND post.thread_id = ".intval($thread_id)."
+                    AND session_id = ".api_get_session_id()."
+                    AND session_rel_user_rel_course.c_id = $course_id AND post.c_id = $course_id $orderby ";
     } else {
-        $sql = "SELECT DISTINCT user.user_id, user.lastname, user.firstname, post.thread_id
+        $sql = "SELECT DISTINCT user.id, user.lastname, user.firstname, post.thread_id
                 FROM $t_posts post, $t_users user,$t_course_user course_user
-                WHERE post.poster_id = user.user_id
-                AND user.user_id NOT IN (".$cad.")
-                AND user.user_id = course_user.user_id
+                WHERE post.poster_id = user.id
+                AND user.id NOT IN (".$cad.")
+                AND user.id = course_user.user_id
                 AND course_user.relation_type<>".COURSE_RELATION_TYPE_RRHH."
-                AND post.thread_id = '".Database::escape_string($thread_id)."'
+                AND post.thread_id = ".intval($thread_id)."
                 AND course_user.status not in('1')
                 AND course_user.c_id = $course_id AND post.c_id = $course_id  $orderby";
     }
@@ -2270,22 +2332,23 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
         $clean_post_title = Database::escape_string(stripslashes($values['post_title']));
 
         // We first store an entry in the forum_thread table because the thread_id is used in the forum_post table.
-        $sql = "INSERT INTO $table_threads (c_id, thread_title, forum_id, thread_poster_id, thread_poster_name, thread_date, thread_sticky,thread_title_qualify,thread_qualify_max,thread_weight,thread_peer_qualify, session_id)
-                VALUES (
-                    ".$course_id.",
-                    '".$clean_post_title."',
-                    '".Database::escape_string($values['forum_id'])."',
-                    '".Database::escape_string($_user['user_id'])."',
-                    '".Database::escape_string(stripslashes(isset($values['poster_name']) ? $values['poster_name'] : null))."',
-                    '".Database::escape_string($post_date)."',
-                    '".Database::escape_string(isset($values['thread_sticky']) ? $values['thread_sticky'] : null)."',".
-                    "'".Database::escape_string(stripslashes($values['calification_notebook_title']))."',".
-                    "'".Database::escape_string($values['numeric_calification'])."',".
-                    "'".Database::escape_string($values['weight_calification'])."',".
-                    "'".intval($values['thread_peer_qualify'])."',".
-                    "'".api_get_session_id()."')";
-        Database::query($sql);
-        $last_thread_id = Database::insert_id();
+        $last_thread_id = Database::insert(
+            $table_threads,
+            [
+                'c_id' => $course_id,
+                'thread_title' => $clean_post_title,
+                'forum_id' => $values['forum_id'],
+                'thread_poster_id' => $_user['user_id'],
+                'thread_poster_name' => stripslashes(isset($values['poster_name']) ? $values['poster_name'] : null),
+                'thread_date' => $post_date,
+                'thread_sticky' => isset($values['thread_sticky']) ? $values['thread_sticky'] : null,
+                'thread_title_qualify' => stripslashes($values['calification_notebook_title']),
+                'thread_qualify_max' => $values['numeric_calification'],
+                'thread_weight' => $values['weight_calification'],
+                'thread_peer_qualify' => $values['thread_peer_qualify'],
+                'session_id' => api_get_session_id()
+            ]
+        );
 
         // Add option gradebook qualify.
 
@@ -2324,7 +2387,12 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
                 TOOL_FORUM_THREAD,
                 $last_thread_id,
                 'ForumThreadAdded',
-                api_get_user_id()
+                api_get_user_id(),
+                api_get_group_id(),
+                null,
+                null,
+                null,
+                api_get_session_id()
             );
 
             // If the forum properties tell that the posts have to be approved
@@ -2338,7 +2406,7 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
             api_set_default_visibility(
                 $last_thread_id,
                 TOOL_FORUM_THREAD,
-                0,
+                api_get_group_id(),
                 $courseInfo
             );
 
@@ -2348,7 +2416,9 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
                     TOOL_FORUM_THREAD,
                     $last_thread_id,
                     'invisible',
-                    api_get_user_id()
+                    api_get_user_id(),
+                    api_get_group_id()
+
                 );
                 $visible = 1;
             }
@@ -2412,7 +2482,10 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
                 }
             } else {
                 if ($result) {
-                    add_forum_attachment_file($values['file_comment'], $last_post_id);
+                    add_forum_attachment_file(
+                        isset($values['file_comment']) ? $values['file_comment'] : null,
+                        $last_post_id
+                    );
                 }
             }
         } else {
@@ -2421,10 +2494,10 @@ function store_thread($current_forum, $values, $courseInfo = array(), $showMessa
 
         if ($current_forum['approval_direct_post'] == '1' && !api_is_allowed_to_edit(null, true)) {
             $message .= get_lang('MessageHasToBeApproved').'<br />';
-            $message .= get_lang('ReturnTo').' <a href="viewforum.php?'.api_get_cidreq().'&amp;forum='.$values['forum_id'].'">'.get_lang('Forum').'</a><br />';
+            $message .= get_lang('ReturnTo').' <a href="viewforum.php?'.api_get_cidreq().'&forum='.$values['forum_id'].'">'.get_lang('Forum').'</a><br />';
         } else {
-            $message .= get_lang('ReturnTo').' <a href="viewforum.php?'.api_get_cidreq().'&amp;forum='.$values['forum_id'].'">'.get_lang('Forum').'</a><br />';
-            $message .= get_lang('ReturnTo').' <a href="viewthread.php?'.api_get_cidreq().'&amp;forum='.$values['forum_id'].'&gradebook='.$gradebook.'&amp;thread='.$last_thread_id.'">'.get_lang('Message').'</a>';
+            $message .= get_lang('ReturnTo').' <a href="viewforum.php?'.api_get_cidreq().'&forum='.$values['forum_id'].'">'.get_lang('Forum').'</a><br />';
+            $message .= get_lang('ReturnTo').' <a href="viewthread.php?'.api_get_cidreq().'&forum='.$values['forum_id'].'&gradebook='.$gradebook.'&thread='.$last_thread_id.'">'.get_lang('Message').'</a>';
         }
         $reply_info['new_post_id'] = $last_post_id;
         $my_post_notification = isset($values['post_notification']) ? $values['post_notification'] : null;
@@ -2512,7 +2585,7 @@ function show_add_post_form($current_forum, $forum_setting, $action = '', $id = 
     $iframe = null;
     $myThread = Security::remove_XSS($myThread);
     if ($forum_setting['show_thread_iframe_on_reply'] && $action != 'newthread' && !empty($myThread)) {
-        $iframe = "<iframe style=\"border: 1px solid black\" src=\"iframe_thread.php?".api_get_cidreq()."&amp;forum=".Security::remove_XSS($my_forum)."&amp;thread=".$myThread."#".Security::remove_XSS($my_post)."\" width=\"100%\"></iframe>";
+        $iframe = "<iframe style=\"border: 1px solid black\" src=\"iframe_thread.php?".api_get_cidreq()."&forum=".Security::remove_XSS($my_forum)."&thread=".$myThread."#".Security::remove_XSS($my_post)."\" width=\"100%\"></iframe>";
     }
     if (!empty($iframe)) {
         $form->addElement('label', get_lang('Thread'), $iframe);
@@ -2582,6 +2655,21 @@ function show_add_post_form($current_forum, $forum_setting, $action = '', $id = 
     }
 
     $form->addElement('html', '</div>');
+
+    if (in_array($action, ['quote', 'replymessage'])) {
+        $form->addFile('user_upload[]', get_lang('Attachment'));
+        $form->addButton(
+            'add_attachment',
+            get_lang('AddAttachment'),
+            'paperclip',
+            'default',
+            'default',
+            null,
+            ['id' => 'reply-add-attachment']
+        );
+    } else {
+        $form->addFile('user_upload', get_lang('Attachment'));
+    }
 
     // Setting the class and text of the form title and submit button.
     if ($action == 'quote') {
@@ -2967,20 +3055,21 @@ function store_reply($current_forum, $values)
 
     if ($upload_ok) {
         // We first store an entry in the forum_post table.
-        $sql = "INSERT INTO $table_posts (c_id, post_title, post_text, thread_id, forum_id, poster_id, post_date, post_notification, post_parent_id, visible)
-                VALUES (
-                    ".api_get_course_int_id().",
-                    '".Database::escape_string($values['post_title'])."',
-                    '".Database::escape_string(isset($values['post_text']) ? ($values['post_text']) : null)."',
-                    '".Database::escape_string($values['thread_id'])."',
-                    '".Database::escape_string($values['forum_id'])."',
-                    '".api_get_user_id()."',
-                    '".$post_date."',
-                    '".Database::escape_string(isset($values['post_notification']) ? $values['post_notification'] : null)."',
-                    '".Database::escape_string(isset($values['post_parent_id']) ? $values['post_parent_id'] : null)."',
-                    '".Database::escape_string($visible)."')";
-        Database::query($sql);
-        $new_post_id = Database::insert_id();
+        $new_post_id = Database::insert(
+            $table_posts,
+            [
+                'c_id' => api_get_course_int_id(),
+                'post_title' => $values['post_title'],
+                'post_text' => isset($values['post_text']) ? ($values['post_text']) : null,
+                'thread_id' => $values['thread_id'],
+                'forum_id' => $values['forum_id'],
+                'poster_id' => api_get_user_id(),
+                'post_date' => $post_date,
+                'post_notification' => isset($values['post_notification']) ? $values['post_notification'] : null,
+                'post_parent_id' => isset($values['post_parent_id']) ? $values['post_parent_id'] : null,
+                'visible' => $visible
+            ]
+        );
         if ($new_post_id) {
 
             $sql = "UPDATE $table_posts SET post_id = iid WHERE iid = $new_post_id";
@@ -3029,6 +3118,8 @@ function store_reply($current_forum, $values)
             }
 
             send_notification_mails($values['thread_id'], $values);
+
+            add_forum_attachment_file('', $new_post_id);
         }
 
         Session::erase('formelements');
@@ -3193,6 +3284,18 @@ function show_edit_post_form($forum_setting, $current_post, $current_thread, $cu
     }
 
     $form->addElement('html', '</div>');
+
+    $form->addFile('user_upload[]', get_lang('Attachment'));
+    $form->addButton(
+        'add_attachment',
+        get_lang('AddAttachment'),
+        'paperclip',
+        'default',
+        'default',
+        null,
+        ['id' => 'reply-add-attachment']
+    );
+
     $form->addButtonUpdate(get_lang('ModifyThread'), 'SubmitPost');
 
     // Setting the default values for the form elements.
@@ -3219,7 +3322,7 @@ function show_edit_post_form($forum_setting, $current_post, $current_thread, $cu
     if ($form->validate()) {
         $values = $form->exportValues();
 
-        if ($values['thread_qualify_gradebook'] == '1' &&
+        if (isset($values['thread_qualify_gradebook']) && $values['thread_qualify_gradebook'] == '1' &&
             empty($values['weight_calification'])
         ) {
             Display::display_error_message(get_lang('YouMustAssignWeightOfQualification').'&nbsp;<a href="javascript:window.back()">'.get_lang('Back').'</a>', false);
@@ -3256,7 +3359,7 @@ function store_edit_post($values)
     // First we check if the change affects the thread and if so we commit
     // the changes (sticky and post_title=thread_title are relevant).
 
-    $posts = get_posts($values['thread_id']);
+    $posts = getPosts($values['thread_id']);
     $first_post = null;
     if (!empty($posts)) {
         $first_post = $posts[0];
@@ -3297,9 +3400,16 @@ function store_edit_post($values)
     }
 
     if (empty($values['id_attach'])) {
-        add_forum_attachment_file($values['file_comment'], $values['post_id']);
+        add_forum_attachment_file(
+            isset($values['file_comment']) ? $values['file_comment'] : null,
+            $values['post_id']
+        );
     } else {
-        edit_forum_attachment_file($values['file_comment'], $values['post_id'], $values['id_attach']);
+        edit_forum_attachment_file(
+            isset($values['file_comment']) ? $values['file_comment'] : null,
+            $values['post_id'],
+            $values['id_attach']
+        );
     }
 
     if (api_is_course_admin() == true) {
@@ -3798,7 +3908,7 @@ function send_mail($user_info = array(), $thread_information = array())
     $user_id = api_get_user_id();
     $subject = get_lang('NewForumPost').' - '.$_course['official_code'];
     if (isset($thread_information) && is_array($thread_information)) {
-        $thread_link = api_get_path(WEB_CODE_PATH).'forum/viewthread.php?'.api_get_cidreq().'&amp;forum='.$thread_information['forum_id'].'&amp;thread='.$thread_information['thread_id'];
+        $thread_link = api_get_path(WEB_CODE_PATH).'forum/viewthread.php?'.api_get_cidreq().'&forum='.$thread_information['forum_id'].'&thread='.$thread_information['thread_id'];
     }
     $email_body = get_lang('Dear').' '.api_get_person_name($user_info['firstname'], $user_info['lastname'], null, PERSON_NAME_EMAIL_ADDRESS).", <br />\n\r";
     $email_body .= get_lang('NewForumPost')."\n";
@@ -4238,7 +4348,7 @@ function search_link()
                     $url_parameter[] = Security::remove_XSS($key).'='.Security::remove_XSS($value);
                 }
             }
-            $url = $url.implode('&amp;', $url_parameter);
+            $url = $url.implode('&', $url_parameter);
             $return .= '<a href="'.$url.'">'.Display::return_icon('delete.gif', get_lang('RemoveSearchResults')).'</a>';
         }
     }
@@ -4257,55 +4367,87 @@ function add_forum_attachment_file($file_comment, $last_id)
     $_course = api_get_course_info();
     $agenda_forum_attachment = Database::get_course_table(TABLE_FORUM_ATTACHMENT);
 
-    // Storing the attachments
-    if (!empty($_FILES['user_upload']['name'])) {
-        $upload_ok = process_uploaded_file($_FILES['user_upload']);
+    if (!isset($_FILES['user_upload'])) {
+        return false;
     }
 
-    if (!empty($upload_ok)) {
-        $course_dir = $_course['path'].'/upload/forum';
-        $sys_course_path = api_get_path(SYS_COURSE_PATH);
-        $updir = $sys_course_path.$course_dir;
+    $fileCount = count($_FILES['user_upload']['name']);
 
-        // Try to add an extension to the file if it hasn't one.
-        $new_file_name = add_ext_on_mime(
-            stripslashes($_FILES['user_upload']['name']),
-            $_FILES['user_upload']['type']
-        );
-        // User's file name
-        $file_name = $_FILES['user_upload']['name'];
+    $filesData = [];
 
-        if (!filter_extension($new_file_name)) {
-            Display :: display_error_message(get_lang('UplUnableToSaveFileFilteredExtension'));
-        } else {
-            $new_file_name = uniqid('');
-            $new_path = $updir.'/'.$new_file_name;
-            $result = @move_uploaded_file($_FILES['user_upload']['tmp_name'], $new_path);
-            $safe_file_comment = Database::escape_string($file_comment);
-            $safe_file_name = Database::escape_string($file_name);
-            $safe_new_file_name = Database::escape_string($new_file_name);
-            $last_id = intval($last_id);
-            // Storing the attachments if any.
-            if ($result) {
-                $sql = "INSERT INTO $agenda_forum_attachment (c_id, filename, comment, path, post_id, size)
-                        VALUES (".api_get_course_int_id().", '$safe_file_name', '$safe_file_comment', '$safe_new_file_name' , '$last_id', '".intval($_FILES['user_upload']['size'])."' )";
-                Database::query($sql);
+    if (!is_array($_FILES['user_upload']['name'])) {
+        $filesData[] = $_FILES['user_upload'];
+    } else {
+        $fileKeys = array_keys($_FILES['user_upload']);
 
-                $last_id_file = Database::insert_id();
-                api_item_property_update(
-                    $_course,
-                    TOOL_FORUM_ATTACH,
-                    $last_id_file,
-                    'ForumAttachmentAdded',
-                    api_get_user_id()
-                );
-
-                return $last_id_file;
+        for ($i = 0; $i < $fileCount; $i++) {
+            foreach ($fileKeys as $key) {
+                $filesData[$i][$key] = $_FILES['user_upload'][$key][$i];
             }
         }
     }
 
-    return false;
+    foreach ($filesData as $attachment) {
+        if (empty($attachment['name'])) {
+            continue;
+        }
+
+        $upload_ok = process_uploaded_file($attachment);
+
+        if (!$upload_ok) {
+            continue;
+        }
+
+        $course_dir = $_course['path'] . '/upload/forum';
+        $sys_course_path = api_get_path(SYS_COURSE_PATH);
+        $updir = $sys_course_path . $course_dir;
+
+        // Try to add an extension to the file if it hasn't one.
+        $new_file_name = add_ext_on_mime(
+            stripslashes($attachment['name']),
+            $attachment['type']
+        );
+        // User's file name
+        $file_name = $attachment['name'];
+
+        if (!filter_extension($new_file_name)) {
+            Display :: display_error_message(get_lang('UplUnableToSaveFileFilteredExtension'));
+
+            return;
+        }
+
+        $new_file_name = uniqid('');
+        $new_path = $updir . '/' . $new_file_name;
+        $result = @move_uploaded_file($attachment['tmp_name'], $new_path);
+        $safe_file_comment = Database::escape_string($file_comment);
+        $safe_file_name = Database::escape_string($file_name);
+        $safe_new_file_name = Database::escape_string($new_file_name);
+        $last_id = intval($last_id);
+        // Storing the attachments if any.
+        if (!$result) {
+            return;
+        }
+
+        $last_id_file = Database::insert(
+            $agenda_forum_attachment,
+            [
+                'c_id' => api_get_course_int_id(),
+                'filename' => $safe_file_name,
+                'comment' => $safe_file_comment,
+                'path' => $safe_new_file_name,
+                'post_id' => $last_id,
+                'size' => intval($attachment['size'])
+            ]
+        );
+
+        api_item_property_update(
+            $_course,
+            TOOL_FORUM_ATTACH,
+            $last_id_file,
+            'ForumAttachmentAdded',
+            api_get_user_id()
+        );
+    }
 }
 
 /**
@@ -4321,27 +4463,48 @@ function edit_forum_attachment_file($file_comment, $post_id, $id_attach)
     $table_forum_attachment = Database::get_course_table(TABLE_FORUM_ATTACHMENT);
     $course_id = api_get_course_int_id();
 
-    // Storing the attachments.
-    if (!empty($_FILES['user_upload']['name'])) {
-        $upload_ok = process_uploaded_file($_FILES['user_upload']);
+    $fileCount = count($_FILES['user_upload']['name']);
+
+    $filesData = [];
+
+    if (!is_array($_FILES['user_upload']['name'])) {
+        $filesData[] = $_FILES['user_upload'];
+    } else {
+        $fileKeys = array_keys($_FILES['user_upload']);
+
+        for ($i = 0; $i < $fileCount; $i++) {
+            foreach ($fileKeys as $key) {
+                $filesData[$i][$key] = $_FILES['user_upload'][$key][$i];
+            }
+        }
     }
 
-    if (!empty($upload_ok)) {
+    foreach ($filesData as $attachment) {
+        if (empty($attachment['name'])) {
+            continue;
+        }
+
+        $upload_ok = process_uploaded_file($attachment);
+
+        if (!$upload_ok) {
+            continue;
+        }
+
         $course_dir = $_course['path'].'/upload/forum';
         $sys_course_path = api_get_path(SYS_COURSE_PATH);
         $updir = $sys_course_path.$course_dir;
 
         // Try to add an extension to the file if it hasn't one.
-        $new_file_name = add_ext_on_mime(stripslashes($_FILES['user_upload']['name']), $_FILES['user_upload']['type']);
+        $new_file_name = add_ext_on_mime(stripslashes($attachment['name']), $attachment['type']);
         // User's file name
-        $file_name = $_FILES['user_upload']['name'];
+        $file_name = $attachment['name'];
 
         if (!filter_extension($new_file_name)) {
             Display :: display_error_message(get_lang('UplUnableToSaveFileFilteredExtension'));
         } else {
             $new_file_name = uniqid('');
             $new_path = $updir.'/'.$new_file_name;
-            $result = @move_uploaded_file($_FILES['user_upload']['tmp_name'], $new_path);
+            $result = @move_uploaded_file($attachment['tmp_name'], $new_path);
             $safe_file_comment = Database::escape_string($file_comment);
             $safe_file_name = Database::escape_string($file_name);
             $safe_new_file_name = Database::escape_string($new_file_name);
@@ -4349,7 +4512,7 @@ function edit_forum_attachment_file($file_comment, $post_id, $id_attach)
             $safe_id_attach = (int) $id_attach;
             // Storing the attachments if any.
             if ($result) {
-                $sql = "UPDATE $table_forum_attachment SET filename = '$safe_file_name', comment = '$safe_file_comment', path = '$safe_new_file_name', post_id = '$safe_post_id', size ='".$_FILES['user_upload']['size']."'
+                $sql = "UPDATE $table_forum_attachment SET filename = '$safe_file_name', comment = '$safe_file_comment', path = '$safe_new_file_name', post_id = '$safe_post_id', size ='".$attachment['size']."'
                        WHERE c_id = $course_id AND id = '$safe_id_attach'";
                 Database::query($sql);
                 api_item_property_update($_course, TOOL_FORUM_ATTACH, $safe_id_attach, 'ForumAttachmentUpdated', api_get_user_id());
@@ -4371,7 +4534,7 @@ function get_attachment($post_id)
     $course_id = api_get_course_int_id();
     $row = array();
     $post_id = intval($post_id);
-    $sql = "SELECT id, path, filename,comment FROM $forum_table_attachment
+    $sql = "SELECT iid, path, filename,comment FROM $forum_table_attachment
             WHERE c_id = $course_id AND post_id = $post_id";
     $result = Database::query($sql);
     if (Database::num_rows($result) != 0) {
@@ -4386,7 +4549,7 @@ function getAllAttachment($postId)
     $forumAttachmentTable = Database :: get_course_table(TABLE_FORUM_ATTACHMENT);
     $courseId = api_get_course_int_id();
     $postId = intval($postId);
-    $columns = array('id', 'path', 'filename', 'comment');
+    $columns = array('iid', 'path', 'filename', 'comment');
     $conditions = array(
         'where' => array(
             'c_id = ? AND post_id = ?' => array($courseId, $postId)
@@ -4419,16 +4582,16 @@ function delete_attachment($post_id, $id_attach = 0, $display = true)
     $forum_table_attachment = Database::get_course_table(TABLE_FORUM_ATTACHMENT);
     $course_id = api_get_course_int_id();
 
-    $cond = (!empty($id_attach)) ? " id = ".(int) $id_attach."" : " post_id = ".(int) $post_id."";
+    $cond = (!empty($id_attach)) ? " iid = " . (int) $id_attach . "" : " post_id = " . (int) $post_id . "";
     $sql = "SELECT path FROM $forum_table_attachment WHERE c_id = $course_id AND $cond";
     $res = Database::query($sql);
     $row = Database::fetch_array($res);
 
-    $course_dir = $_course['path'].'/upload/forum';
+    $course_dir = $_course['path'] . '/upload/forum';
     $sys_course_path = api_get_path(SYS_COURSE_PATH);
-    $updir = $sys_course_path.$course_dir;
+    $updir = $sys_course_path . $course_dir;
     $my_path = isset($row['path']) ? $row['path'] : null;
-    $file = $updir.'/'.$my_path;
+    $file = $updir . '/' . $my_path;
     if (Security::check_abs_path($file, $updir)) {
         @unlink($file);
     }
@@ -4994,7 +5157,7 @@ function get_all_post_from_user($user_id, $course_code)
                 $forum_results .='<div id="social-forum-title">'.
                     Display::return_icon('forum.gif', get_lang('Forum')).'&nbsp;'.Security::remove_XSS($forum['forum_title'], STUDENT).
                     '<div style="float:right;margin-top:-35px">
-                                        <a href="../forum/viewforum.php?cidReq='.$course_code.'&amp;gidReq=&amp;forum='.$forum['forum_id'].' " >'.get_lang('SeeForum').'</a>
+                                        <a href="../forum/viewforum.php?cidReq='.$course_code.'&gidReq=&forum='.$forum['forum_id'].' " >'.get_lang('SeeForum').'</a>
                                     </div></div>';
                 $forum_results .='<br / >';
                 if ($post_counter > 0) {
@@ -5310,14 +5473,14 @@ function getAttachedFiles($forumId, $threadId, $postId = null, $attachId = null,
 
         return array();
     } elseif (empty($postId)) {
-        $filter = "AND id = $attachId";
+        $filter = "AND iid = $attachId";
     } elseif (empty($attachId)) {
         $filter = "AND post_id = $postId";
     } else {
-        $filter = "AND post_id = $postId AND id = $attachId";
+        $filter = "AND post_id = $postId AND iid = $attachId";
     }
     $forumAttachmentTable = Database::get_course_table(TABLE_FORUM_ATTACHMENT);
-    $sql = "SELECT id, comment, filename, path, size
+    $sql = "SELECT iid, comment, filename, path, size
             FROM $forumAttachmentTable
             WHERE c_id = $courseId $filter";
     $result = Database::query($sql);
@@ -5330,7 +5493,7 @@ function getAttachedFiles($forumId, $threadId, $postId = null, $attachId = null,
                 api_get_path(WEB_CODE_PATH) . 'forum/download.php?file='.$row['path'].'&'.api_get_cidreq(),
                 array('target'=>'_blank', 'class' => 'attachFilename')
             );
-            $json['id'] = $row['id'];
+            $json['id'] = $row['iid'];
             $json['comment'] = $row['comment'];
             // Format file size
             $json['size'] = format_file_size($row['size']);
@@ -5338,7 +5501,7 @@ function getAttachedFiles($forumId, $threadId, $postId = null, $attachId = null,
             if (!empty($row) && is_array($row)) {
                 // Set result as success and bring delete URL
                 $json['result'] = Display::return_icon('accept.png', get_lang('Uploaded'));
-                $url = api_get_path(WEB_CODE_PATH) . 'forum/viewthread.php?' . api_get_cidreq() . '&amp;action=delete_attach&amp;forum=' . $forumId . '&amp;thread=' . $threadId.'&amp;id_attach=' . $row['id'];
+                $url = api_get_path(WEB_CODE_PATH) . 'forum/viewthread.php?' . api_get_cidreq() . '&action=delete_attach&forum=' . $forumId . '&thread=' . $threadId.'&id_attach=' . $row['iid'];
                 $json['delete'] = Display::url(
                     Display::return_icon('delete.png',get_lang('Delete'), array(), ICON_SIZE_SMALL),
                     $url,

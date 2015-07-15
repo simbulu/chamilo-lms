@@ -4,9 +4,10 @@
 namespace Chamilo\CoreBundle\Entity;
 
 use Chamilo\UserBundle\Entity\User;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\ArrayCollection;
+
 //use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 //use Gedmo\Mapping\Annotation as Gedmo;
 
@@ -21,7 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
  *          @ORM\Index(name="idx_id_session_admin_id", columns={"session_admin_id"})
  *      }
  * )
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="Chamilo\CoreBundle\Entity\Repository\SessionRepository")
  */
 class Session
 {
@@ -72,22 +73,6 @@ class Session
     private $duration;
 
     /**
-     * @return int
-     */
-    public function getDuration()
-    {
-        return $this->duration;
-    }
-
-    /**
-     * @param int $duration
-     */
-    public function setDuration($duration)
-    {
-        $this->duration = $duration;
-    }
-
-    /**
      * @var integer
      *
      * @ORM\Column(name="nbr_courses", type="smallint", nullable=true, unique=false)
@@ -107,34 +92,6 @@ class Session
      * @ORM\Column(name="nbr_classes", type="integer", nullable=true, unique=false)
      */
     private $nbrClasses;
-
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="date_start", type="date", nullable=false)
-     */
-    private $dateStart;
-
-    /**
-     * @var \DateTime
-     *
-     * @ORM\Column(name="date_end", type="date", nullable=false)
-     */
-    private $dateEnd;
-
-    /**
-     * @var boolean
-     *
-     * @ORM\Column(name="nb_days_access_before_beginning", type="boolean", nullable=true)
-     */
-    private $nbDaysAccessBeforeBeginning;
-
-    /**
-     * @var boolean
-     *
-     * @ORM\Column(name="nb_days_access_after_end", type="boolean", nullable=true)
-     */
-    private $nbDaysAccessAfterEnd;
 
     /**
      * @var integer
@@ -160,42 +117,42 @@ class Session
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="display_start_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="display_start_date", type="datetime", nullable=true, unique=false)
      */
     private $displayStartDate;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="display_end_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="display_end_date", type="datetime", nullable=true, unique=false)
      */
     private $displayEndDate;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="access_start_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="access_start_date", type="datetime", nullable=true, unique=false)
      */
     private $accessStartDate;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="access_end_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="access_end_date", type="datetime", nullable=true, unique=false)
      */
     private $accessEndDate;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="coach_access_start_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="coach_access_start_date", type="datetime", nullable=true, unique=false)
      */
     private $coachAccessStartDate;
 
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="coach_access_end_date", type="datetime", nullable=false, unique=false)
+     * @ORM\Column(name="coach_access_end_date", type="datetime", nullable=true, unique=false)
      */
     private $coachAccessEndDate;
 
@@ -263,6 +220,22 @@ class Session
         $this->userCourseSubscriptions = new ArrayCollection();
         $this->showDescription = 0;
         $this->category = null;
+    }
+
+    /**
+     * @return int
+     */
+    public function getDuration()
+    {
+        return $this->duration;
+    }
+
+    /**
+     * @param int $duration
+     */
+    public function setDuration($duration)
+    {
+        $this->duration = $duration;
     }
 
     /**
@@ -613,75 +586,6 @@ class Session
     public function getNbrClasses()
     {
         return $this->nbrClasses;
-    }
-
-    /**
-     * Set dateStart
-     *
-     * @param \DateTime $dateStart
-     * @return Session
-     */
-    public function setDateStart($dateStart)
-    {
-        $this->dateStart = $dateStart;
-
-        return $this;
-    }
-
-    /**
-     * Get dateStart
-     *
-     * @return \DateTime
-     */
-    public function getDateStart()
-    {
-        return $this->dateStart;
-    }
-
-    /**
-     * Set dateEnd
-     *
-     * @param \DateTime $dateEnd
-     * @return Session
-     */
-    public function setDateEnd($dateEnd)
-    {
-        $this->dateEnd = $dateEnd;
-
-        return $this;
-    }
-
-    /**
-     * Get dateEnd
-     *
-     * @return \DateTime
-     */
-    public function getDateEnd()
-    {
-        return $this->dateEnd;
-    }
-
-    /**
-     * Set nbDaysAccessBeforeBeginning
-     *
-     * @param boolean $nbDaysAccessBeforeBeginning
-     * @return Session
-     */
-    public function setNbDaysAccessBeforeBeginning($nbDaysAccessBeforeBeginning)
-    {
-        $this->nbDaysAccessBeforeBeginning = $nbDaysAccessBeforeBeginning;
-
-        return $this;
-    }
-
-    /**
-     * Get nbDaysAccessBeforeBeginning
-     *
-     * @return boolean
-     */
-    public function getNbDaysAccessBeforeBeginning()
-    {
-        return $this->nbDaysAccessBeforeBeginning;
     }
 
     /**

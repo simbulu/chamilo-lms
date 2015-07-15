@@ -3,7 +3,7 @@
 
 namespace Chamilo\CoreBundle\Entity;
 
-//use Chamilo\CourseBundle\Entity\CTool;
+use Chamilo\CourseBundle\Entity\CTool;
 use Chamilo\UserBundle\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Criteria;
@@ -166,13 +166,6 @@ class Course
     private $expirationDate;
 
     /**
-     * @var string
-     *
-     * @ORM\Column(name="target_course_code", type="string", length=40, nullable=true, unique=false)
-     */
-    private $targetCourseCode;
-
-    /**
      * @var boolean
      *
      * @ORM\Column(name="subscribe", type="boolean", nullable=true, unique=false)
@@ -240,7 +233,7 @@ class Course
     protected $sessions;
 
     /**
-     * @ORM\OneToMany(targetEntity="Chamilo\CoreBundle\Entity\SessionRelCourseRelUser", mappedBy="course", cascade={"persist"})
+     * @ORM\OneToMany(targetEntity="SessionRelCourseRelUser", mappedBy="course", cascade={"persist"})
      **/
     protected $sessionUserSubscriptions;
 
@@ -265,12 +258,20 @@ class Course
     //protected $curriculumCategories;
 
     /**
+     * @var Room
+     *
+     * @ORM\ManyToOne(targetEntity="Room")
+     * @ORM\JoinColumn(name="room_id", referencedColumnName="id")
+     **/
+    private $room;
+
+    /**
      * @var Session
      **/
     protected $currentSession;
 
     /**
-     *
+     * Constructor
      */
     public function __construct()
     {
@@ -944,30 +945,6 @@ class Course
     }
 
     /**
-     * Set targetCourseCode
-     *
-     * @param string $targetCourseCode
-     *
-     * @return Course
-     */
-    public function setTargetCourseCode($targetCourseCode)
-    {
-        $this->targetCourseCode = $targetCourseCode;
-
-        return $this;
-    }
-
-    /**
-     * Get targetCourseCode
-     *
-     * @return string
-     */
-    public function getTargetCourseCode()
-    {
-        return $this->targetCourseCode;
-    }
-
-    /**
      * Set subscribe
      *
      * @param boolean $subscribe
@@ -1109,6 +1086,25 @@ class Course
     public function getCourseTypeId()
     {
         return $this->courseTypeId;
+    }
+
+    /**
+     * @return Room
+     */
+    public function getRoom()
+    {
+        return $this->room;
+    }
+
+    /**
+     * @param Room $room
+     * @return Course
+     */
+    public function setRoom($room)
+    {
+        $this->room = $room;
+
+        return $this;
     }
 
     /**

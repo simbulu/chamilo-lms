@@ -50,7 +50,7 @@ $nameTools = get_lang('ToolName');
 $is_allowedToTrack = $is_courseAdmin;
 $is_course_member = CourseManager::is_user_subscribed_in_real_or_linked_course(
     $user_id,
-    $course_id
+    $courseId
 );
 
 // Database Table Definitions
@@ -68,10 +68,10 @@ $sql = "SELECT 1
         FROM $tbl_session_course_user AS session_course_user
         INNER JOIN $tbl_session AS session
             ON session_course_user.session_id = session.id
-            AND ((date_start <= '$now'
-            AND date_end >= '$now')
-            OR (date_start='0000-00-00' AND date_end='0000-00-00'))
-        WHERE session_id='" . $_SESSION['id_session'] . "' AND course_code='$_cid'";
+            AND ((access_start_date <= '$now'
+            AND access_end_date >= '$now')
+            OR (access_start_date='0000-00-00' AND access_end_date='0000-00-00'))
+        WHERE session_id='" . $_SESSION['id_session'] . "' AND c_id = $courseId";
 //echo $sql;
 $result = Database::query($sql);
 if (!Database::num_rows($result)) {

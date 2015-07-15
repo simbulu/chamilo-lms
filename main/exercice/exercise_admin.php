@@ -113,13 +113,13 @@ $objExercise->createForm($form);
 if ($form->validate()) {
     $objExercise->processCreation($form);
     if ($form->getSubmitValue('edit') == 'true') {
-        $message = 'ExerciseEdited';
+        Display::addFlash(Display::return_message(get_lang('ExerciseEdited')));
     } else {
-        $message = 'ExerciseAdded';
+        Display::addFlash(Display::return_message(get_lang('ExerciseAdded')));
     }
     $exercise_id = $objExercise->id;
     Session::erase('objExercise');
-    header('Location:admin.php?message='.$message.'&exerciseId='.$exercise_id);
+    header('Location:admin.php?&exerciseId='.$exercise_id.'&'.api_get_cidreq());
     exit;
 } else {
     // DISPLAY FORM
@@ -131,7 +131,7 @@ if ($form->validate()) {
         $interbreadcrumb[]= array ('url' => '../gradebook/'.$_SESSION['gradebook_dest'],'name' => get_lang('ToolGradebook'));
     }
     $nameTools = get_lang('ExerciseManagement');
-    $interbreadcrumb[] = array("url"=>'exercice.php', 'name'=> get_lang('Exercices'));
+    $interbreadcrumb[] = array("url"=>'exercise.php', 'name'=> get_lang('Exercises'));
     $interbreadcrumb[] = array("url"=>"admin.php?exerciseId=".$objExercise->id, "name" => $objExercise->name);
 
     Display::display_header($nameTools, get_lang('Exercise'));
@@ -149,7 +149,7 @@ if ($form->validate()) {
             }
             echo "<a href=\"../newscorm/lp_controller.php?".api_get_cidreq()."&gradebook=&action=add_item&type=step&lp_id=".$lp_id."#resource_tab-2\">".Display::return_icon('back.png', get_lang("BackTo").' '.get_lang("LearningPaths"),'',ICON_SIZE_MEDIUM)."</a>";
         } else {
-            echo '<a href="exercice.php">' . Display :: return_icon('back.png', get_lang('BackToExercisesList'),'',ICON_SIZE_MEDIUM).'</a>';
+            echo '<a href="exercise.php">' . Display :: return_icon('back.png', get_lang('BackToExercisesList'),'',ICON_SIZE_MEDIUM).'</a>';
         }
     }
     echo '</div>';

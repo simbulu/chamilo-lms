@@ -6,7 +6,6 @@
  * Internationalization library for Chamilo 1.8.7 LMS
  * A library implementing internationalization related functions.
  * License: GNU General Public License Version 3 (Free Software Foundation)ww
- * @todo use Patchwork-UTF8 instead of custom changes.
  * @author Ivan Tcholakov, <ivantcholakov@gmail.com>, 2009, 2010
  * @author More authors, mentioned in the correpsonding fragments of this source.
  * @package chamilo.library
@@ -51,9 +50,11 @@ define('PERSON_NAME_WESTERN_ORDER', 1);
 define('PERSON_NAME_EASTERN_ORDER', 2);
 // Contextual: formatting person's name in library order: last_name, first_name
 define('PERSON_NAME_LIBRARY_ORDER', 3);
-// Contextual: formatting a person's name assotiated with an email-address. Ivan: I am not sure how seems email servers an clients would interpret name order, so I assign the Western order.
+// Contextual: formatting a person's name assotiated with an email-address.
+// Ivan: I am not sure how seems email servers an clients would interpret name order, so I assign the Western order.
 define('PERSON_NAME_EMAIL_ADDRESS', PERSON_NAME_WESTERN_ORDER);
-// Contextual: formatting a person's name for data-exporting operations. For backward compatibility this format has been set to Eastern order.
+// Contextual: formatting a person's name for data-exporting operations.
+// For backward compatibility this format has been set to Eastern order.
 define('PERSON_NAME_DATA_EXPORT', PERSON_NAME_EASTERN_ORDER);
 
 // The following constants are used for tuning language detection functionality.
@@ -65,10 +66,6 @@ define('LANGUAGE_DETECT_MAX_LENGTH', 2000);
 // If you set the value of $max_delta too low, no language will be recognized.
 // $max_delta = 400 * 350 = 140000 is the best detection with lowest speed.
 define('LANGUAGE_DETECT_MAX_DELTA', 140000);
-
-// These variables are for internal purposes only, they serve the function api_is_translated().
-$_api_is_translated = false;
-$_api_is_translated_call = false;
 
 /**
  * Returns a translated (localized) string, called by its identificator.
@@ -96,9 +93,7 @@ function get_lang($variable, $reserved = null, $language = null) {
         // By manipulating this global variable the translation may be done in different languages too (not the elegant way).
         $language_interface,
         // Because of possibility for manipulations of the global variable $language_interface, we need its initial value.
-        $language_interface_initial_value,
-        // For serving the function is_translated()
-        $_api_is_translated, $_api_is_translated_call;
+        $language_interface_initial_value;
 
     global $used_lang_vars, $_configuration;
     // add language_measure_frequency to your main/inc/conf/configuration.php in order to generate language
@@ -111,15 +106,14 @@ function get_lang($variable, $reserved = null, $language = null) {
       global $langstats;
       $langstats->add_use($variable,'');
     }
-    if (!isset ($used_lang_vars)) {
+
+    if (!isset($used_lang_vars)) {
     	$used_lang_vars = array();
     }
 
     // Caching results from some API functions, for speed.
-    static $initialized, $encoding, $is_utf8_encoding, $langpath, $test_server_mode, $show_special_markup;
+    static $initialized, $encoding, $langpath, $test_server_mode, $show_special_markup;
     if (!isset($initialized)) {
-        $encoding = api_get_system_encoding();
-        $is_utf8_encoding = api_is_utf8($encoding);
         $langpath = api_get_path(SYS_LANG_PATH);
         $test_server_mode = api_get_setting('server_type') == 'test';
         $show_special_markup = api_get_setting('hide_dltt_markup') != 'true' || $test_server_mode;
@@ -138,7 +132,7 @@ function get_lang($variable, $reserved = null, $language = null) {
     static $cache;
 
     // Looking up into the cache for existing translation.
-    if (isset($cache[$language][$variable]) && !$_api_is_translated_call) {
+    if (isset($cache[$language][$variable])) {
         // There is a previously saved translation, returning it.
         //return $cache[$language][$variable];
         $ret = $cache[$language][$variable];
@@ -146,92 +140,33 @@ function get_lang($variable, $reserved = null, $language = null) {
         return $ret;
     }
 
-    $_api_is_translated = false;
-
     // There is no cached translation, we have to retrieve it:
     // - from a global variable (the faster way) - on production server mode;
-    // - from a local variable after reloading the language files - on test server mode or when requested language is different than the genuine interface language.
-    $read_global_variables = $is_interface_language && !$test_server_mode && !$_api_is_translated_call;
+    // - from a local variable after reloading the language files - on test server mode or when requested language
+    // is different than the genuine interface language.
+    $read_global_variables = $is_interface_language;
 
-    // Reloading the language files when it is necessary.
-    if (!$read_global_variables) {
-        global $language_files;
-        if (isset($language_files)) {
-            $parent_language = null;
-            if (api_get_setting('allow_use_sub_language') == 'true') {
-                $parent_language = SubLanguageManager::get_parent_language_path($language);
-            }
-            if (!is_array($language_files)) {
-                if (isset($parent_language)) {
-                    @include "$langpath$parent_language/$language_files.inc.php";
-                }
-                @include "$langpath$language/$language_files.inc.php";
-            } else {
-                foreach ($language_files as &$language_file) {
-                    if (isset($parent_language)) {
-                        @include "$langpath$parent_language/$language_file.inc.php";
-                    }
-                    @include "$langpath$language/$language_file.inc.php";
-                }
-            }
-        }
-    }
-
-    // Translation mode for production servers.
-    if (!$test_server_mode) {
-        if ($read_global_variables) {
-            if (isset($GLOBALS[$variable])) {
-                $langvar = $GLOBALS[$variable];
-                $_api_is_translated = true;
-            } elseif (isset($GLOBALS["lang$variable"])) {
-                $langvar = $GLOBALS["lang$variable"];
-                $_api_is_translated = true;
-            } else {
-                $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-            }
+    if ($read_global_variables) {
+        if (isset($GLOBALS[$variable])) {
+            $langvar = $GLOBALS[$variable];
+        } elseif (isset($GLOBALS["lang$variable"])) {
+            $langvar = $GLOBALS["lang$variable"];
         } else {
-            if (isset($$variable)) {
-                $langvar = $$variable;
-                $_api_is_translated = true;
-            } elseif (isset(${"lang$variable"})) {
-                $langvar = ${"lang$variable"};
-                $_api_is_translated = true;
-            } else {
-                $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-            }
-        }
-        if (empty($langvar) || !is_string($langvar)) {
-            $_api_is_translated = false;
             $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
         }
-        //return $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-        $ret = $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-        $used_lang_vars[$variable.$lang_postfix] = $ret;
-        return $ret;
-    }
-
-    // Translation mode for test/development servers.
-    if (!is_string($variable)) {
-        //return $cache[$language][$variable] = SPECIAL_OPENING_TAG.'get_lang(?)'.SPECIAL_CLOSING_TAG;
-        $ret = $cache[$language][$variable] = SPECIAL_OPENING_TAG.'get_lang(?)'.SPECIAL_CLOSING_TAG;
-        $used_lang_vars[$variable.$lang_postfix] = $ret;
-        return $ret;
-    }
-    if (isset($$variable)) {
-        $langvar = $$variable;
-        $_api_is_translated = true;
-    } elseif (isset(${"lang$variable"})) {
-        $langvar = ${"lang$variable"};
-        $_api_is_translated = true;
     } else {
-        $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
+        /*if (isset($$variable)) {
+            $langvar = $$variable;
+        } elseif (isset(${"lang$variable"})) {
+            $langvar = ${"lang$variable"};
+        } else {
+            $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
+        }*/
     }
     if (empty($langvar) || !is_string($langvar)) {
-        $_api_is_translated = false;
         $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
     }
-    //return $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-    $ret = $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
+    $ret = $cache[$language][$variable] = $langvar;
     $used_lang_vars[$variable.$lang_postfix] = $ret;
 
     return $ret;
@@ -389,11 +324,6 @@ function api_get_text_direction($language = null)
     return $text_direction[$language];
 }
 
-
-/**
- * Date and time conversions and formats
- */
-
 /**
  * Returns an alphabetized list of timezones in an associative array that can be used to populate a select
  *
@@ -455,7 +385,8 @@ function _api_get_timezone()
  * @author Julio Montoya - Adding the 2nd parameter
  * @author Guillaume Viguier <guillaume.viguier@beeznest.com>
  */
-function api_get_utc_datetime($time = null, $return_null_if_invalid_date = false) {
+function api_get_utc_datetime($time = null, $return_null_if_invalid_date = false)
+{
     $from_timezone = _api_get_timezone();
     $to_timezone = 'UTC';
     if (is_null($time) || empty($time) || $time == '0000-00-00 00:00:00') {
@@ -514,6 +445,10 @@ function api_get_local_time($time = null, $to_timezone = null, $from_timezone = 
         $time = intval($time);
         $from_timezone = 'UTC';
         $time = gmdate('Y-m-d H:i:s', $time);
+    }
+    if ($time instanceof DateTime) {
+        $time = $time->format('Y-m-d H:i:s');
+        $from_timezone = 'UTC';
     }
     try {
         $date = new DateTime($time, new DateTimezone($from_timezone));
@@ -840,7 +775,7 @@ function api_convert_and_format_date($time = null, $format = null, $from_timezon
 
 /**
  * Returns an array of translated week days in short names.
- * @param string $language (optional)	Language indentificator. If it is omited, the current interface language is assumed.
+ * @param string $language (optional)	Language id. If it is omitted, the current interface language is assumed.
  * @return string						Returns an array of week days (short names).
  * Example: api_get_week_days_short('english') means array('Sun', 'Mon', ... 'Sat').
  * Note: For all languges returned days are in the English order.
@@ -852,7 +787,7 @@ function api_get_week_days_short($language = null) {
 
 /**
  * Returns an array of translated week days.
- * @param string $language (optional)	Language indentificator. If it is omited, the current interface language is assumed.
+ * @param string $language (optional)	Language id. If it is omitted, the current interface language is assumed.
  * @return string						Returns an array of week days.
  * Example: api_get_week_days_long('english') means array('Sunday, 'Monday', ... 'Saturday').
  * Note: For all languges returned days are in the English order.
@@ -864,7 +799,7 @@ function api_get_week_days_long($language = null) {
 
 /**
  * Returns an array of translated months in short names.
- * @param string $language (optional)	Language indentificator. If it is omited, the current interface language is assumed.
+ * @param string $language (optional)	Language id. If it is omitted, the current interface language is assumed.
  * @return string						Returns an array of months (short names).
  * Example: api_get_months_short('english') means array('Jan', 'Feb', ... 'Dec').
  */
@@ -875,7 +810,7 @@ function api_get_months_short($language = null) {
 
 /**
  * Returns an array of translated months.
- * @param string $language (optional)	Language indentificator. If it is omited, the current interface language is assumed.
+ * @param string $language (optional)	Language id. If it is omitted, the current interface language is assumed.
  * @return string						Returns an array of months.
  * Example: api_get_months_long('english') means array('January, 'February' ... 'December').
  */
@@ -890,11 +825,11 @@ function api_get_months_long($language = null) {
 
 /**
  * Builds a person (full) name depending on the convention for a given language.
- * @param string $first_name			The first name of the preson.
+ * @param string $first_name			The first name of the person.
  * @param string $last_name				The last name of the person.
  * @param string $title					The title of the person.
  * @param int/string $format (optional)	The person name format. It may be a pattern-string (for example '%t %l, %f' or '%T %F %L', ...) or some of the constants PERSON_NAME_COMMON_CONVENTION (default), PERSON_NAME_WESTERN_ORDER, PERSON_NAME_EASTERN_ORDER, PERSON_NAME_LIBRARY_ORDER.
- * @param string $language (optional)	The language indentificator. If it is omited, the current interface language is assumed. This parameter has meaning with the format PERSON_NAME_COMMON_CONVENTION only.
+ * @param string $language (optional)	The language id. If it is omitted, the current interface language is assumed. This parameter has meaning with the format PERSON_NAME_COMMON_CONVENTION only.
  * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
  * @return bool							The result is sort of full name of the person.
  * Sample results:
@@ -954,7 +889,20 @@ function api_get_person_name(
 
     $format = $valid[$format][$language];
 
-    $keywords = array('%firstname', '%f', '%F', '%lastname', '%l', '%L', '%title', '%t', '%T', '%username', '%u', '%U');
+    $keywords = array(
+        '%firstname',
+        '%f',
+        '%F',
+        '%lastname',
+        '%l',
+        '%L',
+        '%title',
+        '%t',
+        '%T',
+        '%username',
+        '%u',
+        '%U',
+    );
 
     $values = array(
         $first_name,
@@ -978,7 +926,7 @@ function api_get_person_name(
 /**
  * Checks whether a given format represents person name in Western order (for which first name is first).
  * @param int/string $format (optional)	The person name format. It may be a pattern-string (for example '%t. %l, %f') or some of the constants PERSON_NAME_COMMON_CONVENTION (default), PERSON_NAME_WESTERN_ORDER, PERSON_NAME_EASTERN_ORDER, PERSON_NAME_LIBRARY_ORDER.
- * @param string $language (optional)	The language identificator. If it is omited, the current interface language is assumed. This parameter has meaning with the format PERSON_NAME_COMMON_CONVENTION only.
+ * @param string $language (optional)	The language id. If it is omitted, the current interface language is assumed. This parameter has meaning with the format PERSON_NAME_COMMON_CONVENTION only.
  * @return bool							The result TRUE means that the order is first_name last_name, FALSE means last_name first_name.
  * Note: You may use this function for determing the order of the fields or columns "First name" and "Last name" in forms, tables and reports.
  * @author Ivan Tcholakov
@@ -1002,7 +950,7 @@ function api_is_western_name_order($format = null, $language = null)
 
 /**
  * Returns a directive for sorting person names depending on a given language and based on the options in the internationalization "database".
- * @param string $language (optional)	The input language. If it is omited, the current interface language is assumed.
+ * @param string $language (optional)	The input language. If it is omitted, the current interface language is assumed.
  * @return bool							Returns boolean value. TRUE means ORDER BY first_name, last_name; FALSE means ORDER BY last_name, first_name.
  * Note: You may use this function:
  * 2. for constructing the ORDER clause of SQL queries, related to first_name and last_name;
@@ -1035,7 +983,8 @@ function api_sort_by_first_name($language = null) {
  * Converts character encoding of a given string.
  * @param string $string					The string being converted.
  * @param string $to_encoding				The encoding that $string is being converted to.
- * @param string $from_encoding (optional)	The encoding that $string is being converted from. If it is omited, the platform character set is assumed.
+ * @param string $from_encoding (optional)	The encoding that $string is being converted from.
+ * If it is omitted, the platform character set is assumed.
  * @return string							Returns the converted string.
  * This function is aimed at replacing the function mb_convert_encoding() for human-language strings.
  * @link http://php.net/manual/en/function.mb-convert-encoding
@@ -1048,7 +997,8 @@ function api_convert_encoding($string, $to_encoding, $from_encoding = null)
 /**
  * Converts a given string into UTF-8 encoded string.
  * @param string $string					The string being converted.
- * @param string $from_encoding (optional)	The encoding that $string is being converted from. If it is omited, the platform character set is assumed.
+ * @param string $from_encoding (optional)	The encoding that $string is being converted from.
+ * If it is omitted, the platform character set is assumed.
  * @return string							Returns the converted string.
  * This function is aimed at replacing the function utf8_encode() for human-language strings.
  * @link http://php.net/manual/en/function.utf8-encode
@@ -1061,7 +1011,8 @@ function api_utf8_encode($string, $from_encoding = 'UTF-8')
 /**
  * Converts a given string from UTF-8 encoding to a specified encoding.
  * @param string $string					The string being converted.
- * @param string $to_encoding (optional)	The encoding that $string is being converted to. If it is omited, the platform character set is assumed.
+ * @param string $to_encoding (optional)	The encoding that $string is being converted to.
+ * If it is omitted, the platform character set is assumed.
  * @return string							Returns the converted string.
  * This function is aimed at replacing the function utf8_decode() for human-language strings.
  * @link http://php.net/manual/en/function.utf8-decode
@@ -1079,7 +1030,8 @@ function api_utf8_decode($string, $to_encoding = null)
  * UTF-8 validity and decides whether to try to convert it or not.
  * This function is useful for problem detection or making workarounds.
  * @param string $string						The string being converted.
- * @param string $from_encoding (optional)		The encoding that $string is being converted from. It is guessed when it is omited.
+ * @param string $from_encoding (optional)		The encoding that $string is being converted from.
+ * It is guessed when it is omitted.
  * @param bool $check_utf8_validity (optional)	A flag for UTF-8 validity check as condition for making conversion.
  * @return string								Returns the converted string.
  */
@@ -1094,14 +1046,14 @@ function api_to_system_encoding($string, $from_encoding = null, $check_utf8_vali
  * @param string $string				The input string.
  * @param int $quote_style (optional)	The quote style - ENT_COMPAT (default), ENT_QUOTES, ENT_NOQUOTES.
  * @param string $encoding (optional)	The encoding (of the input string) used in conversion.
- * If it is omited, the platform character set is assumed.
+ * If it is omitted, the platform character set is assumed.
  * @return string						Returns the converted string.
  * This function is aimed at replacing the function htmlentities() for human-language strings.
  * @link http://php.net/manual/en/function.htmlentities
  */
 function api_htmlentities($string, $quote_style = ENT_COMPAT, $encoding = 'UTF-8')
 {
-    switch($quote_style) {
+    switch ($quote_style) {
         case ENT_COMPAT:
             $string = str_replace(array('&', '"', '<', '>'), array('&amp;', '&quot;', '&lt;', '&gt;'), $string);
             break;
@@ -1110,14 +1062,18 @@ function api_htmlentities($string, $quote_style = ENT_COMPAT, $encoding = 'UTF-8
             break;
     }
 
-    return mb_convert_encoding(api_utf8_encode($string, $encoding), 'HTML-ENTITIES', 'UTF-8');
+    return mb_convert_encoding($string, 'HTML-ENTITIES', 'UTF-8');
+/*
+    return html_entity_decode($string, $quote_style, $encoding);
+    return mb_convert_encoding($string, 'HTML-ENTITIES', 'UTF-8');*/
 }
 
 /**
  * Converts HTML entities into normal characters.
  * @param string $string				The input string.
  * @param int $quote_style (optional)	The quote style - ENT_COMPAT (default), ENT_QUOTES, ENT_NOQUOTES.
- * @param string $encoding (optional)	The encoding (of the result) used in conversion. If it is omited, the platform character set is assumed.
+ * @param string $encoding (optional)	The encoding (of the result) used in conversion.
+ * If it is omitted, the platform character set is assumed.
  * @return string						Returns the converted string.
  * This function is aimed at replacing the function html_entity_decode() for human-language strings.
  * @link http://php.net/html_entity_decode
@@ -1142,7 +1098,8 @@ function api_html_entity_decode($string, $quote_style = ENT_COMPAT, $encoding = 
 /**
  * This function encodes (conditionally) a given string to UTF-8 if XmlHttp-request has been detected.
  * @param string $string					The string being converted.
- * @param string $from_encoding (optional)	The encoding that $string is being converted from. If it is omited, the platform character set is assumed.
+ * @param string $from_encoding (optional)	The encoding that $string is being converted from.
+ * If it is omitted, the platform character set is assumed.
  * @return string							Returns the converted string.
  */
 function api_xml_http_response_encode($string, $from_encoding = 'UTF8')
@@ -1171,7 +1128,8 @@ function api_xml_http_response_encode($string, $from_encoding = 'UTF8')
  *
  * @param string $string					The input string.
  * @param string $unknown (optional)		Replacement character for unknown characters and illegal UTF-8 sequences.
- * @param string $from_encoding (optional)	The encoding of the input string. If it is omited, the platform character set is assumed.
+ * @param string $from_encoding (optional)	The encoding of the input string.
+ * If it is omitted, the platform character set is assumed.
  * @return string							Plain ASCII output.
  *
  */
@@ -1197,9 +1155,10 @@ function api_ord($character, $encoding) {
  * This function returns a string or an array with all occurrences of search in subject (ignoring case) replaced with the given replace value.
  * @param mixed $search					String or array of strings to be found.
  * @param mixed $replace				String or array of strings used for replacement.
- * @param mixed $subject				String or array of strings being searced.
+ * @param mixed $subject				String or array of strings being searched.
  * @param int $count (optional)			The number of matched and replaced needles will be returned in count, which is passed by reference.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return mixed						String or array as a result.
  * Notes:
  * If $subject is an array, then the search and replace is performed with every entry of subject, the return value is an array.
@@ -1440,6 +1399,9 @@ function api_strtoupper($string, $encoding = null)
  */
 function api_substr($string, $start, $length = null, $encoding = null)
 {
+    if (is_null($length)) {
+        $length = api_strlen($string, $encoding);
+    }
     return Utf8::substr($string, $start, $length);
 }
 
@@ -1447,7 +1409,8 @@ function api_substr($string, $start, $length = null, $encoding = null)
  * Counts the number of substring occurrences.
  * @param string $haystack				The string being checked.
  * @param string $needle				The string being found.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return int							The number of times the needle substring occurs in the haystack string.
  * @link http://php.net/manual/en/function.mb-substr-count.php
  */
@@ -1470,53 +1433,48 @@ function api_substr_count($haystack, $needle, $encoding = null)
  * If it is negative, it represents the number of characters from the end of string at which to stop replacing.
  * If it is not given, then it will default to api_strlen($string); i.e. end the replacing at the end of string.
  * If $length is zero, then this function will have the effect of inserting replacement into the string at the given start offset.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return string						The result string is returned.
  * This function is aimed at replacing the function substr_replace() for human-language strings.
  * @link http://php.net/manual/function.substr-replace
  */
 function api_substr_replace($string, $replacement, $start, $length = null, $encoding = null)
 {
+    if (is_null($length)) {
+        $length = api_strlen($string);
+    }
+
     return UTf8::substr_replace($string, $replacement, $start, $length);
 }
 
 /**
  * Makes a string's first character uppercase.
  * @param string $string				The input string.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return string						Returns a string with the first character capitalized, if that character is alphabetic.
  * This function is aimed at replacing the function ucfirst() for human-language strings.
  * @link http://php.net/manual/en/function.ucfirst
  */
-function api_ucfirst($string, $encoding = null) {
-    /*if (empty($encoding)) {
-        $encoding = _api_mb_internal_encoding();
-    }
-    return api_strtoupper(api_substr($string, 0, 1, $encoding), $encoding) . api_substr($string, 1, api_strlen($string, $encoding), $encoding);*/
+function api_ucfirst($string, $encoding = null)
+{
     return Utf8::ucfirst($string);
 }
 
 /**
  * Uppercases the first character of each word in a string.
  * @param string $string				The input string.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return string						Returns the modified string.
  * This function is aimed at replacing the function ucwords() for human-language strings.
  * @link http://php.net/manual/en/function.ucwords
  */
-function api_ucwords($string, $encoding = null) {
-    /*if (_api_mb_supports($encoding)) {
-        if (empty($encoding)) {
-            $encoding = _api_mb_internal_encoding();
-        }
-        return mb_convert_case($string, MB_CASE_TITLE, $encoding);
-    }*/
+function api_ucwords($string, $encoding = null)
+{
     return Utf8::ucwords($string);
 }
-
-/**
- * String operations using regular expressions
- */
 
 /**
  * Performs a regular expression match, UTF-8 aware when it is applicable.
@@ -1571,7 +1529,8 @@ function api_preg_match_all($pattern, $subject, &$matches, $flags = PREG_PATTERN
  * @param string|array $subject			The string or an array with strings to search and replace.
  * @param int $limit					The maximum possible replacements for each pattern in each subject string. Defaults to -1 (no limit).
  * @param int &$count					If specified, this variable will be filled with the number of replacements done.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return array|string|null			returns an array if the subject parameter is an array, or a string otherwise.
  * If matches are found, the new subject will be returned, otherwise subject will be returned unchanged or NULL if an error occurred.
  * @link http://php.net/preg_replace
@@ -1590,7 +1549,6 @@ function api_preg_replace($pattern, $replacement, $subject, $limit = -1, &$count
     }
     return preg_replace($pattern, $replacement, $subject, $limit, $count);
 }
-
 
 /**
  * Splits a string by a regular expression, UTF-8 aware when it is applicable.
@@ -1636,7 +1594,8 @@ function api_strcasecmp($string1, $string2, $language = null, $encoding = null) 
  * @param string $string1				The first string.
  * @param string $string2				The second string.
  * @param string $language (optional)	The language in which comparison is to be made. If language is omitted, interface language is assumed then.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return int							Returns < 0 if $string1 is less than $string2; > 0 if $string1 is greater than $string2; and 0 if the strings are equal.
  * This function is aimed at replacing the function strcmp() for human-language strings.
  * @link http://php.net/manual/en/function.strcmp.php
@@ -1652,7 +1611,8 @@ function api_strcmp($string1, $string2, $language = null, $encoding = null)
  * @param string $string1				The first string.
  * @param string $string2				The second string.
  * @param string $language (optional)	The language in which comparison is to be made. If language is omitted, interface language is assumed then.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return int							Returns < 0 if $string1 is less than $string2; > 0 if $string1 is greater than $string2; and 0 if the strings are equal.
  * This function is aimed at replacing the function strnatcmp() for human-language strings.
  * @link http://php.net/manual/en/function.strnatcmp.php
@@ -1671,7 +1631,8 @@ function api_strnatcmp($string1, $string2, $language = null, $encoding = null)
  * Sorts an array using natural order algorithm.
  * @param array $array					The input array.
  * @param string $language (optional)	The language in which comparison is to be made. If language is omitted, interface language is assumed then.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return bool							Returns TRUE on success, FALSE on error.
  * This function is aimed at replacing the function natsort() for sorting human-language strings.
  * @link http://php.net/manual/en/function.natsort.php
@@ -1685,7 +1646,8 @@ function api_natsort(&$array, $language = null, $encoding = null)
  * Sorts an array using natural order algorithm in reverse order.
  * @param array $array					The input array.
  * @param string $language (optional)	The language in which comparison is to be made. If language is omitted, interface language is assumed then.
- * @param string $encoding (optional)	The used internally by this function character encoding. If it is omitted, the platform character set will be used by default.
+ * @param string $encoding (optional)	The used internally by this function character encoding.
+ * If it is omitted, the platform character set will be used by default.
  * @return bool							Returns TRUE on success, FALSE on error.
  */
 function api_natrsort(&$array, $language = null, $encoding = null)
@@ -1713,7 +1675,8 @@ function api_refine_encoding_id($encoding) {
  * This function checks whether two $encoding are equal (same, equvalent).
  * @param string/array $encoding1		The first encoding
  * @param string/array $encoding2		The second encoding
- * @param bool $strict					When this parameter is TRUE the comparison ignores aliases of encodings. When the parameter is FALSE, aliases are taken into account.
+ * @param bool $strict					When this parameter is TRUE the comparison ignores aliases of encodings.
+ * When the parameter is FALSE, aliases are taken into account.
  * @return bool							Returns TRUE if the encodings are equal, FALSE otherwise.
  */
 function api_equal_encodings($encoding1, $encoding2, $strict = false) {
@@ -1766,6 +1729,7 @@ function api_is_utf8($encoding)
     }
     return $result[$encoding];
 }
+
 /**
  * This function returns the encoding, currently used by the system.
  * @return string	The system's encoding.
@@ -1856,7 +1820,7 @@ function get_plugin_lang($variable, $pluginName) {
 
 /**
  * Returns an array of translated week days and months, short and normal names.
- * @param string $language (optional)	Language id. If it is ommited, the current interface language is assumed.
+ * @param string $language (optional)	Language id. If it is omitted, the current interface language is assumed.
  * @return array						Returns a multidimensional array with translated week days and months.
  */
 function &_api_get_day_month_names($language = null) {
@@ -1865,8 +1829,29 @@ function &_api_get_day_month_names($language = null) {
         $language = api_get_interface_language();
     }
     if (!isset($date_parts[$language])) {
-        $week_day = array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
-        $month = array('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
+        $week_day = array(
+            'Sunday',
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+        );
+        $month = array(
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December',
+        );
         for ($i = 0; $i < 7; $i++) {
             $date_parts[$language]['days_short'][] = get_lang($week_day[$i].'Short', '', $language);
             $date_parts[$language]['days_long'][] = get_lang($week_day[$i].'Long', '', $language);
@@ -2068,5 +2053,3 @@ function _api_convert_encoding_supports($encoding) {
     }
     return $supports[$encoding];
 }
-
-

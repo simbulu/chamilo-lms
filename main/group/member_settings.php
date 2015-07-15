@@ -11,8 +11,6 @@
  *	@todo course admin functionality to create groups based on who is in which course (or class).
  */
 
-/*	INIT SECTION */
-
 require_once '../inc/global.inc.php';
 $this_section = SECTION_COURSES;
 $current_course_tool  = TOOL_GROUP;
@@ -55,10 +53,8 @@ function search_members_keyword($firstname, $lastname, $username, $official_code
  */
 function sort_users($user_a, $user_b)
 {
-    global $_configuration;
-    if (isset($_configuration['order_user_list_by_official_code']) &&
-        $_configuration['order_user_list_by_official_code']
-    ) {
+    $orderListByOfficialCode = api_get_setting('order_user_list_by_official_code');
+    if ($orderListByOfficialCode === 'true') {
         $cmp = api_strcmp($user_a['official_code'], $user_b['official_code']);
         if ($cmp !== 0) {
             return $cmp;
@@ -107,7 +103,10 @@ function check_group_members($value)
     if ($value['max_student'] == GroupManager::MEMBER_PER_GROUP_NO_LIMIT) {
         return true;
     }
-    if (isset($value['max_student']) && isset($value['group_members']) && $value['max_student'] < count($value['group_members'])) {
+    if (isset($value['max_student']) &&
+        isset($value['group_members']) &&
+        $value['max_student'] < count($value['group_members'])
+    ) {
         return array('group_members' => get_lang('GroupTooMuchMembers'));
     }
 
@@ -130,28 +129,30 @@ $form->addElement('hidden', 'action');
 $form->addElement('hidden', 'max_student', $current_group['max_student']);
 $complete_user_list = GroupManager::fill_groups_list($current_group['id']);
 
+$orderUserListByOfficialCode = api_get_setting('order_user_list_by_official_code');
 $possible_users = array();
+$userGroup = new UserGroup();
+
 if (!empty($complete_user_list)) {
     usort($complete_user_list, 'sort_users');
     foreach ($complete_user_list as $index => $user) {
         $officialCode = !empty($user['official_code']) ? ' - '.$user['official_code'] : null;
 
-        $name = api_get_person_name(
-                $user['firstname'],
-                $user['lastname']
-                ).' ('.$user['username'].')'.$officialCode;
-
-        global $_configuration;
-        if (isset($_configuration['order_user_list_by_official_code']) &&
-            $_configuration['order_user_list_by_official_code']
-        ) {
-            $officialCode = !empty($user['official_code']) ? $user['official_code']." - " : '? - ';
-            $name = $officialCode." ".api_get_person_name(
-                $user['firstname'],
-                $user['lastname']
-            ).' ('.$user['username'].')';
+        $groups = $userGroup->getUserGroupListByUser($user['user_id']);
+        $groupNameListToString = '';
+        if (!empty($groups)) {
+            $groupNameList = array_column($groups, 'name');
+            $groupNameListToString = ' - ['.implode(', ', $groupNameList).']';
         }
-        $possible_users[$user['user_id']] = $name;
+
+        $name = api_get_person_name($user['firstname'], $user['lastname']).
+                ' ('.$user['username'].')'.$officialCode;
+
+        if ($orderUserListByOfficialCode === 'true') {
+            $officialCode = !empty($user['official_code']) ? $user['official_code']." - " : '? - ';
+            $name = $officialCode." ".api_get_person_name($user['firstname'], $user['lastname']).' ('.$user['username'].')';
+        }
+        $possible_users[$user['user_id']] = $name.$groupNameListToString;
     }
 }
 
@@ -181,14 +182,20 @@ if ($form->validate()) {
     $values = $form->exportValues();
 
     // Storing the users (we first remove all users and then add only those who were selected)
-    GroupManager :: unsubscribe_all_users($current_group['id']);
+    GroupManager:: unsubscribe_all_users($current_group['id']);
     if (isset ($_POST['group_members']) && count($_POST['group_members']) > 0) {
-        GroupManager :: subscribe_users($values['group_members'], $current_group['id']);
+        GroupManager:: subscribe_users(
+            $values['group_members'],
+            $current_group['id']
+        );
     }
 
     // Returning to the group area (note: this is inconsistent with the rest of chamilo)
     $cat = GroupManager :: get_category_from_group($current_group['id']);
-    if (isset($_POST['group_members']) && count($_POST['group_members']) > $max_member && $max_member != GroupManager::MEMBER_PER_GROUP_NO_LIMIT) {
+    if (isset($_POST['group_members']) &&
+        count($_POST['group_members']) > $max_member &&
+        $max_member != GroupManager::MEMBER_PER_GROUP_NO_LIMIT
+    ) {
         header('Location: group.php?'.api_get_cidreq(true, false).'&action=warning_message&msg='.get_lang('GroupTooMuchMembers'));
     } else {
         header('Location: group.php?'.api_get_cidreq(true, false).'&action=success_message&msg='.get_lang('GroupSettingsModified').'&category='.$cat['id']);
@@ -200,7 +207,7 @@ $action = isset($_GET['action']) ? $_GET['action'] : null;
 switch ($action) {
     case 'empty':
         if (api_is_allowed_to_edit(false, true)) {
-            GroupManager :: unsubscribe_all_users($group_id);
+            GroupManager:: unsubscribe_all_users($group_id);
             Display :: display_confirmation_message(get_lang('GroupEmptied'));
         }
         break;

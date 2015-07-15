@@ -404,15 +404,15 @@ class TestCategory
     * tabres[24] = array of question id with category id = 24
     * In this version, a question has 0 or 1 category
     */
-    public static function getQuestionsByCat($in_exerciceId)
+    public static function getQuestionsByCat($in_exerciseId)
     {
-		$TBL_EXERCICE_QUESTION = Database::get_course_table(TABLE_QUIZ_TEST_QUESTION);
+		$TBL_EXERCISE_QUESTION = Database::get_course_table(TABLE_QUIZ_TEST_QUESTION);
 		$TBL_QUESTION_REL_CATEGORY = Database::get_course_table(TABLE_QUIZ_QUESTION_REL_CATEGORY);
-        $in_exerciceId = intval($in_exerciceId);
+        $in_exerciseId = intval($in_exerciseId);
 		$sql = "SELECT qrc.question_id, qrc.category_id
-		        FROM $TBL_QUESTION_REL_CATEGORY qrc, $TBL_EXERCICE_QUESTION eq
+		        FROM $TBL_QUESTION_REL_CATEGORY qrc, $TBL_EXERCISE_QUESTION eq
                 WHERE
-                    exercice_id=$in_exerciceId AND
+                    exercice_id=$in_exerciseId AND
                     eq.question_id=qrc.question_id AND
                     eq.c_id=".api_get_course_int_id()." AND
                     eq.c_id=qrc.c_id
@@ -729,9 +729,9 @@ class TestCategory
             $html .= $category['description'];
             $html .= '</div>';
             $html .= '<div>';
-            $html .= '<a href="' . api_get_self() . '?action=editcategory&amp;category_id=' . $category['id'] . '">' .
+            $html .= '<a href="' . api_get_self() . '?action=editcategory&category_id=' . $category['id'] . '">' .
                 Display::return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL) . '</a>';
-            $html .= ' <a href="' . api_get_self() . '?action=deletecategory&amp;category_id=' . $category['id'] . '" ';
+            $html .= ' <a href="' . api_get_self() . '?action=deletecategory&category_id=' . $category['id'] . '" ';
             $html .= 'onclick="return confirmDelete(\'' . self::protectJSDialogQuote(get_lang('DeleteCategoryAreYouSure') . '[' . $rowname) . '] ?\', \'id_cat' . $category['id'] . '\');">';
             $html .= Display::return_icon('delete.png', get_lang('Delete'), array(), ICON_SIZE_SMALL) . '</a>';
             $html .= '</div>';

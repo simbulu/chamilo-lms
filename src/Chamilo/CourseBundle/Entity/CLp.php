@@ -200,9 +200,30 @@ class CLp
     /**
      * @var integer
      *
-     * @ORM\Column(name="autolunch", type="integer", nullable=false)
+     * @ORM\Column(name="autolaunch", type="integer", nullable=false)
      */
-    private $autolunch;
+    private $autolaunch;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="category_id", type="integer", precision=0, scale=0, nullable=false, unique=false)
+     */
+    private $categoryId;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="max_attempts", type="integer", nullable=false)
+     */
+    private $maxAttempts;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="subscribe_users", type="integer", nullable=false)
+     */
+    private $subscribeUsers;
 
     /**
      * @var \DateTime
@@ -776,26 +797,26 @@ class CLp
     }
 
     /**
-     * Set autolunch
+     * Set autolaunch
      *
-     * @param integer $autolunch
+     * @param integer $autolaunch
      * @return CLp
      */
-    public function setAutolunch($autolunch)
+    public function setAutolaunch($autolaunch)
     {
-        $this->autolunch = $autolunch;
+        $this->autolaunch = $autolaunch;
 
         return $this;
     }
 
     /**
-     * Get autolunch
+     * Get autolaunch
      *
      * @return integer
      */
-    public function getAutolunch()
+    public function getAutolaunch()
     {
-        return $this->autolunch;
+        return $this->autolaunch;
     }
 
     /**
@@ -934,5 +955,24 @@ class CLp
     public function getCId()
     {
         return $this->cId;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCategoryId()
+    {
+        return $this->categoryId;
+    }
+
+    /**
+     * @param int $categoryId
+     * @return CLp
+     */
+    public function setCategoryId($categoryId)
+    {
+        $this->categoryId = $categoryId;
+
+        return $this;
     }
 }

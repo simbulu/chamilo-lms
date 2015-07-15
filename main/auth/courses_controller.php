@@ -1,10 +1,13 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\SequenceResource;
+
 /**
  * Class CoursesController
  *
- * This file contains class used like controller, it should be included inside a dispatcher file (e.g: index.php)
+ * This file contains class used like controller,
+ * it should be included inside a dispatcher file (e.g: index.php)
  * @author Christian Fasanando <christian1827@gmail.com> - BeezNest
  * @package chamilo.auth
  */
@@ -36,16 +39,17 @@ class CoursesController
         $data = array();
         $user_id = api_get_user_id();
 
-        $data['user_courses']             = $this->model->get_courses_of_user($user_id);
-        $data['user_course_categories']   = $this->model->get_user_course_categories();
-        $data['courses_in_category']      = $this->model->get_courses_in_category();
-        $data['all_user_categories']      = $this->model->get_user_course_categories();
+        $data['user_courses'] = $this->model->get_courses_of_user($user_id);
+        $data['user_course_categories'] = $this->model->get_user_course_categories();
+        $data['courses_in_category'] = $this->model->get_courses_in_category();
+        $data['all_user_categories'] = $this->model->get_user_course_categories(
+        );
         $data['action'] = $action;
         $data['message'] = $message;
 
         // render to the view
         $this->view->set_data($data);
-        $this->view->set_layout('layout');
+        $this->view->set_layout('catalog_layout');
         $this->view->set_template('courses_list');
         $this->view->render();
     }
@@ -67,7 +71,7 @@ class CoursesController
 
         // render to the view
         $this->view->set_data($data);
-        $this->view->set_layout('layout');
+        $this->view->set_layout('catalog_layout');
         $this->view->set_template('categories_list');
         $this->view->render();
     }
@@ -128,20 +132,21 @@ class CoursesController
         }
 
         $data['user_coursecodes'] = $user_coursecodes;
-        $data['action']           = $action;
-        $data['message']          = $message;
-        $data['content']          = $content;
-        $data['error']            = $error;
+        $data['action'] = $action;
+        $data['message'] = $message;
+        $data['content'] = $content;
+        $data['error'] = $error;
 
         $data['catalogShowCoursesSessions'] = 0;
 
-        if (isset($_configuration['catalog_show_courses_sessions'])) {
-            $data['catalogShowCoursesSessions'] = $_configuration['catalog_show_courses_sessions'];
+        $showCoursesSessions = intval('catalog_show_courses_sessions');
+        if ($showCoursesSessions > 0) {
+            $data['catalogShowCoursesSessions'] = $showCoursesSessions;
         }
 
         // render to the view
         $this->view->set_data($data);
-        $this->view->set_layout('layout');
+        $this->view->set_layout('catalog_layout');
         $this->view->set_template('courses_categories');
         $this->view->render();
     }
@@ -185,7 +190,7 @@ class CoursesController
 
         // render to the view
         $this->view->set_data($data);
-        $this->view->set_layout('layout');
+        $this->view->set_layout('catalog_layout');
         $this->view->set_template('courses_categories');
         $this->view->render();
     }
@@ -197,7 +202,10 @@ class CoursesController
     {
         $courseInfo = api_get_course_info($course_code);
         // The course must be open in order to access the auto subscription
-        if (in_array($courseInfo['visibility'], array(COURSE_VISIBILITY_CLOSED, COURSE_VISIBILITY_REGISTERED, COURSE_VISIBILITY_HIDDEN))) {
+        if (in_array(
+            $courseInfo['visibility'],
+            array(COURSE_VISIBILITY_CLOSED, COURSE_VISIBILITY_REGISTERED, COURSE_VISIBILITY_HIDDEN))
+        ) {
             $error = get_lang('SubscribingNotAllowed');
             //$message = get_lang('SubscribingNotAllowed');
         } else {
@@ -216,6 +224,7 @@ class CoursesController
         } else {
             $this->courses_categories('subscribe', $category_code, $message, $error, $content);
         }
+
         return $result;
     }
 
@@ -459,25 +468,18 @@ class CoursesController
                                             $html .= "$subCategory3Name ($subCategory3Courses)";
                                             $html .= '</a>';
                                         }
-
                                         $html .= '</li>';
                                     }
-
                                     $html .= '</ul>';
                                 }
-
                                 $html .= '</li>';
                             }
-
                             $html .= '</ul>';
                         }
-
                         $html .= '</li>';
                     }
-
                     $html .= '</ul>';
                 }
-
                 $html .= '</li>';
             }
         }
@@ -487,26 +489,74 @@ class CoursesController
 
     /**
      * Get a HTML button for subscribe to session
-     * @param string    The session data
-     * @param boolean   Session autosubscription set. False by default.
-     * @return string   The button
+     * @param int $sessionId The session ID
+     * @param string $sessionName The session name
+     * @param boolean $checkRequirements Optional.
+     *        Whether the session has requirement. Default is false
+     * @return string The button HTML
      */
-    public function getRegisteredInSessionButton($sessionData, $catalogSessionAutoSubscriptionAllowed = false)
+    public function getRegisteredInSessionButton(
+        $sessionId,
+        $sessionName,
+        $checkRequirements = false
+    )
     {
-        $url = $catalogSessionAutoSubscriptionAllowed ?
-            api_get_path(WEB_CODE_PATH)."auth/courses.php?action=subscribe_to_session&session_id=".
-            intval($sessionData)."&user_id=".api_get_user_id() :
-            api_get_path(WEB_CODE_PATH)."inc/email_editor.php?action=subscribe_me_to_session&session=".
-            Security::remove_XSS($sessionData);
+        if ($checkRequirements) {
+            $url = api_get_path(WEB_AJAX_PATH);
+            $url .= 'sequence.ajax.php?';
+            $url .= http_build_query([
+                'a' => 'get_requirements',
+                'id' => intval($sessionId),
+                'type' => SequenceResource::SESSION_TYPE,
+                'modal_size' => 'md'
+            ]);
 
-        $result = Display::url(get_lang('Subscribe'), $url, array(
-            'class' => 'btn btn-large btn-primary',
-        ));
+            return Display::toolbarButton(
+                get_lang('CheckRequirements'),
+                $url,
+                'check-circle',
+                'primary',
+                ['class' => 'btn-lg btn-block ajax']
+            );
+        }
+
+        $catalogSessionAutoSubscriptionAllowed = false;
+
+        if (
+            api_get_setting('catalog_allow_session_auto_subscription') === 'true'
+        ) {
+            $catalogSessionAutoSubscriptionAllowed = true;
+        }
+
+        $url = api_get_path(WEB_CODE_PATH);
+
+        if ($catalogSessionAutoSubscriptionAllowed) {
+            $url .= 'auth/courses.php?';
+            $url .= http_build_query([
+                'action' => 'subscribe_to_session',
+                'session_id' => intval($sessionId),
+                'user_id' => api_get_user_id()
+            ]);
+        } else {
+            $url .= 'inc/email_editor.php?';
+            $url .= http_build_query([
+                'action' => 'subscribe_me_to_session',
+                'session' => Security::remove_XSS($sessionName)
+            ]);
+        }
+
+        $result = Display::toolbarButton(
+            get_lang('Subscribe'),
+            $url,
+            'check-circle',
+            'primary',
+            ['class' => 'btn-lg btn-block']
+        );
 
         $hook = HookResubscribe::create();
         if (!empty($hook)) {
             $hook->setEventData(array(
-                'session_id' => intval($sessionData)
+                'session_id' => intval($sessionId)
             ));
             try {
                 $hook->notifyResubscribe(HOOK_EVENT_TYPE_PRE);
@@ -524,9 +574,12 @@ class CoursesController
      */
     public function getAlreadyRegisteredInSessionLabel()
     {
-        $icon = Display::return_icon('students.gif', get_lang('Student'));
+        $icon = '<i class="fa fa-smile-o"></i>';
 
-        return Display::label($icon . ' ' . get_lang("AlreadyRegisteredToSession"), "info");
+        return Display::div(
+            $icon . ' ' . get_lang("AlreadyRegisteredToSession"),
+            array('class' => 'info-catalog')
+        );
     }
 
     /**
@@ -547,11 +600,8 @@ class CoursesController
      */
     public function sessionsList($action, $nameTools, $limit = array())
     {
-        global $_configuration;
-
         $date = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
         $hiddenLinks = isset($_GET['hidden_links']) ? intval($_GET['hidden_links']) == 1 : false;
-
         $limit = isset($limit) ? $limit : getLimitArray();
 
         $countSessions = $this->model->countSessions($date);
@@ -562,64 +612,168 @@ class CoursesController
         $cataloguePagination = $pageTotal > 1 ?
             getCataloguePagination($limit['current'], $limit['length'], $pageTotal) :
             '';
-        $sessionsBlocks = array();
+        $sessionsBlocks = $this->getFormatedSessionsBlock($sessions);
 
         // Get session list catalogue URL
-        $sessionUrl = getCourseCategoryUrl(1, $limit['length'], null, 0, 'display_sessions');
+        //$sessionUrl = getCourseCategoryUrl(1, $limit['length'], null, 0, 'display_sessions');
         // Get session search catalogue URL
         $courseUrl = getCourseCategoryUrl(1, $limit['length'], null, 0, 'subscribe');
 
-        $key = 'name';
-        $catalogSessionAutoSubscriptionAllowed = false;
-        if (api_get_configuration_value('catalog_allow_session_auto_subscription')) {
-            $key = 'id';
-            $catalogSessionAutoSubscriptionAllowed = true;
-        }
+        $tpl = new Template();
+        $tpl->assign('show_courses', CoursesAndSessionsCatalog::showCourses());
+        $tpl->assign('show_sessions', CoursesAndSessionsCatalog::showSessions());
+        $tpl->assign('show_tutor', (api_get_setting('show_session_coach')==='true' ? true : false));
+
+        $tpl->assign('course_url', $courseUrl);
+
+        $tpl->assign('catalog_pagination', $cataloguePagination);
+
+        $tpl->assign('hidden_links', $hiddenLinks);
+        $tpl->assign('search_token', Security::get_token());
+
+        $tpl->assign('search_date', $date);
+        $tpl->assign('web_session_courses_ajax_url', api_get_path(WEB_AJAX_PATH) . 'course.ajax.php');
+        $tpl->assign('sessions', $sessionsBlocks);
+        $tpl->assign('already_subscribed_label', $this->getAlreadyRegisteredInSessionLabel());
+
+        $contentTemplate = $tpl->get_template('auth/session_catalog.tpl');
+
+        $tpl->display($contentTemplate);
+    }
+
+    /**
+     * Show the Session Catalogue with filtered session by course tags
+     * @param array $limit Limit info
+     */
+    public function sessionsListByCoursesTag(array $limit)
+    {
+        $searchTag = isset($_POST['search_tag']) ? $_POST['search_tag'] : null;
+        $searchDate = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
+        $hiddenLinks = isset($_GET['hidden_links']) ? intval($_GET['hidden_links']) == 1 : false;
+        $courseUrl = getCourseCategoryUrl(1, $limit['length'], null, 0, 'subscribe');
+
+        $sessions = $this->model->browseSessionsByTags($searchTag, $limit);
+
+        $sessionsBlocks = $this->getFormatedSessionsBlock($sessions);
+
+        $tpl = new Template();
+        $tpl->assign('show_courses', CoursesAndSessionsCatalog::showCourses());
+        $tpl->assign('show_sessions', CoursesAndSessionsCatalog::showSessions());
+        $tpl->assign('show_tutor', (api_get_setting('show_session_coach')==='true' ? true : false));
+
+        $tpl->assign('course_url', $courseUrl);
+
+        $tpl->assign('already_subscribed_label', $this->getAlreadyRegisteredInSessionLabel());
+
+        $tpl->assign('hidden_links', $hiddenLinks);
+        $tpl->assign('search_token', Security::get_token());
+
+        $tpl->assign('search_date', Security::remove_XSS($searchDate));
+        $tpl->assign('search_tag', Security::remove_XSS($searchTag));
+        $tpl->assign('sessions', $sessionsBlocks);
+
+        $contentTemplate = $tpl->get_template('auth/session_catalog.tpl');
+
+        $tpl->display($contentTemplate);
+    }
+
+    /**
+     * Get the formated data for sessions block to be displayed on Session Catalog page
+     * @param array $sessions The session list
+     * @return array
+     */
+    private function getFormatedSessionsBlock(array $sessions)
+    {
+        $extraFieldValue = new ExtraFieldValue('session');
+        $userId = api_get_user_id();
+        $sessionsBlocks = [];
+
+        $entityManager = Database::getManager();
+        $sessionRelCourseRepo = $entityManager->getRepository('ChamiloCoreBundle:SessionRelCourse');
+        $extraFieldRepo = $entityManager->getRepository('ChamiloCoreBundle:ExtraField');
+        $extraFieldRelTagRepo = $entityManager->getRepository('ChamiloCoreBundle:ExtraFieldRelTag');
+
+        $tagsField = $extraFieldRepo->findOneBy([
+            'extraFieldType' => Chamilo\CoreBundle\Entity\ExtraField::COURSE_FIELD_TYPE,
+            'variable' => 'tags'
+        ]);
 
         foreach ($sessions as $session) {
-            $sessionsBlock = array(
-                'id' => $session['id'],
-                'name' => $session['name'],
-                'nbr_courses' => $session['nbr_courses'],
-                'nbr_users' => $session['nbr_users'],
-                'coach_name' => $session['coach_name'],
-                'is_subscribed' => $session['is_subscribed'],
-                'icon' => $this->getSessionIcon($session['name']),
-                'date' => SessionManager::getSessionFormattedDate($session),
-                'subscribe_button' => $this->getRegisteredInSessionButton(
-                    $session[$key],
-                    $catalogSessionAutoSubscriptionAllowed
-                ),
-                'showDescription' => $session['show_description']
+            $sessionDates = SessionManager::parseSessionDates([
+                'display_start_date' => $session->getDisplayStartDate(),
+                'display_end_date' => $session->getDisplayEndDate(),
+                'access_start_date' => $session->getAccessStartDate(),
+                'access_end_date' => $session->getAccessEndDate(),
+                'coach_access_start_date' => $session->getCoachAccessStartDate(),
+                'coach_access_end_date' => $session->getCoachAccessEndDate()
+            ]);
+
+            $imageField = $extraFieldValue->get_values_by_handler_and_field_variable($session->getId(), 'image');
+
+            $sessionCourseTags = [];
+
+            if (!is_null($tagsField)) {
+                $sessionRelCourses = $sessionRelCourseRepo->findBy([
+                    'session' => $session
+                ]);
+
+                foreach ($sessionRelCourses as $sessionRelCourse) {
+                    $courseTags = $extraFieldRelTagRepo->getTags(
+                        $tagsField,
+                        $sessionRelCourse->getCourse()->getId()
+                    );
+
+                    foreach ($courseTags as $tag) {
+                        $sessionCourseTags[] = $tag->getTag();
+                    }
+                }
+            }
+
+            if (!empty($sessionCourseTags)) {
+                $sessionCourseTags = array_unique($sessionCourseTags);
+            }
+
+            $repo = $entityManager->getRepository('ChamiloCoreBundle:SequenceResource');
+            $sequences = $repo->getRequirementsAndDependenciesWithinSequences(
+                $session->getId(),
+                SequenceResource::SESSION_TYPE
             );
 
+            $hasRequirements = false;
+
+            foreach ($sequences['sequences'] as $sequence) {
+                if (count($sequence['requirements']) === 0) {
+                    continue;
+                }
+
+                $hasRequirements = true;
+                break;
+            }
+
+            $sessionsBlock = array(
+                'id' => $session->getId(),
+                'name' => $session->getName(),
+                'image' => isset($imageField['value']) ? $imageField['value'] : null,
+                'nbr_courses' => $session->getNbrCourses(),
+                'nbr_users' => $session->getNbrUsers(),
+                'coach_name' => $session->getGeneralCoach()->getCompleteName(),
+                'is_subscribed' => SessionManager::isUserSubscribedAsStudent($session->getId(), $userId),
+                'icon' => $this->getSessionIcon($session->getName()),
+                'date' => $sessionDates['display'],
+                'subscribe_button' => $this->getRegisteredInSessionButton(
+                    $session->getId(),
+                    $session->getName(),
+                    $hasRequirements
+                ),
+                'show_description' => $session->getShowDescription(),
+                'tags' => $sessionCourseTags
+            );
+
+            $sessionsBlock = array_merge($sessionsBlock, $sequences);
             $sessionsBlocks[] = $sessionsBlock;
         }
 
-        $tpl = new Template();
-        $tpl->assign('action', $action);
-        $tpl->assign('showCourses', CoursesAndSessionsCatalog::showCourses());
-        $tpl->assign('showSessions', CoursesAndSessionsCatalog::showSessions());
-        $tpl->assign('showTutor', (api_get_setting('show_session_coach')==='true' ? true : false));
-        $tpl->assign('api_get_self', api_get_self());
-        $tpl->assign('sessionUrl', $sessionUrl);
-        $tpl->assign('courseUrl', $courseUrl);
-        $tpl->assign('nameTools', $nameTools);
-
-        $tpl->assign('coursesCategoriesList', $this->getCoursesCategoriesBlock(null, false, $limit));
-        $tpl->assign('cataloguePagination', $cataloguePagination);
-
-        $tpl->assign('hiddenLinks', $hiddenLinks);
-        $tpl->assign('searchToken', Security::get_token());
-
-        $tpl->assign('searchDate', $date);
-        $tpl->assign('web_session_courses_ajax_url', api_get_path(WEB_AJAX_PATH) . 'course.ajax.php');
-        $tpl->assign('sessions_blocks', $sessionsBlocks);
-        $tpl->assign('already_subscribed_label', $this->getAlreadyRegisteredInSessionLabel());
-
-        $contentTemplate = $tpl->get_template('auth/sessions_catalog.tpl');
-
-        $tpl->display($contentTemplate);
+        return $sessionsBlocks;
     }
 
 }

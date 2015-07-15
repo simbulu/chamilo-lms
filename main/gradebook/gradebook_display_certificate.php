@@ -39,7 +39,8 @@ $filterOfficialCodeGet = isset($_GET['filter']) ? Security::remove_XSS($_GET['fi
 switch ($action) {
     case 'export_all_certificates':
         if (api_is_student_boss()) {
-            $userList = GroupPortalManager::getGroupUsersByUser(api_get_user_id());
+            $userGroup = new UserGroup();
+            $userList = $userGroup->getGroupUsersByUser(api_get_user_id());
         } else {
             $userList = array();
             if (!empty($filterOfficialCodeGet)) {
@@ -143,11 +144,11 @@ if (!empty($cats)) {
     }
 }
 
-$filter = api_get_configuration_value('certificate_filter_by_official_code');
+$filter = api_get_setting('certificate_filter_by_official_code');
 $userList = array();
 $filterForm = null;
 $certificate_list = array();
-if ($filter) {
+if ($filter === 'true') {
     echo '<br />';
     $options = UserManager::getOfficialCodeGrouped();
     $options =array_merge(array('all' => get_lang('All')), $options);
@@ -187,7 +188,8 @@ echo Display::url(get_lang('GenerateCertificates'), $url, array('class' => 'btn 
 $url = api_get_self().'?action=delete_all_certificates'.'&'.api_get_cidReq().'&cat_id='.$cat_id.'&filter='.$filterOfficialCode;
 echo Display::url(get_lang('DeleteAllCertificates'), $url, array('class' => 'btn btn-default'));
 
-if (count($certificate_list) > 0 && !api_get_configuration_value('hide_certificate_export_link')) {
+$hideCertificateExport = api_get_setting('hide_certificate_export_link');
+if (count($certificate_list) > 0 && $hideCertificateExport !== 'true') {
     $url = api_get_self().'?action=export_all_certificates'.'&'.api_get_cidReq().'&cat_id='.$cat_id.'&filter='.$filterOfficialCode;
     echo Display::url(get_lang('ExportAllCertificatesToPDF'), $url, array('class' => 'btn btn-default'));
 }

@@ -60,6 +60,7 @@ class ExtraField extends Model
     const FIELD_TYPE_FILE_IMAGE = 16;
     const FIELD_TYPE_FLOAT = 17;
     const FIELD_TYPE_FILE = 18;
+    const FIELD_TYPE_VIDEO_URL = 19;
 
     public $type = 'user';
     public $pageName;
@@ -134,16 +135,58 @@ class ExtraField extends Model
      */
     public function get_count()
     {
-        /*$row = Database::select('count(*) as count', $this->table, array(), 'first');
-
-        return $row['count'];*/
-
-        $query = Database::getManager()->getRepository('ChamiloCoreBundle:ExtraField')->createQueryBuilder('e');
+        $em = Database::getManager();
+        $query = $em->getRepository('ChamiloCoreBundle:ExtraField')->createQueryBuilder('e');
         $query->select('count(e.id)');
         $query->where('e.extraFieldType = :type');
         $query->setParameter('type', $this->getExtraFieldType());
 
         return $query->getQuery()->getScalarResult();
+    }
+
+    /**
+     * @param string $sidx
+     * @param string $sord
+     * @param int $start
+     * @param int $limit
+     *
+     * @return array
+     */
+    public function getAllGrid($sidx, $sord, $start, $limit)
+    {
+        switch ($sidx) {
+            case 'field_order':
+                $sidx = 'e.fieldOrder';
+                break;
+            case 'variable':
+                $sidx = 'e.variable';
+                break;
+            case 'display_text':
+                $sidx = 'e.displayText';
+                break;
+            case 'changeable':
+                $sidx = 'e.changeable';
+                break;
+            case 'visible':
+                $sidx = 'e.visible';
+                break;
+            case 'filter':
+                $sidx = 'e.filter';
+                break;
+            case 'display_text':
+                $sidx = 'e.fieldType';
+                break;
+        }
+        $em = Database::getManager();
+        $query = $em->getRepository('ChamiloCoreBundle:ExtraField')->createQueryBuilder('e');
+        $query->select('e')
+            ->where('e.extraFieldType = :type')
+            ->setParameter('type', $this->getExtraFieldType())
+            ->orderBy($sidx, $sord)
+            ->setFirstResult($start)
+            ->setMaxResults($limit);
+        //echo $query->getQuery()->getSQL();
+        return $query->getQuery()->getArrayResult();
     }
 
     /**
@@ -291,6 +334,7 @@ class ExtraField extends Model
         $types[self::FIELD_TYPE_FILE_IMAGE] = get_lang('FieldTypeFileImage');
         $types[self::FIELD_TYPE_FLOAT] = get_lang('FieldTypeFloat');
         $types[self::FIELD_TYPE_FILE] = get_lang('FieldTypeFile');
+        $types[self::FIELD_TYPE_VIDEO_URL] = get_lang('FieldTypeVideoUrl');
 
         switch ($handler) {
             case 'course':
@@ -1150,19 +1194,33 @@ EOF;
                             }
                             $url = api_get_path(WEB_AJAX_PATH).'user_manager.ajax.php';
                         } else {
-                            $extraFieldValue = new ExtraFieldValue($this->type);
-                            $tags = array();
-                            if (!empty($itemId)) {
-                                $tags = $extraFieldValue->getAllValuesByItemAndField($itemId, $field_id);
-                            }
                             $tag_list = '';
-                            if (is_array($tags) && count($tags) > 0) {
-                                $extraFieldOption = new ExtraFieldOption($this->type);
-                                foreach ($tags as $tag) {
-                                    $option = $extraFieldOption->get($tag['value']);
-                                    $tag_list .= '<option value="'.$option['id'].'" class="selected">'.$option['display_text'].'</option>';
+                            $em = Database::getManager();
+
+                            $fieldTags = $em
+                                ->getRepository('ChamiloCoreBundle:ExtraFieldRelTag')
+                                ->findBy([
+                                    'fieldId' => $field_id,
+                                    'itemId' => $itemId
+                                ]);
+
+                            foreach ($fieldTags as $fieldTag) {
+                                $tag = $em->find('ChamiloCoreBundle:Tag', $fieldTag->getTagId());
+
+                                if (empty($tag)) {
+                                    continue;
                                 }
+
+                                $tag_list .= Display::tag(
+                                    'option',
+                                    $tag->getTag(),
+                                    [
+                                        'value' => $tag->getTag(),
+                                        'class' => 'selected'
+                                    ]
+                                );
                             }
+
                             $url = api_get_path(WEB_AJAX_PATH).'extra_field.ajax.php';
                         }
 
@@ -1281,12 +1339,10 @@ EOF;
                         );
 
                         if (is_array($extraData) && array_key_exists($fieldVariable, $extraData)) {
-                            $cleanImagePath = str_replace(api_get_path(SYS_PATH), '', $extraData[$fieldVariable]);
-                            $webImagePath = api_get_path(WEB_PATH) . $cleanImagePath;
 
-                            if (file_exists(api_get_path(SYS_PATH) . $cleanImagePath)) {
+                            if (file_exists(api_get_path(SYS_UPLOAD_PATH) . $extraData[$fieldVariable])) {
                                 $fieldTexts[] = Display::img(
-                                    $webImagePath,
+                                    api_get_path(WEB_UPLOAD_PATH) . $extraData[$fieldVariable],
                                     $field_details['display_text'],
                                     array('width' => '300')
                                 );
@@ -1348,13 +1404,10 @@ EOF;
                         if (is_array($extraData) &&
                             array_key_exists($fieldVariable, $extraData)
                         ) {
-                            $cleanFilePath = str_replace(api_get_path(SYS_PATH), '', $extraData[$fieldVariable]);
-                            $webFilePath = api_get_path(WEB_PATH) . $cleanFilePath;
-
-                            if (file_exists(api_get_path(SYS_PATH) . $cleanFilePath)) {
+                            if (file_exists(api_get_path(SYS_UPLOAD_PATH) . $extraData[$fieldVariable])) {
                                 $fieldTexts[] = Display::url(
-                                    $webFilePath,
-                                    $webFilePath,
+                                    api_get_path(WEB_UPLOAD_PATH) . $extraData[$fieldVariable],
+                                    api_get_path(WEB_UPLOAD_PATH) . $extraData[$fieldVariable],
                                     array(
                                         'title' => $field_details['display_text'],
                                         'target' => '_blank'
@@ -1380,6 +1433,14 @@ EOF;
                                 );
                             }
                         }
+                        break;
+                    case ExtraField::FIELD_TYPE_VIDEO_URL:
+                        $form->addUrl(
+                            "extra_{$field_details['variable']}",
+                            $field_details['display_text'],
+                            false,
+                            ['placeholder' => 'https://']
+                        );
                         break;
                 }
             }

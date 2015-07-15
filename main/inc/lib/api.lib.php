@@ -14,7 +14,6 @@
 
 // PHP version requirement.
 define('REQUIRED_PHP_VERSION', '5.4');
-
 define('REQUIRED_MIN_MEMORY_LIMIT', '128');
 define('REQUIRED_MIN_UPLOAD_MAX_FILESIZE', '10');
 define('REQUIRED_MIN_POST_MAX_SIZE', '10');
@@ -47,12 +46,12 @@ define('STUDENT_BOSS', 17); // student is boss
 define('INVITEE', 20);
 
 // Table of status
-$_status_list[COURSEMANAGER]    = 'teacher';        // 1
-$_status_list[SESSIONADMIN]     = 'session_admin';  // 3
-$_status_list[DRH]              = 'drh';            // 4
-$_status_list[STUDENT]          = 'user';           // 5
-$_status_list[ANONYMOUS]        = 'anonymous';      // 6
-$_status_list[INVITEE]     = 'invited';        // 20
+$_status_list[COURSEMANAGER] = 'teacher';        // 1
+$_status_list[SESSIONADMIN] = 'session_admin';  // 3
+$_status_list[DRH] = 'drh';            // 4
+$_status_list[STUDENT] = 'user';           // 5
+$_status_list[ANONYMOUS] = 'anonymous';      // 6
+$_status_list[INVITEE] = 'invited';        // 20
 
 // COURSE VISIBILITY CONSTANTS
 /** only visible for course admin */
@@ -66,14 +65,14 @@ define('COURSE_VISIBILITY_OPEN_WORLD', 3);
 /** Invisible to all except admin */
 define('COURSE_VISIBILITY_HIDDEN', 4);
 
-define('COURSE_REQUEST_PENDING',  0);
+define('COURSE_REQUEST_PENDING', 0);
 define('COURSE_REQUEST_ACCEPTED', 1);
 define('COURSE_REQUEST_REJECTED', 2);
 define('DELETE_ACTION_ENABLED', false);
 
 
 // EMAIL SENDING RECIPIENT CONSTANTS
-define('SEND_EMAIL_EVERYONE',  1);
+define('SEND_EMAIL_EVERYONE', 1);
 define('SEND_EMAIL_STUDENTS', 2);
 define('SEND_EMAIL_TEACHERS', 3);
 
@@ -83,7 +82,7 @@ define('SESSION_VISIBLE', 2);
 define('SESSION_INVISIBLE', 3); // not available
 define('SESSION_AVAILABLE', 4);
 
-define('SESSION_LINK_TARGET','_self');
+define('SESSION_LINK_TARGET', '_self');
 
 define('SUBSCRIBE_ALLOWED', 1);
 define('SUBSCRIBE_NOT_ALLOWED', 0);
@@ -97,7 +96,7 @@ define('SURVEY_VISIBLE_PUBLIC', 2);
 
 // CONSTANTS defining all tools, using the english version
 /* When you add a new tool you must add it into function api_get_tools_lists() too */
-define('TOOL_DOCUMENT','document');
+define('TOOL_DOCUMENT', 'document');
 define('TOOL_THUMBNAIL', 'thumbnail');
 define('TOOL_HOTPOTATOES', 'hotpotatoes');
 define('TOOL_CALENDAR_EVENT', 'calendar_event');
@@ -109,11 +108,11 @@ define('TOOL_LEARNPATH', 'learnpath');
 define('TOOL_AGENDA', 'agenda');
 define('TOOL_ANNOUNCEMENT', 'announcement');
 define('TOOL_FORUM', 'forum');
-define('TOOL_FORUM_CATEGORY','forum_category');
-define('TOOL_FORUM_THREAD','forum_thread');
-define('TOOL_FORUM_POST','forum_post');
-define('TOOL_FORUM_ATTACH','forum_attachment');
-define('TOOL_FORUM_THREAD_QUALIFY','forum_thread_qualify');
+define('TOOL_FORUM_CATEGORY', 'forum_category');
+define('TOOL_FORUM_THREAD', 'forum_thread');
+define('TOOL_FORUM_POST', 'forum_post');
+define('TOOL_FORUM_ATTACH', 'forum_attachment');
+define('TOOL_FORUM_THREAD_QUALIFY', 'forum_thread_qualify');
 define('TOOL_THREAD', 'thread');
 define('TOOL_POST', 'post');
 define('TOOL_DROPBOX', 'dropbox');
@@ -133,18 +132,18 @@ define('TOOL_COPY_COURSE_CONTENT', 'copy_course_content');
 define('TOOL_RECYCLE_COURSE', 'recycle_course');
 define('TOOL_COURSE_HOMEPAGE', 'course_homepage');
 define('TOOL_COURSE_RIGHTS_OVERVIEW', 'course_rights');
-define('TOOL_UPLOAD','file_upload');
-define('TOOL_COURSE_MAINTENANCE','course_maintenance');
-define('TOOL_VISIO','visio');
-define('TOOL_VISIO_CONFERENCE','visio_conference');
-define('TOOL_VISIO_CLASSROOM','visio_classroom');
-define('TOOL_SURVEY','survey');
-define('TOOL_WIKI','wiki');
-define('TOOL_GLOSSARY','glossary');
-define('TOOL_GRADEBOOK','gradebook');
-define('TOOL_NOTEBOOK','notebook');
-define('TOOL_ATTENDANCE','attendance');
-define('TOOL_COURSE_PROGRESS','course_progress');
+define('TOOL_UPLOAD', 'file_upload');
+define('TOOL_COURSE_MAINTENANCE', 'course_maintenance');
+define('TOOL_VISIO', 'visio');
+define('TOOL_VISIO_CONFERENCE', 'visio_conference');
+define('TOOL_VISIO_CLASSROOM', 'visio_classroom');
+define('TOOL_SURVEY', 'survey');
+define('TOOL_WIKI', 'wiki');
+define('TOOL_GLOSSARY', 'glossary');
+define('TOOL_GRADEBOOK', 'gradebook');
+define('TOOL_NOTEBOOK', 'notebook');
+define('TOOL_ATTENDANCE', 'attendance');
+define('TOOL_COURSE_PROGRESS', 'course_progress');
 
 // CONSTANTS defining Chamilo interface sections
 define('SECTION_CAMPUS', 'mycampus');
@@ -154,7 +153,7 @@ define('SECTION_MYAGENDA', 'myagenda');
 define('SECTION_COURSE_ADMIN', 'course_admin');
 define('SECTION_PLATFORM_ADMIN', 'platform_admin');
 define('SECTION_MYGRADEBOOK', 'mygradebook');
-define('SECTION_TRACKING','session_my_space');
+define('SECTION_TRACKING', 'session_my_space');
 define('SECTION_SOCIAL', 'social');
 define('SECTION_DASHBOARD', 'dashboard');
 define('SECTION_REPORTS', 'reports');
@@ -166,7 +165,7 @@ define('CAS_AUTH_SOURCE', 'cas');
 define('LDAP_AUTH_SOURCE', 'extldap');
 
 // CONSTANT defining the default HotPotatoes files directory
-define('DIR_HOTPOTATOES','/HotPotatoes_files');
+define('DIR_HOTPOTATOES', '/HotPotatoes_files');
 
 // event logs types
 define('LOG_COURSE_DELETE', 'course_deleted');
@@ -193,6 +192,12 @@ define('LOG_USER_FIELD_CREATE', 'user_field_created');
 define('LOG_USER_FIELD_DELETE', 'user_field_deleted');
 define('LOG_SESSION_CREATE', 'session_created');
 define('LOG_SESSION_DELETE', 'session_deleted');
+define('LOG_SESSION_ADD_USER_COURSE', 'session_add_user_course');
+define('LOG_SESSION_DELETE_USER_COURSE', 'session_delete_user_course');
+define('LOG_SESSION_DELETE_USER', 'session_delete_user');
+define('LOG_SESSION_ADD_COURSE', 'session_add_course');
+define('LOG_SESSION_DELETE_COURSE', 'session_delete_course');
+
 define('LOG_SESSION_CATEGORY_CREATE', 'session_cat_created'); //changed in 1.9.8
 define('LOG_SESSION_CATEGORY_DELETE', 'session_cat_deleted'); //changed in 1.9.8
 define('LOG_CONFIGURATION_SETTINGS_CHANGE', 'settings_changed');
@@ -270,6 +275,7 @@ define('VALID_WEB_SERVER_BASE', '/https?:\/\/[^\/]*/i');            // $new_path
 
 // Constants for api_get_path() and api_get_path_type(), etc. - registered path types.
 define('WEB_PATH', 'WEB_PATH');
+define('WEB_APP_PATH', 'WEB_APP_PATH');
 define('SYS_PATH', 'SYS_PATH');
 define('SYS_APP_PATH', 'SYS_APP_PATH');
 define('SYS_UPLOAD_PATH', 'SYS_UPLOAD_PATH');
@@ -412,7 +418,7 @@ define('HOOK_EVENT_TYPE_ALL', 10);
 define('CAREER_STATUS_ACTIVE', 1);
 define('CAREER_STATUS_INACTIVE', 0);
 
-define('PROMOTION_STATUS_ACTIVE',  1);
+define('PROMOTION_STATUS_ACTIVE', 1);
 define('PROMOTION_STATUS_INACTIVE', 0);
 
 // Group permissions
@@ -481,9 +487,9 @@ define('MCMA', 2);
 define('FIB', 3);
 
 // Skills
-define ('SKILL_TYPE_REQUIREMENT', 'required');
-define ('SKILL_TYPE_ACQUIRED', 'acquired');
-define ('SKILL_TYPE_BOTH', 'both');
+define('SKILL_TYPE_REQUIREMENT', 'required');
+define('SKILL_TYPE_ACQUIRED', 'acquired');
+define('SKILL_TYPE_BOTH', 'both');
 
 // Message
 define('MESSAGE_STATUS_NEW', '0');
@@ -643,6 +649,7 @@ function api_get_path($path_type, $path = null)
         SYS_ARCHIVE_PATH        => 'app/cache/',
         WEB_ARCHIVE_PATH        => 'app/cache/',
         SYS_APP_PATH            => 'app/',
+        WEB_APP_PATH            => 'app/',
         SYS_UPLOAD_PATH         => 'app/upload/',
         REL_UPLOAD_PATH         => 'app/upload/',
         INCLUDE_PATH            => 'inc/',
@@ -681,7 +688,6 @@ function api_get_path($path_type, $path = null)
     //default $_configuration['root_web'] configuration
     $root_web = $_configuration['root_web'];
 
-    $data_folder = 'data/';
     $code_folder = 'main/';
     $course_folder = 'courses/';
 
@@ -703,7 +709,6 @@ function api_get_path($path_type, $path = null)
         global $_configuration;
 
         $root_rel = $_configuration['url_append'];
-
 
         // Support for the installation process.
         // Developers might use the function api_get_path() directly or indirectly (this is difficult to be traced), at the moment when
@@ -765,6 +770,7 @@ function api_get_path($path_type, $path = null)
         $paths[SYS_LANG_PATH]           = $paths[SYS_CODE_PATH].$paths[SYS_LANG_PATH];
 
         $paths[SYS_APP_PATH]            = $paths[SYS_PATH].$paths[SYS_APP_PATH];
+        $paths[WEB_APP_PATH]            = $paths[WEB_PATH].$paths[WEB_APP_PATH];
         $paths[SYS_UPLOAD_PATH]         = $paths[SYS_PATH].$paths[SYS_UPLOAD_PATH];
 
         $paths[SYS_PLUGIN_PATH]         = $paths[SYS_PATH].$paths[SYS_PLUGIN_PATH];
@@ -932,7 +938,7 @@ function api_get_path($path_type, $path = null)
 /**
  * Gets a modified version of the path for the CDN, if defined in
  * configuration.php
- * @param string The path of the resource without CDN
+ * @param string $web_path The path of the resource without CDN
  * @return string The path of the resource converted to CDN
  * @author Yannick Warnier <ywarnier@beeznst.org>
  */
@@ -957,7 +963,7 @@ function api_get_cdn_path($web_path)
 }
 
 /**
- * @return bool     Return true if CAS authentification is activated
+ * @return bool Return true if CAS authentification is activated
  *
  */
 function api_is_cas_activated() {
@@ -1105,6 +1111,7 @@ function api_valid_email($address)
 function api_protect_course_script($print_headers = false, $allow_session_admins = false, $allow_drh = false)
 {
     $is_allowed_in_course = api_is_allowed_in_course();
+
     $is_visible = false;
     $course_info = api_get_course_info();
 
@@ -1223,8 +1230,8 @@ function api_protect_teacher_script($allow_sessions_admins = false)
  */
 function api_block_anonymous_users($printHeaders = true)
 {
-    $_user = api_get_user_info();
-    if (!(isset($_user['user_id']) && $_user['user_id']) || api_is_anonymous($_user['user_id'], true)) {
+    $user = api_get_user_info();
+    if (!(isset($user['user_id']) && $user['user_id']) || api_is_anonymous($user['user_id'], true)) {
         api_not_allowed($printHeaders);
         return false;
     }
@@ -1415,7 +1422,6 @@ function _api_format_user($user, $add_password = false)
     $result['lastLogin'] = $last_login;
 
     // Getting user avatar.
-    $picture_filename = trim($result['picture_uri']);
 
     $originalFile = UserManager::getUserPicture($user_id, USER_IMAGE_SIZE_ORIGINAL, $result);
     $smallFile = UserManager::getUserPicture($user_id, USER_IMAGE_SIZE_SMALL, $result);
@@ -1498,14 +1504,11 @@ function api_get_user_info(
         }
 
         if ($loadExtraData) {
-            $extraFieldValues = new ExtraFieldValue('user');
-            $values = $extraFieldValues->getAllValuesByItem($user_id);
+            $fieldValue = new ExtraFieldValue('user');
 
-            if (!empty($values)) {
-                foreach ($values as $value) {
-                    $result_array['extra'][$value['variable']] = $value['value'];
-                }
-            }
+            $result_array['extra'] = $fieldValue->getAllValuesForAnItem(
+                $user_id
+            );
         }
         $user = _api_format_user($result_array, $showPassword);
 
@@ -1554,13 +1557,15 @@ function api_get_user_info_from_email($email = '')
         $result_array = Database::fetch_array($result);
         return _api_format_user($result_array);
     }
+
     return false;
 }
 
 /**
  * @return string
  */
-function api_get_course_id() {
+function api_get_course_id()
+{
     return isset($GLOBALS['_cid']) ? $GLOBALS['_cid'] : null;
 }
 
@@ -1646,12 +1651,13 @@ function api_get_course_setting($setting_name, $course_code = null)
  */
 function api_get_anonymous_id() {
     $table = Database::get_main_table(TABLE_MAIN_USER);
-    $sql = "SELECT user_id FROM $table WHERE status = 6";
+    $sql = "SELECT user_id FROM $table WHERE status =".ANONYMOUS;
     $res = Database::query($sql);
     if (Database::num_rows($res) > 0) {
         $row = Database::fetch_array($res);
         return $row['user_id'];
     }
+
     // No anonymous user was found.
     return 0;
 }
@@ -1756,8 +1762,11 @@ function api_get_course_info($course_code = null, $strict = false)
 
  * Now if the course_code is given, the returned array gives info about that
  * particular course, not specially the current one.
+ * @param int $id Numeric ID of the course
+ * @return array The course info as an array formatted by api_format_course_array, including category.name
  */
-function api_get_course_info_by_id($id = null) {
+function api_get_course_info_by_id($id = null)
+{
     if (!empty($id)) {
         $id = intval($id);
         $course_table = Database::get_main_table(TABLE_MAIN_COURSE);
@@ -1812,6 +1821,7 @@ function api_format_course_array($course_data)
     $_course['sysCode'] = $course_data['code'];
     $_course['path'] = $course_data['directory']; // Use as key in path.
     $_course['directory'] = $course_data['directory'];
+    $_course['creation_date'] = $course_data['creation_date'];
 
     //@todo should be deprecated
     // Use as key in db list.
@@ -1839,7 +1849,7 @@ function api_format_course_array($course_data)
     $_course['department_name'] = $course_data['department_name'];
     $_course['department_url'] = $course_data['department_url'];
 
-    //Course password
+    // Course password
     $_course['registration_code'] = !empty($course_data['registration_code']) ? sha1($course_data['registration_code']) : null;
     $_course['disk_quota'] = $course_data['disk_quota'];
     $_course['course_public_url'] = api_get_path(WEB_COURSE_PATH).$course_data['directory'].'/index.php';
@@ -2161,7 +2171,8 @@ function api_get_session_name($session_id) {
  * @param int       Session ID
  * @return array    information of the session
  */
-function api_get_session_info($session_id) {
+function api_get_session_info($session_id)
+{
     $data = array();
     if (!empty($session_id)) {
         $session_id = intval($session_id);
@@ -2173,6 +2184,7 @@ function api_get_session_info($session_id) {
             $data = Database::fetch_array($result, 'ASSOC');
         }
     }
+
     return $data;
 }
 
@@ -2216,23 +2228,23 @@ function api_get_session_visibility(
             $visibility = $original_visibility = $row['visibility'];
 
             // I don't care the session visibility.
-            if ($row['date_start'] == '0000-00-00' &&
-                $row['date_end'] == '0000-00-00'
-            ) {
+            if (empty($row['access_start_date']) && empty($row['access_end_date'])) {
 
                 // Session duration per student.
                 if (isset($row['duration']) && !empty($row['duration'])) {
-                    $duration = $row['duration']*24*60*60;
+                    $duration = $row['duration'] * 24 * 60 * 60;
 
                     $courseAccess = CourseManager::getFirstCourseAccessPerSessionAndUser(
                         $session_id,
                         api_get_user_id()
                     );
+
                     // If there is a session duration but there is no previous
                     // access by the user, then the session is still available
                     if (count($courseAccess) == 0) {
                         return SESSION_AVAILABLE;
                     }
+
                     $currentTime = time();
                     $firstAccess = 0;
                     if (isset($courseAccess['login_course_date'])) {
@@ -2260,11 +2272,10 @@ function api_get_session_visibility(
 
                 return SESSION_AVAILABLE;
             } else {
+
                 // If start date was set.
-                if (!empty($row['date_start']) && $row['date_start'] != '0000-00-00') {
-                    // The beginning of the day starts at 00:00:00
-                    $row['date_start'] = $row['date_start'].' 00:00:00';
-                    if ($now > api_strtotime($row['date_start'], 'UTC')) {
+                if (!empty($row['access_start_date'])) {
+                    if ($now > api_strtotime($row['access_start_date'], 'UTC')) {
                         $visibility = SESSION_AVAILABLE;
                     } else {
                         $visibility = SESSION_INVISIBLE;
@@ -2272,13 +2283,10 @@ function api_get_session_visibility(
                 }
 
                 // If the end date was set.
-                if (!empty($row['date_end']) && $row['date_end'] != '0000-00-00') {
-                    // End date finish at midnight.
-                    $row['date_end'] = $row['date_end'].' 23:59:59';
-
+                if (!empty($row['access_end_date'])) {
                     // Only if date_start said that it was ok
                     if ($visibility == SESSION_AVAILABLE) {
-                        if ($now < api_strtotime($row['date_end'], 'UTC')) {
+                        if ($now < api_strtotime($row['access_end_date'], 'UTC')) {
                             // Date still available
                             $visibility = SESSION_AVAILABLE;
                         } else {
@@ -2290,21 +2298,15 @@ function api_get_session_visibility(
             }
 
             /* If I'm a coach the visibility can change in my favor depending in
-             the nb_days_access_after_end and nb_days_access_before_beginning */
+             the coach dates */
             $is_coach = api_is_coach($session_id, $courseId);
 
             if ($is_coach) {
                 // Test end date.
-                if (isset($row['date_end']) &&
-                    !empty($row['date_end']) &&
-                    $row['date_end'] != '0000-00-00' &&
-                    $row['nb_days_access_after_end'] != '0'
-                ) {
-                    $end_date_for_coach = new DateTime(substr($row['date_end'], 0 ,10).' 23:59:59');
-                    $number_of_days = "P".intval($row['nb_days_access_after_end']).'D';
-                    $end_date_for_coach->add(new DateInterval($number_of_days));
+                if (!empty($row['coach_access_end_date'])) {
+                    $endDateCoach = api_strtotime($row['coach_access_end_date'], 'UTC');
 
-                    if ($end_date_for_coach->getTimestamp() >= $now) {
+                    if ($endDateCoach >= $now) {
                         $visibility = SESSION_AVAILABLE;
                     } else {
                         $visibility = SESSION_INVISIBLE;
@@ -2312,15 +2314,9 @@ function api_get_session_visibility(
                 }
 
                 // Test start date.
-                if (isset($row['date_start']) &&
-                    !empty($row['date_start']) &&
-                    $row['date_start'] != '0000-00-00' &&
-                    $row['nb_days_access_before_beginning'] != '0'
-                ) {
-                    $start_date_for_coach = new DateTime(substr($row['date_start'], 0, 10).' 00:00:00');
-                    $number_of_days = "P".intval($row['nb_days_access_before_beginning']).'D';
-                    $start_date_for_coach->sub(new DateInterval($number_of_days));
-                    if ($start_date_for_coach->getTimestamp() < $now) {
+                if (!empty($row['coach_access_start_date'])) {
+                    $start = api_strtotime($row['coach_access_start_date'], 'UTC');
+                    if ($start < $now) {
                         $visibility = SESSION_AVAILABLE;
                     } else {
                         $visibility = SESSION_INVISIBLE;
@@ -2381,9 +2377,13 @@ function api_get_session_condition(
     $condition_add = $and ? " AND " : " WHERE ";
 
     if ($with_base_content) {
-        $condition_session = $condition_add." ( $session_field = $session_id OR $session_field = 0) ";
+        $condition_session = $condition_add." ( $session_field = $session_id OR $session_field = 0 OR $session_field IS NULL) ";
     } else {
-        $condition_session = $condition_add." $session_field = $session_id ";
+        if (empty($session_id)) {
+            $condition_session = $condition_add." ($session_field = $session_id OR $session_field IS NULL)";
+        } else {
+            $condition_session = $condition_add." $session_field = $session_id ";
+        }
     }
     return $condition_session;
 }
@@ -2479,6 +2479,7 @@ function api_get_setting($variable, $key = null)
             $value = $_setting[$variable][$key];
         }
     }
+
     return $value;
 }
 
@@ -2494,6 +2495,7 @@ function api_get_plugin_setting($plugin, $variable)
     if (isset($result[$plugin])) {
         return $result[$plugin];
     }
+
     return null;
 }
 
@@ -2520,7 +2522,6 @@ function api_delete_settings_params($params) {
     $result = Database::delete($table, $params);
     return $result;
 }
-
 
 /**
  * Returns an escaped version of $_SERVER['PHP_SELF'] to avoid XSS injection
@@ -2580,6 +2581,7 @@ function api_is_platform_admin_by_id($user_id = null, $url = null)
             WHERE access_url_id = $url AND user_id = $user_id";
     $res = Database::query($sql);
     $is_on_url = Database::num_rows($res) === 1;
+
     return $is_on_url;
 }
 
@@ -2650,7 +2652,7 @@ function api_get_user_platform_status($user_id = null) {
     $status     = array();
     $user_id    = intval($user_id);
     if (empty($user_id)) {
-        $user_id    = api_get_user_id();
+        $user_id = api_get_user_id();
     }
 
     if (empty($user_id)) {
@@ -2760,8 +2762,9 @@ function api_is_course_session_coach($user_id, $courseId, $session_id)
 
 /**
  * Checks whether the current user is a course or session coach
- * @param int - optional, session id
+ * @param int $session_id
  * @param int $courseId
+ * @param bool  Check whether we are in student view and, if we are, return false
  * @return boolean True if current user is a course or session coach
  */
 function api_is_coach($session_id = 0, $courseId = null, $check_student_view = true)
@@ -2786,12 +2789,13 @@ function api_is_coach($session_id = 0, $courseId = null, $check_student_view = t
     } else {
         $courseId = api_get_course_int_id();
     }
+
     $session_table = Database::get_main_table(TABLE_MAIN_SESSION);
     $session_rel_course_rel_user_table = Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER);
     $sessionIsCoach = null;
 
-    if (!empty($course_code)) {
-        $sql = "SELECT DISTINCT s.id, name, date_start, date_end
+    if (!empty($courseId)) {
+        $sql = "SELECT DISTINCT s.id, name, access_start_date, access_end_date
                 FROM $session_table s
                 INNER JOIN $session_rel_course_rel_user_table session_rc_ru
                 ON session_rc_ru.session_id = s.id AND session_rc_ru.user_id = '".$userId."'
@@ -2804,18 +2808,18 @@ function api_is_coach($session_id = 0, $courseId = null, $check_student_view = t
     }
 
     if (!empty($session_id)) {
-        $sql = "SELECT DISTINCT id, name, date_start, date_end
+        $sql = "SELECT DISTINCT id, name, access_start_date, access_end_date
                 FROM $session_table
                 WHERE session.id_coach =  '".$userId."' AND id = '$session_id'
-                ORDER BY date_start, date_end, name";
+                ORDER BY access_start_date, access_end_date, name";
         $result = Database::query($sql);
         if (!empty($sessionIsCoach)) {
             $sessionIsCoach = array_merge($sessionIsCoach , Database::store_result($result));
         } else {
             $sessionIsCoach = Database::store_result($result);
         }
-
     }
+
     return (count($sessionIsCoach) > 0);
 }
 
@@ -2824,35 +2828,38 @@ function api_is_coach($session_id = 0, $courseId = null, $check_student_view = t
  * @return boolean True if current user is a course administrator
  */
 function api_is_session_admin() {
-    $_user = api_get_user_info();
-    return isset($_user['status']) && $_user['status'] == SESSIONADMIN;
+    $user = api_get_user_info();
+    return isset($user['status']) && $user['status'] == SESSIONADMIN;
 }
 
 /**
  * Checks whether the current user is a human resources manager
  * @return boolean True if current user is a human resources manager
  */
-function api_is_drh() {
-    $_user = api_get_user_info();
-    return isset($_user['status']) && $_user['status'] == DRH;
+function api_is_drh()
+{
+    $user = api_get_user_info();
+    return isset($user['status']) && $user['status'] == DRH;
 }
 
 /**
  * Checks whether the current user is a student
  * @return boolean True if current user is a human resources manager
  */
-function api_is_student() {
-    $_user = api_get_user_info();
-    return isset($_user['status']) && $_user['status'] == STUDENT;
+function api_is_student()
+{
+    $user = api_get_user_info();
+    return isset($user['status']) && $user['status'] == STUDENT;
 
 }
 /**
- * Checks whether the current user is a teacher
+ * Checks whether the current user has the status 'teacher'
  * @return boolean True if current user is a human resources manager
  */
-function api_is_teacher() {
-    $_user = api_get_user_info();
-    return isset($_user['status']) && $_user['status'] == COURSEMANAGER;
+function api_is_teacher()
+{
+    $user = api_get_user_info();
+    return isset($user['status']) && $user['status'] == COURSEMANAGER;
 }
 
 /**
@@ -2860,9 +2867,9 @@ function api_is_teacher() {
  * @return boolean
  */
 function api_is_invitee() {
-    $_user = api_get_user_info();
+    $user = api_get_user_info();
 
-    return isset($_user['status']) && $_user['status'] == INVITEE;
+    return isset($user['status']) && $user['status'] == INVITEE;
 }
 
 /**
@@ -3105,8 +3112,10 @@ function api_is_allowed_to_edit($tutor = false, $coach = false, $session_coach =
                 $is_allowed = $is_courseAdmin;
             }
         }
+
         return $is_allowed;
     } else {
+
         return $is_courseAdmin;
     }
 }
@@ -3249,15 +3258,18 @@ function api_is_anonymous($user_id = null, $db_check = false) {
     }
 
     $_user = api_get_user_info();
-    if ($_user['user_id'] == 0) {
+    if (isset($_user['status']) && $_user['status'] == ANONYMOUS) {
+        //if ($_user['user_id'] == 0) {
         // In some cases, api_set_anonymous doesn't seem to be triggered in local.inc.php. Make sure it is.
         // Occurs in agenda for admin links - YW
         global $use_anonymous;
         if (isset($use_anonymous) && $use_anonymous) {
             api_set_anonymous();
         }
+
         return true;
     }
+
     return isset($_user['is_anonymous']) && $_user['is_anonymous'] === true;
 }
 
@@ -3462,8 +3474,15 @@ function api_get_datetime($time = null) {
  * @param int       The session ID (optional)
  * @return int      -1 on error, 0 if invisible, 1 if visible
  */
-function api_get_item_visibility($_course, $tool, $id, $session = 0)
-{
+function api_get_item_visibility(
+    $_course,
+    $tool,
+    $id,
+    $session = 0,
+    $user_id = null,
+    $type = null,
+    $group_id = null
+) {
     if (!is_array($_course) || count($_course) == 0 || empty($tool) || empty($id)) {
         return -1;
     }
@@ -3473,13 +3492,33 @@ function api_get_item_visibility($_course, $tool, $id, $session = 0)
     $session = (int) $session;
     $TABLE_ITEMPROPERTY = Database::get_course_table(TABLE_ITEM_PROPERTY);
     $course_id = intval($_course['real_id']);
+
+    $userCondition = '';
+    if (!empty($user_id)) {
+        $user_id = intval($user_id);
+        $userCondition = " AND to_user_id = $user_id ";
+    }
+
+    $typeCondition = '';
+    if (!empty($type)) {
+        $type = Database::escape_string($type);
+        $typeCondition = " AND lastedit_type = '$type' ";
+    }
+
+    $groupCondition = '';
+    if (!empty($group_id)) {
+        $group_id = intval($group_id);
+        $groupCondition = " AND to_group_id = '$group_id' ";
+    }
+
     $sql = "SELECT visibility
             FROM $TABLE_ITEMPROPERTY
             WHERE
                 c_id = $course_id AND
                 tool = '$tool' AND
                 ref = $id AND
-                (session_id = $session OR session_id = 0)
+                (session_id = $session OR session_id = 0 OR session_id IS NULL)
+                $userCondition $typeCondition $groupCondition
             ORDER BY session_id DESC, lastedit_date DESC
             LIMIT 1";
 
@@ -3501,6 +3540,7 @@ function api_get_item_visibility($_course, $tool, $id, $session = 0)
  * @param int $userId
  * @param int $groupId
  * @param int $sessionId
+ * @return void
  */
 function api_item_property_delete(
     $courseInfo,
@@ -3565,6 +3605,7 @@ function api_item_property_delete(
  * @param int $to_user_id : id of the intended user (always has priority over $to_group_id !), only relevant for $type (1)
  * @param string $start_visible 0000-00-00 00:00:00 format
  * @param string $end_visible 0000-00-00 00:00:00 format
+ * @param int $session_id The session ID, if any, otherwise will default to 0
  * @return boolean False if update fails.
  * @author Toon Van Hoecke <Toon.VanHoecke@UGent.be>, Ghent University
  * @version January 2005
@@ -3574,12 +3615,12 @@ function api_item_property_update(
     $_course,
     $tool,
     $item_id,
-    $lastedit_type,
+    $last_edit_type,
     $user_id,
     $to_group_id = 0,
     $to_user_id = null,
-    $start_visible = 0,
-    $end_visible = 0,
+    $start_visible = '',
+    $end_visible = '',
     $session_id = 0
 ) {
     if (empty($_course)) {
@@ -3595,15 +3636,22 @@ function api_item_property_update(
     // Definition of variables.
     $tool = Database::escape_string($tool);
     $item_id = intval($item_id);
-    $lastEditTypeNoFilter = $lastedit_type;
-    $lastedit_type = Database::escape_string($lastedit_type);
+    $lastEditTypeNoFilter = $last_edit_type;
+    $last_edit_type = Database::escape_string($last_edit_type);
     $user_id = intval($user_id);
-    $to_group_id = intval($to_group_id);
-    $to_user_id = intval($to_user_id);
-    $start_visible = Database::escape_string($start_visible);
-    $end_visible = Database::escape_string($end_visible);
-    $start_visible = $start_visible == 0 ? '0000-00-00 00:00:00' : $start_visible;
-    $end_visible = $end_visible == 0 ? '0000-00-00 00:00:00' : $end_visible;
+
+    $startVisible = "NULL";
+    if (!empty($start_visible)) {
+        $start_visible = Database::escape_string($start_visible);
+        $startVisible = "'$start_visible'";
+    }
+
+    $endVisible = "NULL";
+    if (!empty($end_visible)) {
+        $end_visible = Database::escape_string($end_visible);
+        $endVisible = "'$end_visible'";
+    }
+
     $to_filter = '';
     $time = api_get_utc_datetime();
 
@@ -3614,7 +3662,7 @@ function api_item_property_update(
     }
 
     // Definition of tables.
-    $TABLE_ITEMPROPERTY = Database::get_course_table(TABLE_ITEM_PROPERTY);
+    $tableItemProperty = Database::get_course_table(TABLE_ITEM_PROPERTY);
 
     if ($to_user_id <= 0) {
         $to_user_id = null; // No to_user_id set
@@ -3622,6 +3670,7 @@ function api_item_property_update(
 
     if (!is_null($to_user_id)) {
         // $to_user_id has more priority than $to_group_id
+        $to_user_id = intval($to_user_id);
         $to_field = 'to_user_id';
         $to_value = $to_user_id;
     } else {
@@ -3630,17 +3679,19 @@ function api_item_property_update(
         $to_value = $to_group_id;
     }
 
+    $toValueCondition = empty($to_value) ? "NULL" : "'$to_value'";
+
     // Set filters for $to_user_id and $to_group_id, with priority for $to_user_id
-    $condition_session = '';
-    if (!empty($session_id)) {
-        $condition_session = " AND session_id = '$session_id' ";
+    $condition_session = " AND session_id = $session_id ";
+    if (empty($session_id)) {
+        $condition_session = " AND (session_id = 0 OR session_id IS NULL) ";
     }
 
-    $filter = " c_id = $course_id AND tool='$tool' AND ref='$item_id' $condition_session ";
+    $filter = " c_id = $course_id AND tool = '$tool' AND ref = $item_id $condition_session ";
 
     if ($item_id === '*') {
         // For all (not deleted) items of the tool
-        $filter = " c_id = $course_id  AND tool = '$tool' AND visibility<>'2' $condition_session";
+        $filter = " c_id = $course_id  AND tool = '$tool' AND visibility <> 2 $condition_session";
     }
 
     // Check whether $to_user_id and $to_group_id are passed in the function call.
@@ -3648,13 +3699,14 @@ function api_item_property_update(
     if (is_null($to_user_id) && is_null($to_group_id)) {
         $to_group_id = 0;
     }
+
     if (!is_null($to_user_id)) {
         // Set filter to intended user.
-        $to_filter = " AND to_user_id= '$to_user_id' $condition_session";
+        $to_filter = " AND to_user_id = $to_user_id $condition_session";
     } else {
         // Set filter to intended group.
         if (($to_group_id != 0) && $to_group_id == strval(intval($to_group_id))) {
-            $to_filter = " AND to_group_id = '$to_group_id' $condition_session";
+            $to_filter = " AND to_group_id = $to_group_id $condition_session";
         }
     }
 
@@ -3663,44 +3715,46 @@ function api_item_property_update(
 
     // Update if possible
     $set_type = '';
+
     switch ($lastEditTypeNoFilter) {
         case 'delete':
             // delete = make item only visible for the platform admin.
             $visibility = '2';
             if (!empty($session_id)) {
-                // Check whether session id already exist into itemp_properties for updating visibility or add it.
-                $sql = "SELECT session_id FROM $TABLE_ITEMPROPERTY
+                // Check whether session id already exist into item_properties for updating visibility or add it.
+                $sql = "SELECT session_id FROM $tableItemProperty
                         WHERE
                             c_id = $course_id AND
                             tool = '$tool' AND
-                            ref='$item_id' AND
-                            session_id = '$session_id'";
+                            ref = $item_id AND
+                            session_id = $session_id";
                 $rs = Database::query($sql);
                 if (Database::num_rows($rs) > 0) {
-                    $sql = "UPDATE $TABLE_ITEMPROPERTY
+                    $sql = "UPDATE $tableItemProperty
                             SET lastedit_type       = '".str_replace('_', '', ucwords($tool))."Deleted',
                                 lastedit_date       = '$time',
-                                lastedit_user_id    = '$user_id',
-                                visibility          = '$visibility',
-                                session_id          = '$session_id' $set_type
+                                lastedit_user_id    = $user_id,
+                                visibility          = $visibility,
+                                session_id          = $session_id $set_type
                             WHERE $filter";
                     $result = Database::query($sql);
                 } else {
-                    $sql = "INSERT INTO $TABLE_ITEMPROPERTY (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id,$to_field, visibility, start_visible, end_visible, session_id)
-                            VALUES ($course_id, '$tool','$item_id','$time', '$user_id', '$time', '$lastedit_type','$user_id', '$to_value', '$visibility', '$start_visible','$end_visible', '$session_id')";
+                    $sql = "INSERT INTO $tableItemProperty (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id, $to_field, visibility, start_visible, end_visible, session_id)
+                            VALUES ($course_id, '$tool',$item_id, '$time', $user_id, '$time', '$last_edit_type',$user_id, $toValueCondition, $visibility, $startVisible, $endVisible, $session_id)";
                     $result = Database::query($sql);
-
                     $id = Database::insert_id();
-                    $sql = "UPDATE $TABLE_ITEMPROPERTY SET id = iid WHERE iid = $id";
-                    Database::query($sql);
+                    if ($id) {
+                        $sql = "UPDATE $tableItemProperty SET id = iid WHERE iid = $id";
+                        Database::query($sql);
+                    }
                 }
             } else {
-                $sql = "UPDATE $TABLE_ITEMPROPERTY
+                $sql = "UPDATE $tableItemProperty
                         SET
                             lastedit_type='".str_replace('_', '', ucwords($tool))."Deleted',
                             lastedit_date='$time',
-                            lastedit_user_id = '$user_id',
-                            visibility='$visibility' $set_type
+                            lastedit_user_id = $user_id,
+                            visibility = $visibility $set_type
                         WHERE $filter";
                 $result = Database::query($sql);
             }
@@ -3709,41 +3763,40 @@ function api_item_property_update(
             $visibility = '1';
             if (!empty($session_id)) {
                 // Check whether session id already exist into item_properties for updating visibility or add it.
-                $sql = "SELECT session_id FROM $TABLE_ITEMPROPERTY
+                $sql = "SELECT session_id FROM $tableItemProperty
                         WHERE
                             c_id = $course_id AND
                             tool = '$tool' AND
-                            ref = '$item_id' AND
-                            session_id = '$session_id'";
+                            ref = $item_id AND
+                            session_id = $session_id";
                 $rs = Database::query($sql);
                 if (Database::num_rows($rs) > 0) {
-                    $sql = "UPDATE $TABLE_ITEMPROPERTY
+                    $sql = "UPDATE $tableItemProperty
                             SET
                                 lastedit_type='".str_replace('_', '', ucwords($tool))."Visible',
                                 lastedit_date='$time',
-                                lastedit_user_id = '$user_id',
-                                visibility='$visibility',
-                                session_id = '$session_id' $set_type
+                                lastedit_user_id = $user_id,
+                                visibility = $visibility,
+                                session_id = $session_id $set_type
                             WHERE $filter";
-                    Database::query($sql);
-                } else {
-                    $sql = "INSERT INTO $TABLE_ITEMPROPERTY (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id,$to_field, visibility, start_visible, end_visible, session_id)
-                            VALUES ($course_id, '$tool', '$item_id', '$time', '$user_id', '$time', '$lastedit_type', '$user_id', '$to_value', '$visibility', '$start_visible', '$end_visible', '$session_id')";
                     $result = Database::query($sql);
-
+                } else {
+                    $sql = "INSERT INTO $tableItemProperty (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id, $to_field, visibility, start_visible, end_visible, session_id)
+                            VALUES ($course_id, '$tool', $item_id, '$time', $user_id, '$time', '$last_edit_type', $user_id, $toValueCondition, $visibility, $startVisible, $endVisible, $session_id)";
+                    $result = Database::query($sql);
                     $id = Database::insert_id();
                     if ($id) {
-                        $sql = "UPDATE $TABLE_ITEMPROPERTY SET id = iid WHERE iid = $id";
+                        $sql = "UPDATE $tableItemProperty SET id = iid WHERE iid = $id";
                         Database::query($sql);
                     }
                 }
             } else {
-                $sql = "UPDATE $TABLE_ITEMPROPERTY
+                $sql = "UPDATE $tableItemProperty
                         SET
                             lastedit_type='".str_replace('_', '', ucwords($tool))."Visible',
                             lastedit_date='$time',
-                            lastedit_user_id='$user_id',
-                            visibility='$visibility' $set_type
+                            lastedit_user_id = $user_id,
+                            visibility = $visibility $set_type
                         WHERE $filter";
                 $result = Database::query($sql);
             }
@@ -3752,67 +3805,70 @@ function api_item_property_update(
             $visibility = '0';
             if (!empty($session_id)) {
                 // Check whether session id already exist into item_properties for updating visibility or add it
-                $sql = "SELECT session_id FROM $TABLE_ITEMPROPERTY
+                $sql = "SELECT session_id FROM $tableItemProperty
                         WHERE
                             c_id = $course_id AND
                             tool = '$tool' AND
-                            ref='$item_id' AND
-                            session_id = '$session_id'";
+                            ref = $item_id AND
+                            session_id = $session_id";
                 $rs = Database::query($sql);
                 if (Database::num_rows($rs) > 0) {
-                    $sql = "UPDATE $TABLE_ITEMPROPERTY
+                    $sql = "UPDATE $tableItemProperty
                             SET
                                 lastedit_type = '".str_replace('_', '', ucwords($tool))."Invisible',
                                 lastedit_date = '$time',
-                                lastedit_user_id='$user_id',
-                                visibility = '$visibility',
-                                session_id = '$session_id' $set_type
+                                lastedit_user_id = $user_id,
+                                visibility = $visibility,
+                                session_id = $session_id $set_type
                             WHERE $filter";
                     $result = Database::query($sql);
                 } else {
-                    $sql = "INSERT INTO $TABLE_ITEMPROPERTY (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id,$to_field, visibility, start_visible, end_visible, session_id)
-                            VALUES ($course_id, '$tool', '$item_id', '$time', '$user_id', '$time', '$lastedit_type', '$user_id', '$to_value', '$visibility', '$start_visible', '$end_visible', '$session_id')";
+                    $sql = "INSERT INTO $tableItemProperty (c_id, tool, ref, insert_date, insert_user_id, lastedit_date, lastedit_type, lastedit_user_id,$to_field, visibility, start_visible, end_visible, session_id)
+                            VALUES ($course_id, '$tool', $item_id, '$time', $user_id, '$time', '$last_edit_type', $user_id, $toValueCondition, $visibility, $startVisible, $endVisible, $session_id)";
                     $result = Database::query($sql);
-
                     $id = Database::insert_id();
-                    $sql = "UPDATE $TABLE_ITEMPROPERTY SET id = iid WHERE iid = $id";
-                    Database::query($sql);
+                    if ($id) {
+                        $sql = "UPDATE $tableItemProperty SET id = iid WHERE iid = $id";
+                        Database::query($sql);
+                    }
                 }
             } else {
-                $sql = "UPDATE $TABLE_ITEMPROPERTY
+                $sql = "UPDATE $tableItemProperty
                         SET
                             lastedit_type = '".str_replace('_', '', ucwords($tool))."Invisible',
                             lastedit_date = '$time',
-                            lastedit_user_id = '$user_id',
-                            visibility = '$visibility' $set_type
+                            lastedit_user_id = $user_id,
+                            visibility = $visibility $set_type
                         WHERE $filter";
                 $result = Database::query($sql);
             }
             break;
         default : // The item will be added or updated.
-            $set_type = ", lastedit_type='$lastedit_type' ";
+            $set_type = ", lastedit_type = '$last_edit_type' ";
             $visibility = '1';
             //$filter .= $to_filter; already added
-            $sql = "UPDATE $TABLE_ITEMPROPERTY
+            $sql = "UPDATE $tableItemProperty
                     SET
                       lastedit_date = '$time',
-                      lastedit_user_id='$user_id' $set_type
+                      lastedit_user_id = $user_id $set_type
                     WHERE $filter";
             $result = Database::query($sql);
     }
 
-    // Insert if no entries are found (can only happen in case of $lastedit_type switch is 'default').
+    // Insert if no entries are found (can only happen in case of $last_edit_type switch is 'default').
     if (Database::affected_rows($result) == 0) {
-        $sql = "INSERT INTO $TABLE_ITEMPROPERTY (c_id, tool,ref,insert_date,insert_user_id,lastedit_date,lastedit_type, lastedit_user_id, $to_field, visibility, start_visible, end_visible, session_id)
-                VALUES ($course_id, '$tool', '$item_id', '$time', '$user_id', '$time', '$lastedit_type', '$user_id', '$to_value', '$visibility', '$start_visible', '$end_visible', '$session_id')";
-        $res = Database::query($sql);
-        if (!$res) {
-            $id = Database::insert_id();
-            $sql = "UPDATE $TABLE_ITEMPROPERTY SET id = iid WHERE iid = $id";
+        $sessionCondition = empty($session_id) ? "NULL" : "'$session_id'";
+        $sql = "INSERT INTO $tableItemProperty (c_id, tool,ref,insert_date,insert_user_id,lastedit_date,lastedit_type, lastedit_user_id, $to_field, visibility, start_visible, end_visible, session_id)
+                VALUES ($course_id, '$tool', $item_id, '$time', $user_id, '$time', '$last_edit_type', $user_id, $toValueCondition, $visibility, $startVisible, $endVisible, $sessionCondition)";
+        Database::query($sql);
+        $id = Database::insert_id();
+        if ($id) {
+            $sql = "UPDATE $tableItemProperty SET id = iid WHERE iid = $id";
             Database::query($sql);
             return false;
         }
     }
+
     return true;
 }
 
@@ -3821,6 +3877,8 @@ function api_item_property_update(
  * @param string    course code
  * @param string    tool name, linked to 'rubrique' of the course tool_list (Warning: language sensitive !!)
  * @param int       id of the item itself, linked to key of every tool ('id', ...), "*" = all items of the tool
+ * @param int $session_id
+ * @return array All fields from c_item_property (all rows found) or empty array
  */
 function api_get_item_property_by_tool($tool, $course_code, $session_id = null)
 {
@@ -3831,6 +3889,9 @@ function api_get_item_property_by_tool($tool, $course_code, $session_id = null)
     $item_property_table = Database::get_course_table(TABLE_ITEM_PROPERTY);
     $session_id = intval($session_id);
     $session_condition = ' AND session_id = '.$session_id;
+    if (empty($session_id)) {
+        $session_condition = " AND (session_id = 0 OR session_id IS NULL) ";
+    }
     $course_id = $course_info['real_id'];
 
     $sql = "SELECT * FROM $item_property_table
@@ -3870,6 +3931,9 @@ function api_get_item_property_list_by_tool_by_user(
     // Definition of tables.
     $item_property_table = Database::get_course_table(TABLE_ITEM_PROPERTY);
     $session_condition = ' AND session_id = '.$session_id;
+    if (empty($session_id)) {
+        $session_condition = " (session_id = 0 OR session_id IS NULL) ";
+    }
     $sql = "SELECT * FROM $item_property_table
             WHERE
                 insert_user_id = $userId AND
@@ -3889,21 +3953,27 @@ function api_get_item_property_list_by_tool_by_user(
 
 /**
  * Gets item property id from tool of a course
- * @param string    course code
- * @param string    tool name, linked to 'rubrique' of the course tool_list (Warning: language sensitive !!)
- * @param int       id of the item itself, linked to key of every tool ('id', ...), "*" = all items of the tool
+ * @param string $course_code course code
+ * @param string $tool tool name, linked to 'rubrique' of the course tool_list (Warning: language sensitive !!)
+ * @param int $ref id of the item itself, linked to key of every tool ('id', ...), "*" = all items of the tool
+ * @param int $sessionId Session ID (optional)
+ * @return int
  */
-function api_get_item_property_id($course_code, $tool, $ref)
+function api_get_item_property_id($course_code, $tool, $ref, $sessionId = 0)
 {
     $course_info = api_get_course_info($course_code);
     $tool = Database::escape_string($tool);
     $ref = intval($ref);
 
     // Definition of tables.
-    $TABLE_ITEMPROPERTY = Database::get_course_table(TABLE_ITEM_PROPERTY);
+    $tableItemProperty = Database::get_course_table(TABLE_ITEM_PROPERTY);
     $course_id = $course_info['real_id'];
-    $sql = "SELECT id FROM $TABLE_ITEMPROPERTY
-            WHERE c_id = $course_id AND tool = '$tool' AND ref = '$ref'";
+    $sessionCondition = " AND session_id = $sessionId ";
+    if (empty($sessionId)) {
+        $sessionCondition = " (session_id = 0 OR session_id IS NULL) ";
+    }
+    $sql = "SELECT id FROM $tableItemProperty
+            WHERE c_id = $course_id AND tool = '$tool' AND ref = $ref $sessionCondition";
     $rs  = Database::query($sql);
     $item_property_id = '';
     if (Database::num_rows($rs) > 0) {
@@ -3972,19 +4042,25 @@ function api_get_track_item_property_history($tool, $ref)
  * @param string    tool name, linked to 'rubrique' of the course tool_list (Warning: language sensitive !!)
  * @param int       id of the item itself, linked to key of every tool ('id', ...), "*" = all items of the tool
  * @param int $session_id
+ * @return array Array with all fields from c_item_property, empty array if not found or false if course could not be found
  */
 function api_get_item_property_info($course_id, $tool, $ref, $session_id = 0)
 {
-    $course_info = api_get_course_info_by_id($course_id);
+    $courseInfo = api_get_course_info_by_id($course_id);
 
-    if (empty($course_info)) {
+    if (empty($courseInfo)) {
         return false;
     }
 
     $tool = Database::escape_string($tool);
     $ref = intval($ref);
-    $course_id = $course_info['real_id'];
+    $course_id = $courseInfo['real_id'];
     $session_id = intval($session_id);
+
+    $sessionCondition = " session_id = $session_id";
+    if (empty($session_id)) {
+        $sessionCondition = " (session_id = 0 OR session_id IS NULL) ";
+    }
 
     // Definition of tables.
     $table = Database::get_course_table(TABLE_ITEM_PROPERTY);
@@ -3994,13 +4070,14 @@ function api_get_item_property_info($course_id, $tool, $ref, $session_id = 0)
                 c_id = $course_id AND
                 tool = '$tool' AND
                 ref = $ref AND
-                session_id = $session_id ";
+                $sessionCondition ";
 
     $rs  = Database::query($sql);
     $row = array();
     if (Database::num_rows($rs) > 0) {
         $row = Database::fetch_array($rs,'ASSOC');
     }
+
     return $row;
 }
 
@@ -4941,11 +5018,13 @@ function api_set_setting($var, $value, $subvar = null, $cat = null, $access_url 
     if (Database::num_rows($res) > 0) {
         // Found item for this access_url.
         $row = Database::fetch_array($res);
-        $update = "UPDATE $t_settings SET selected_value = '$value' WHERE id = ".$row['id'] ;
-        Database::query($update);
+        $sql = "UPDATE $t_settings SET selected_value = '$value'
+                WHERE id = ".$row['id'] ;
+        Database::query($sql);
     } else {
         // Item not found for this access_url, we have to check if it exist with access_url = 1
-        $select = "SELECT * FROM $t_settings WHERE variable = '$var' AND access_url = 1 ";
+        $select = "SELECT * FROM $t_settings
+                   WHERE variable = '$var' AND access_url = 1 ";
         // Just in case
         if ($access_url == 1) {
             if (!empty($subvar)) {
@@ -5078,11 +5157,12 @@ function api_get_access_urls($from = 0, $to = 1000000, $order = 'url', $directio
 /**
  * Gets the access url info in an array
  * @param int $id Id of the access url
+ * @param bool $returnDefault Set to false if you want the real URL if URL 1 is still 'http://localhost/'
  * @return array All the info (url, description, active, created_by, tms)
  * from the access_url table
  * @author Julio Montoya
  */
-function api_get_access_url($id)
+function api_get_access_url($id, $returnDefault = true)
 {
     global $_configuration;
     $id = intval($id);
@@ -5090,11 +5170,29 @@ function api_get_access_url($id)
     //$table_access_url = Database::get_main_table(TABLE_MAIN_ACCESS_URL);
     $table = 'access_url';
     $database = $_configuration['main_database'];
-    $table_access_url =  "".$database.".".$table."";
+    $table_access_url = "" . $database . "." . $table . "";
     $sql = "SELECT url, description, active, created_by, tms
             FROM $table_access_url WHERE id = '$id' ";
     $res = Database::query($sql);
     $result = @Database::fetch_array($res);
+    // If the result url is 'http://localhost/' (the default) and the root_web
+    // (=current url) is different, and the $id is = 1 (which might mean
+    // api_get_current_access_url_id() returned 1 by default), then return the
+    // root_web setting instead of the current URL
+    // This is provided as an option to avoid breaking the storage of URL-specific
+    // homepages in home/localhost/
+    if ($id === 1 && $returnDefault === false) {
+        $currentUrl = api_get_current_access_url_id();
+        // only do this if we are on the main URL (=1), otherwise we could get
+        // information on another URL instead of the one asked as parameter
+        if ($currentUrl === 1) {
+            $rootWeb = api_get_path(WEB_PATH);
+            $default = 'http://localhost/';
+            if ($result['url'] === $default && $rootWeb != $default) {
+                $result['url'] = $rootWeb;
+            }
+        }
+    }
     return $result;
 }
 
@@ -5142,7 +5240,9 @@ function & api_get_settings($cat = null, $ordering = 'list', $access_url = 1, $u
     if ($url_changeable == 1) {
         $where_condition = " AND access_url_changeable= '1' ";
     }
-    if (empty($access_url) or $access_url == -1) { $access_url = 1; }
+    if (empty($access_url) || $access_url == -1) {
+        $access_url = 1;
+    }
     $sql = "SELECT * FROM $table
             WHERE access_url = $access_url  $where_condition ";
 
@@ -5170,7 +5270,7 @@ function & api_get_settings_categories($exceptions = array(), $access_url = 1) {
     $t_cs = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
     $list = "'".implode("','",$exceptions)."'";
     $sql = "SELECT DISTINCT category FROM $t_cs WHERE category is NOT NULL ";
-    if ($list != "'',''" and $list != "''" and !empty($list)) {
+    if ($list != "'',''" && $list != "''" && !empty($list)) {
         $sql .= " AND category NOT IN ($list) ";
     }
     $result = Database::store_result(Database::query($sql));
@@ -6964,7 +7064,7 @@ function api_set_settings_and_plugins() {
         $_setting[$key][] = $row['selected_value'];
         $_plugins[$key][] = $row['selected_value'];
     }
-    //global $app;
+
     $_SESSION['_setting'] = $_setting;
     $_SESSION['_plugins'] = $_plugins;
 }
@@ -7397,15 +7497,6 @@ function convert_double_quote_to_single($in_text) {
 }
 
 /**
- * Is unoconv installed
- * @return bool
- */
-function api_is_unoconv_installed()
-{
-    return false;
-}
-
-/**
  * Get origin
  *
  * @param string
@@ -7465,7 +7556,8 @@ function api_get_configuration_value($variable)
  */
 function api_get_supported_image_extensions()
 {
-    $supportedImageExtensions = array('jpg', 'jpeg', 'png', 'gif', 'svg');
+    // jpg can also be called jpeg, jpe, jfif and jif. See https://en.wikipedia.org/wiki/JPEG#JPEG_filename_extensions
+    $supportedImageExtensions = array('jpg', 'jpeg', 'png', 'gif', 'svg', 'jpe', 'jfif', 'jif');
     if (version_compare(PHP_VERSION, '5.5.0', '>=')) {
         array_push($supportedImageExtensions, 'webp');
     }
@@ -7851,10 +7943,12 @@ function api_protect_course_group($tool, $showHeader = true)
  */
 function api_protect_limit_for_session_admin()
 {
-    if (
-        api_is_session_admin() &&
-        api_get_configuration_value('limit_session_admin_role')
-    ) {
+    $limitAdmin = api_get_setting('limit_session_admin_role');
+    if (api_is_session_admin() && $limitAdmin === 'true') {
         api_not_allowed(true);
     }
+}
+
+function api_is_student_view_active() {
+    return (isset($_SESSION['studentview']) && $_SESSION['studentview'] == "studentview");
 }

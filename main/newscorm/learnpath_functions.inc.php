@@ -24,7 +24,7 @@
  * @todo remove code duplication
  */
 
-use \ChamiloSession as Session;
+use ChamiloSession as Session;
 
 /**
  * This function deletes an item
@@ -547,7 +547,8 @@ function display_learnpath_chapters($parent_item_id = 0, $tree = array (), $leve
  * @return	void
  * @todo eliminate all global $lang declarations, use get_lang, improve structure.
  */
-function display_learnpath_items($categoryid) {
+function display_learnpath_items($categoryid)
+{
     global $xml_output;
     global $lg_prerequisites, $lg_move_down, $lg_move_up, $lg_edit_learnpath_item, $lg_delete_learnpath_item, $learnpath_id, $lg_add_prereq, $lg_prereq_deleted_error, $lg_pre_short, $langThisItem;
     $course_id = api_get_course_int_id();
@@ -1808,43 +1809,6 @@ function deldir($dir) {
         return true;
     }
     return false;
-}
-
-/**
- * Export SCORM content into a zip file
- *
- * Basically, all this function does is put the scorm directory back into a zip file (like the one
- * that was most probably used to import the course at first)
- * @deprecated this function is only called in the newscorm/scorm_admin.php which is deprecated
- *
- * @param	string	Name of the SCORM path (or the directory under which it resides)
- * @param	array		Not used right now. Should replace the use of global $_course
- * @return	void
- * @author	imandak80
- */
-function exportSCORM($scormname, $course) {
-    global $_course;
-
-    // Initialize.
-    $tmpname = api_get_path(SYS_COURSE_PATH).$_course['path'].'/scorm';
-    $zipfoldername = $tmpname.$scormname;
-    $zipfilename = $zipfoldername.'.zip';
-
-    // Create zipfile of given directory.
-    include_once api_get_path(LIBRARY_PATH).'pclzip/pclzip.lib.php';
-    $zip_folder = new PclZip($zipfilename);
-    $list = 1;
-    //$list = $zip_folder->create($zipfoldername.'/',PCLZIP_OPT_REMOVE_PATH,$tmpname.$scormname."/"); // whitout folder
-    $list = $zip_folder->create($zipfoldername.'/', PCLZIP_OPT_REMOVE_PATH, $tmpname);
-    if ($list == 0) {
-        //echo "Error  : ".$zip_folder->errorInfo(true);
-    }
-
-    // Send to client.
-    DocumentManager :: file_send_for_download($zipfilename, false, basename($scormname.'.zip'));
-
-    // Clear.
-    my_delete($zipfilename);
 }
 
 /**

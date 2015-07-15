@@ -74,6 +74,16 @@ class FeatureContext extends MinkContext
         );
     }
     /**
+     * @Given /^I am a teacher in course "([^"]*)"$/
+     * @Todo implement
+     */
+    public function iAmATeacherInCourse($course)
+    {
+        //$sql = "SELECT * FROM course_rel_user WHERE c_id = X AND user_id = ";
+        //$result = ...
+        //if ($result !== false) { ... }
+    }
+    /**
      * @Given /^I am a student$/
      */
     public function iAmAStudent()
@@ -123,6 +133,49 @@ class FeatureContext extends MinkContext
             new Given('I fill in "login" with "bproudfoot"'),
             new Given('I fill in "password" with "bproudfoot"'),
             new Given('I press "submitAuth"')
+        );
+    }
+    /**
+     * @Given /^course "([^"]*)" exists$/
+     */
+    public function courseExists($argument)
+    {
+        return array(
+            new Given('I am a platform administrator'),
+            new Given('I am on "/main/admin/course_list.php?keyword=' . $argument . '"'),
+            new Given('I should see "' . $argument . '"'),
+        );
+    }
+    /**
+     * @Given /^course "([^"]*)" is deleted$/
+     */
+    public function courseIsDeleted($argument)
+    {
+        return array(
+            new Given('I am a platform administrator'),
+            new Given('I am on "/main/admin/course_list.php?keyword=' . $argument . '"'),
+            new Given('I follow "Delete"')
+        );
+    }
+    /**
+     * @Given /^I am in course "([^"]*)"$/
+     * @Todo redefine function to be different from I am on course TEMP homepage
+     */
+    public function iAmInCourse($argument)
+    {
+        return array(
+            new Given('I am on "/main/course_home/course_home.php?cDir=' . $argument . '"'),
+            new Given('I should not see an ".alert-danger" element')
+        );
+    }
+    /**
+     * @Given /^I am on course "([^"]*)" homepage$/
+     */
+    public function iAmOnCourseXHomepage($argument)
+    {
+        return array(
+            new Given('I am on "/main/course_home/course_home.php?cDir=' . $argument . '"'),
+            new Given('I should not see an ".alert-danger" element')
         );
     }
 }

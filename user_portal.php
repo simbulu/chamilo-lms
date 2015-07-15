@@ -9,7 +9,7 @@
  * - menu bar
  * Search for CONFIGURATION parameters to modify settings
  * @package chamilo.main
- * @todo Shouldn't the SCRIPTVAL_ and CONFVAL_ constant be moved to the config page? Has anybody any idea what the are used for?
+ * @todo Shouldn't the CONFVAL_ constant be moved to the config page? Has anybody any idea what the are used for?
  *       If these are really configuration settings then we can add those to the dokeos config settings.
  * @todo check for duplication of functions with index.php (user_portal.php is orginally a copy of index.php)
  * @todo display_digest, shouldn't this be removed and be made into an extension?
@@ -39,52 +39,52 @@ $load_dirs = api_get_setting('show_documents_preview');
 $controller = new IndexManager(get_lang('MyCourses'));
 
 // Main courses and session list
-$courseAndSessions = $controller->return_courses_and_sessions($userId);
+$courseAndSessions = $controller->returnCoursesAndSessions($userId);
 
 // Check if a user is enrolled only in one course for going directly to the course after the login.
 if (api_get_setting('go_to_course_after_login') == 'true') {
-	$count_of_sessions = $courseAndSessions['session_count'];
-	$count_of_courses_no_sessions = $courseAndSessions['course_count'];
+    $count_of_sessions = $courseAndSessions['session_count'];
+    $count_of_courses_no_sessions = $courseAndSessions['course_count'];
     // User is subscribe in 1 session and 0 courses.
-	if ($count_of_sessions == 1 && $count_of_courses_no_sessions == 0) {
-		$sessions = SessionManager::get_sessions_by_user($userId);
+    if ($count_of_sessions == 1 && $count_of_courses_no_sessions == 0) {
+        $sessions = SessionManager::get_sessions_by_user($userId);
 
-		if (isset($sessions[0])) {
-			$sessionInfo = $sessions[0];
+        if (isset($sessions[0])) {
+            $sessionInfo = $sessions[0];
             // Session only has 1 course.
             if (isset($sessionInfo['courses']) && count($sessionInfo['courses']) == 1) {
                 $courseCode = $sessionInfo['courses'][0]['code'];
                 $courseInfo = api_get_course_info_by_id($sessionInfo['courses'][0]['real_id']);
-                $courseUrl = $courseInfo['course_public_url'].'?id_session='.$sessionInfo['session_id'];
-                header('Location:'.$courseUrl);
+                $courseUrl = $courseInfo['course_public_url'] . '?id_session=' . $sessionInfo['session_id'];
+                header('Location:' . $courseUrl);
                 exit;
             }
 
             // Session has many courses.
-			if (isset($sessionInfo['session_id'])) {
-				$url = api_get_path(WEB_CODE_PATH).'session/?session_id='.$sessionInfo['session_id'];
+            if (isset($sessionInfo['session_id'])) {
+                $url = api_get_path(WEB_CODE_PATH) . 'session/?session_id=' . $sessionInfo['session_id'];
 
-				header('Location:'.$url);
-				exit;
-			}
-		}
-	}
+                header('Location:' . $url);
+                exit;
+            }
+        }
+    }
 
     // User is subscribed to 1 course.
-	if (!isset($_SESSION['coursesAlreadyVisited']) &&
-		$count_of_sessions == 0 && $count_of_courses_no_sessions == 1
-	) {
-		$courses = CourseManager::get_courses_list_by_user_id($userId);
+    if (!isset($_SESSION['coursesAlreadyVisited']) &&
+        $count_of_sessions == 0 && $count_of_courses_no_sessions == 1
+    ) {
+        $courses = CourseManager::get_courses_list_by_user_id($userId);
 
-		if (!empty($courses) && isset($courses[0]) && isset($courses[0]['code'])) {
-			$courseInfo = api_get_course_info_by_id($courses[0]['real_id']);
-			if (!empty($courseInfo)) {
-				$courseUrl = $courseInfo['course_public_url'];
-				header('Location:'.$courseUrl);
-				exit;
-			}
-		}
-	}
+        if (!empty($courses) && isset($courses[0]) && isset($courses[0]['code'])) {
+            $courseInfo = api_get_course_info_by_id($courses[0]['real_id']);
+            if (!empty($courseInfo)) {
+                $courseUrl = $courseInfo['course_public_url'];
+                header('Location:' . $courseUrl);
+                exit;
+            }
+        }
+    }
 }
 
 $nameTools = get_lang('MyCourses');
@@ -140,28 +140,28 @@ if (empty($courseAndSessions['html']) && !isset($_GET['history'])) {
 $controller->tpl->assign('content', $courseAndSessions['html']);
 
 if (api_get_setting('allow_browser_sniffer') == 'true') {
-	if ($_SESSION['sniff_navigator']!="checked") {
-		$controller->tpl->assign('show_sniff', 	1);
-	} else {
-		$controller->tpl->assign('show_sniff', 	0);
-	}
+    if ($_SESSION['sniff_navigator'] != "checked") {
+        $controller->tpl->assign('show_sniff', 1);
+    } else {
+        $controller->tpl->assign('show_sniff', 0);
+    }
 }
 
 // Display the Site Use Cookie Warning Validation
-$useCookieValidation = api_get_configuration_value('cookie_warning');
-if ($useCookieValidation) {
-	if (isset($_POST['acceptCookies'])) {
-		api_set_site_use_cookie_warning_cookie();
-	} else {
-		if (!api_site_use_cookie_warning_cookie_exist()) {
-			if (Template::isToolBarDisplayedForUser()) {
-				$controller->tpl->assign('toolBarDisplayed', true);
-			} else {
-				$controller->tpl->assign('toolBarDisplayed', false);
-			}
-			$controller->tpl->assign('displayCookieUsageWarning', true);
-		}
-	}
+$useCookieValidation = api_get_setting('cookie_warning');
+if ($useCookieValidation === 'true') {
+    if (isset($_POST['acceptCookies'])) {
+        api_set_site_use_cookie_warning_cookie();
+    } else {
+        if (!api_site_use_cookie_warning_cookie_exist()) {
+            if (Template::isToolBarDisplayedForUser()) {
+                $controller->tpl->assign('toolBarDisplayed', true);
+            } else {
+                $controller->tpl->assign('toolBarDisplayed', false);
+            }
+            $controller->tpl->assign('displayCookieUsageWarning', true);
+        }
+    }
 }
 
 //check for flash and message
@@ -169,12 +169,12 @@ $sniff_notification = '';
 $some_activex = isset($_SESSION['sniff_check_some_activex']) ? $_SESSION['sniff_check_some_activex'] : null;
 $some_plugins = isset($_SESSION['sniff_check_some_plugins']) ? $_SESSION['sniff_check_some_plugins'] : null;
 
-if(!empty($some_activex) || !empty($some_plugins)){
-	if (! preg_match("/flash_yes/", $some_activex) && ! preg_match("/flash_yes/", $some_plugins)) {
-		$sniff_notification = Display::return_message(get_lang('NoFlash'), 'warning', true);
-		//js verification - To annoying of redirecting every time the page
-		$controller->tpl->assign('sniff_notification',  $sniff_notification);
-	}
+if (!empty($some_activex) || !empty($some_plugins)) {
+    if (!preg_match("/flash_yes/", $some_activex) && !preg_match("/flash_yes/", $some_plugins)) {
+        $sniff_notification = Display::return_message(get_lang('NoFlash'), 'warning', true);
+        //js verification - To annoying of redirecting every time the page
+        $controller->tpl->assign('sniff_notification', $sniff_notification);
+    }
 }
 
 $controller->tpl->assign('profile_block', $controller->return_profile_block());
