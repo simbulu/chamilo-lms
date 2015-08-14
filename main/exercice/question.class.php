@@ -380,10 +380,7 @@ abstract class Question
                 $res = Database::query($sql);
                 $row = Database::fetch_array($res);
                 if ($row['nb'] > 0) {
-                    //DO nothing
-                    //$sql = "UPDATE $TBL_QUESTION_REL_CATEGORY SET category_id = $category_id
-                    //WHERE question_id=$question_id AND c_id=".api_get_course_int_id();
-                    //$res = Database::query($sql);
+                    // DO nothing
                 } else {
                     $sql = "INSERT INTO $TBL_QUESTION_REL_CATEGORY (c_id, question_id, category_id)
                             VALUES (" . api_get_course_int_id() . ", $question_id, $category_id)";
@@ -406,20 +403,20 @@ abstract class Question
         } else {
             // update or add category for a question
 
-            $TBL_QUESTION_REL_CATEGORY = Database::get_course_table(TABLE_QUIZ_QUESTION_REL_CATEGORY);
+            $table = Database::get_course_table(TABLE_QUIZ_QUESTION_REL_CATEGORY);
             $category_id = intval($in_category);
             $question_id = intval($this->id);
-            $sql = "SELECT count(*) AS nb FROM $TBL_QUESTION_REL_CATEGORY
+            $sql = "SELECT count(*) AS nb FROM $table
                     WHERE question_id = $question_id AND c_id=" . api_get_course_int_id();
             $res = Database::query($sql);
             $row = Database::fetch_array($res);
-            if ($row['nb'] > 0){
-                $sql = "UPDATE $TBL_QUESTION_REL_CATEGORY SET category_id = $category_id
-                    WHERE question_id = $question_id AND c_id = " . api_get_course_int_id();
+            if ($row['nb'] > 0) {
+                $sql = "UPDATE $table SET category_id = $category_id
+                        WHERE question_id = $question_id AND c_id = " . api_get_course_int_id();
                 Database::query($sql);
             } else {
-                $sql = "INSERT INTO $TBL_QUESTION_REL_CATEGORY
-                    VALUES (" . api_get_course_int_id() . ", $question_id, $category_id)";
+                $sql = "INSERT INTO $table
+                        VALUES (" . api_get_course_int_id() . ", $question_id, $category_id)";
                 Database::query($sql);
             }
         }
@@ -433,9 +430,9 @@ abstract class Question
      */
     public function deleteCategory()
     {
-        $TBL_QUESTION_REL_CATEGORY = Database::get_course_table(TABLE_QUIZ_QUESTION_REL_CATEGORY);
+        $table = Database::get_course_table(TABLE_QUIZ_QUESTION_REL_CATEGORY);
         $question_id = intval($this->id);
-        $sql = "DELETE FROM $TBL_QUESTION_REL_CATEGORY
+        $sql = "DELETE FROM $table
                 WHERE question_id = $question_id AND c_id = " . api_get_course_int_id();
         Database::query($sql);
     }
@@ -775,18 +772,23 @@ abstract class Question
 
         // question already exists
         if(!empty($id)) {
-            $sql = "UPDATE $TBL_QUESTIONS
-                    SET
-                        question = '" . Database::escape_string($question) . "',
-                        description = '" . Database::escape_string($description) . "',
-                        ponderation = '" . Database::escape_string($weighting) . "',
-                        position = '" . Database::escape_string($position) . "',
-                        type = '" . Database::escape_string($type) . "',
-                        picture = '" . Database::escape_string($picture) . "',
-                        extra = '" . Database::escape_string($extra) . "',
-                        level = '" . Database::escape_string($level) . "'
-                    WHERE c_id = $c_id  AND id = " . intval($id);
-            Database::query($sql);
+
+            $params = [
+                'question' => $question,
+                'description' => $description,
+                'ponderation' => $weighting,
+                'position' => $position,
+                'type' => $type,
+                'picture' => $picture,
+                'extra' => $extra,
+                'level' => $level,
+            ];
+
+            Database::update(
+                $TBL_QUESTIONS,
+                $params,
+                ['c_id = ? AND id = ?' => [$c_id, $id]]
+            );
             $this->saveCategory($category);
 
             if (!empty($exerciseId)) {
@@ -822,23 +824,21 @@ abstract class Question
             $current_position = Database::result($result,0,0);
             $this->updatePosition($current_position+1);
             $position = $this->position;
-            $sql = "INSERT INTO $TBL_QUESTIONS (
-                    c_id, question, description, ponderation, position, type, picture, extra, level
-                )
-                VALUES (
-                    $c_id,
-                    '" . Database::escape_string($question) . "',
-                    '" . Database::escape_string($description) . "',
-                    '" . Database::escape_string($weighting) . "',
-                    '" . Database::escape_string($position) . "',
-                    '" . Database::escape_string($type) . "',
-                    '" . Database::escape_string($picture) . "',
-                    '" . Database::escape_string($extra) . "',
-                    '" . Database::escape_string($level) . "'
-                )";
-            Database::query($sql);
 
-            $this->id = Database::insert_id();
+            $params = [
+                'c_id' => $c_id,
+                'question' => $question,
+                'description' => $description,
+                'ponderation' => $weighting,
+                'position' => $position,
+                'type' => $type,
+                'picture'  => $picture,
+                'extra' => $extra,
+                'level' => $level
+            ];
+
+            $this->id = Database::insert($TBL_QUESTIONS, $params);
+
             if ($this->id) {
 
                 $sql = "UPDATE $TBL_QUESTIONS SET id = iid WHERE iid = {$this->id}";
@@ -857,23 +857,18 @@ abstract class Question
                     $TBL_ANSWERS = Database::get_course_table(
                         TABLE_QUIZ_ANSWER
                     );
-                    $sql = "INSERT INTO $TBL_ANSWERS (
-                            c_id, question_id , answer, correct, comment, ponderation, position, hotspot_coordinates,
-                            hotspot_type
-                        )
-                        VALUES (
-                            $c_id,
-                            " . intval($this->id) . ",
-                            '',
-                            NULL,
-                            '',
-                            '10',
-                            '1',
-                            '0;0|0|0',
-                            'square'
-                        )";
-                    Database::query($sql);
-                    $id = Database::insert_id();
+                    $params = [
+                        'c_id' => $c_id,
+                        'question_id' => $this->id,
+                        'answer' => '',
+                        'correct' => '',
+                        'comment' => '',
+                        'ponderation' => 10,
+                        'position' => 1,
+                        'hotspot_coordinates' => '0;0|0|0',
+                        'hotspot_type' => 'square',
+                    ];
+                    $id = Database::insert($TBL_ANSWERS, $params);
                     if ($id) {
                         $sql = "UPDATE $TBL_ANSWERS SET id = id_auto WHERE id_auto = $id";
                         Database::query($sql);
@@ -884,16 +879,19 @@ abstract class Question
                     $TBL_ANSWERS = Database::get_course_table(
                         TABLE_QUIZ_ANSWER
                     );
-                    $sql = "INSERT INTO $TBL_ANSWERS (
-                            c_id, question_id, answer, correct, comment, ponderation, position, hotspot_coordinates,
-                            hotspot_type
-                        )
-                        VALUES (
-                            $c_id, " . intval($this->id) . ", '', NULL , '', '10' , '1', '0;0|0|0', 'delineation'
-                        )";
-                    Database::query($sql);
+                    $params = [
+                        'c_id' => $c_id,
+                        'question_id' => $this->id,
+                        'answer' => '',
+                        'correct' => '',
+                        'comment' => '',
+                        'ponderation' => 10,
+                        'position' => 1,
+                        'hotspot_coordinates' => '0;0|0|0',
+                        'hotspot_type' => 'delineation',
+                    ];
+                    $id = Database::insert($TBL_ANSWERS, $params);
 
-                    $id = Database::insert_id();
                     if ($id) {
                         $sql = "UPDATE $TBL_ANSWERS SET id = id_auto WHERE id_auto = $id";
                         Database::query($sql);
@@ -915,13 +913,6 @@ abstract class Question
 
         // if the question is created in an exercise
         if ($exerciseId) {
-            /*
-            $sql = 'UPDATE '.Database::get_course_table(TABLE_LP_ITEM).'
-                    SET max_score = '.intval($weighting).'
-                    WHERE item_type = "'.TOOL_QUIZ.'"
-                    AND path='.intval($exerciseId);
-            Database::query($sql);
-            */
             // adds the exercise into the exercise list of this question
             $this->addToList($exerciseId, TRUE);
         }
@@ -1087,8 +1078,8 @@ abstract class Question
             $new_exercise->read($exerciseId);
             $count = $new_exercise->selectNbrQuestions();
             $count++;
-            $sql="INSERT INTO $exerciseRelQuestionTable (c_id, question_id, exercice_id, question_order)
-                VALUES ({$this->course['real_id']}, " . intval($id) . ", " . intval($exerciseId) . ", '$count')";
+            $sql = "INSERT INTO $exerciseRelQuestionTable (c_id, question_id, exercice_id, question_order)
+                    VALUES ({$this->course['real_id']}, " . intval($id) . ", " . intval($exerciseId) . ", '$count')";
             Database::query($sql);
 
             // we do not want to reindex if we had just saved adnd indexed the question
@@ -1269,23 +1260,19 @@ abstract class Question
         //Read the source options
         $options = self::readQuestionOption($this->id, $this->course['real_id']);
 
-        //Inserting in the new course db / or the same course db
-        $sql = "INSERT INTO $TBL_QUESTIONS (
-                c_id, question, description, ponderation, position, type, level, extra
-            )
-            VALUES (
-                '$course_id',
-                '" . Database::escape_string($question) . "',
-                '" . Database::escape_string($description) . "',
-                '" . Database::escape_string($weighting) . "',
-                '" . Database::escape_string($position) . "',
-                '" . Database::escape_string($type) . "',
-                '" . Database::escape_string($level) . "',
-                '" . Database::escape_string($extra) . "'
-            )";
-        Database::query($sql);
+        // Inserting in the new course db / or the same course db
+        $params = [
+            'c_id' => $course_id,
+            'question' => $question,
+            'description' => $description,
+            'ponderation' => $weighting,
+            'position' => $position,
+            'type' => $type,
+            'level' => $level,
+            'extra' => $extra
+        ];
+        $new_question_id = Database::insert($TBL_QUESTIONS, $params);
 
-        $new_question_id = Database::insert_id();
         if ($new_question_id) {
 
             $sql = "UPDATE $TBL_QUESTIONS SET id = iid WHERE iid = $new_question_id";
@@ -1720,7 +1707,7 @@ abstract class Question
 
         $header .= Display::page_subheader2($counter_label . ". " . $question_title);
         $header .= Display::div(
-            "<div class=\"rib rib-$class\"><h3>$score_label'</h3></div> <h4>{$score['result']}</h4>",
+            "<div class=\"rib rib-$class\"><h3>$score_label</h3></div> <h4>{$score['result']}</h4>",
             array('class' => 'ribbon')
         );
         $header .= Display::div($this->description, array('id' => 'question_description'));
@@ -1765,23 +1752,17 @@ abstract class Question
         $row_max = Database::fetch_object($rs_max);
         $max_position = $row_max->max_position + 1;
 
-        // Insert the new question
-        $sql = "INSERT INTO $tbl_quiz_question (
-                c_id, question, description, ponderation, position, type, level
-            )
-            VALUES (
-                $course_id,
-                '" . Database::escape_string($question_name) . "',
-                '" . Database::escape_string($question_description) . "',
-                '$max_score',
-                $max_position,
-                $type,
-                $level
-            )";
-        Database::query($sql);
+        $params = [
+            'c_id' => $course_id,
+            'question' => $question_name,
+            'description' => $question_description,
+            'ponderation' => $max_score,
+            'position' => $max_position,
+            'type' => $type,
+            'level' => $level,
+        ];
+        $question_id = Database::insert($tbl_quiz_question, $params);
 
-        // Get the question ID
-        $question_id = Database::insert_id();
         if ($question_id) {
 
             $sql = "UPDATE $tbl_quiz_question SET id = iid WHERE iid = $question_id";
@@ -1795,7 +1776,7 @@ abstract class Question
             $row_max_order = Database::fetch_object($rs_max_order);
             $max_order = $row_max_order->max_order + 1;
             // Attach questions to quiz
-            $sql = "INSERT INTO $tbl_quiz_rel_question (c_id, question_id,exercice_id,question_order)
+            $sql = "INSERT INTO $tbl_quiz_rel_question (c_id, question_id, exercice_id, question_order)
                     VALUES($course_id, $question_id, $quiz_id, $max_order)";
             Database::query($sql);
         }

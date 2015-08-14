@@ -104,7 +104,7 @@ if ($origin == 'learnpath') {
 <?php
 }
 
-$i = $total_score = $total_weight = 0;
+$i = $total_score = $max_score = 0;
 
 //We check if the user attempts before sending to the exercise_result.php
 if ($objExercise->selectAttempts() > 0) {
@@ -127,21 +127,13 @@ if ($objExercise->selectAttempts() > 0) {
         exit;
     }
 }
+$total_score = $objExercise->get_stat_track_exercise_info_by_exe_id($objExercise->id)['exe_result'];
+$max_score = $objExercise->get_max_score();
 
 Display :: display_normal_message(get_lang('Saved').'<br />',false);
 
 // Display and save questions
 ExerciseLib::display_question_list_by_attempt($objExercise, $exe_id, true);
-
-//If is not valid
-
-/*
-$session_control_key = ExerciseLib::get_session_time_control_key($objExercise->id, $learnpath_id, $learnpath_item_id);
-if (isset($session_control_key) && !ExerciseLib::exercise_time_control_is_valid($objExercise->id, $learnpath_id, $learnpath_item_id)) {
-	$TBL_TRACK_ATTEMPT		= Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
-	$sql_fraud = "UPDATE $TBL_TRACK_ATTEMPT SET answer = 0, marks = 0, position = 0 WHERE exe_id = $exe_id ";
-	Database::query($sql_fraud);
-}*/
 
 //Unset session for clock time
 ExerciseLib::exercise_time_control_delete($objExercise->id, $learnpath_id, $learnpath_item_id);
@@ -168,7 +160,7 @@ if ($origin != 'learnpath') {
     }
 
 	// Record the results in the learning path, using the SCORM interface (API)
-	echo "<script>window.parent.API.void_save_asset('$total_score', '$total_weight', 0, 'completed');</script>";
+	echo "<script>window.parent.API.void_save_asset('$total_score', '$max_score', 0, 'completed');</script>";
     echo '<script type="text/javascript">'.$href.'</script>';
 	echo '</body></html>';
 }

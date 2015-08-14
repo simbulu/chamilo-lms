@@ -26,6 +26,9 @@ use Symfony\Component\Filesystem\Filesystem;
  */
 class Export
 {
+    /**
+     * Constructor
+     */
 	private function __construct()
     {
 	}
@@ -46,12 +49,12 @@ class Export
         $writer = new CsvWriter();
         $writer->setStream(fopen($filePath, 'w'));
 
-        foreach($data as $item) {
+        foreach ($data as $item) {
             $writer->writeItem($item);
         }
         $writer->finish();
 
-        DocumentManager::file_send_for_download($filePath, false, $filename.'.csv');
+        DocumentManager::file_send_for_download($filePath, true, $filename.'.csv');
         exit;
 	}
 
@@ -62,7 +65,7 @@ class Export
      */
     public static function arrayToXls($data, $filename = 'export', $encoding = 'utf-8')
     {
-        $filePath = api_get_path(SYS_ARCHIVE_PATH).uniqid('').'.xls';
+        $filePath = api_get_path(SYS_ARCHIVE_PATH).uniqid('').'.xlsx';
 
         $file = new \SplFileObject($filePath, 'w');
         $writer = new ExcelWriter($file);
@@ -74,7 +77,7 @@ class Export
 
         $writer->finish();
 
-        DocumentManager::file_send_for_download($filePath, false, $filename.'.xls');
+        DocumentManager::file_send_for_download($filePath, true, $filename.'.xlsx');
         exit;
 	}
 
@@ -104,7 +107,8 @@ class Export
         }
         fwrite($handle, '</table></body></html>');
         fclose($handle);
-        DocumentManager::file_send_for_download($file, false, $filename.'.xls');
+        DocumentManager::file_send_for_download($file, true, $filename.'.xls');
+        exit;
     }
 
     /**
@@ -115,8 +119,13 @@ class Export
     * @param string Name of the root element. A root element should always be given.
     * @param string Encoding in which the data is provided
     */
-	public static function arrayToXml($data, $filename = 'export', $item_tagname = 'item', $wrapper_tagname = null, $encoding = null)
-    {
+    public static function arrayToXml(
+        $data,
+        $filename = 'export',
+        $item_tagname = 'item',
+        $wrapper_tagname = null,
+        $encoding = null
+    ) {
 		if (empty($encoding)) {
 			$encoding = api_get_system_encoding();
 		}
@@ -138,7 +147,7 @@ class Export
 		}
 		fclose($handle);
 		DocumentManager :: file_send_for_download($file, true, $filename.'.xml');
-		return false;
+        exit;
 	}
 
     /**
@@ -150,8 +159,12 @@ class Export
      * @param string Encoding in which the data is provided
      * @return void  Prompts the user for a file download
      */
-    public static function export_complex_table_xml ($data, $filename = 'export', $wrapper_tagname, $encoding = 'ISO-8859-1')
-    {
+    public static function export_complex_table_xml(
+        $data,
+        $filename = 'export',
+        $wrapper_tagname,
+        $encoding = 'ISO-8859-1'
+    ) {
         $file = api_get_path(SYS_ARCHIVE_PATH).'/'.uniqid('').'.xml';
         $handle = fopen($file, 'a+');
         fwrite($handle, '<?xml version="1.0" encoding="'.$encoding.'"?>'."\n");
@@ -175,7 +188,7 @@ class Export
      * @param   int     Level of recursivity. Allows the XML to be finely presented
      * @return string   The XML string to be inserted into the root element
      */
-    public static function _export_complex_table_xml_helper ($data, $level = 1)
+    public static function _export_complex_table_xml_helper($data, $level = 1)
     {
         if (count($data) < 1) {
             return '';
@@ -259,6 +272,7 @@ class Export
             $row++;
         }
         $table_tp_html = $table->toHtml();
+
         return $table_tp_html;
     }
 

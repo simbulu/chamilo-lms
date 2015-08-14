@@ -14,9 +14,7 @@
 *
 *	@package chamilo.auth
 */
-/**
- * Code
- */
+
 require_once '../inc/global.inc.php';
 
 // Custom pages
@@ -63,24 +61,36 @@ if (CustomPages::enabled()) {
 }
 
 $tool_name = get_lang('LostPassword');
-Display :: display_header($tool_name);
 
-$this_section 	= SECTION_CAMPUS;
-$tool_name 		= get_lang('LostPass');
+$this_section = SECTION_CAMPUS;
+$tool_name = get_lang('LostPass');
 
 // Forbidden to retrieve the lost password
 if (api_get_setting('allow_lostpassword') == 'false') {
-	api_not_allowed();
+	api_not_allowed(true);
 }
 
+$formToString = '';
 if (isset($_GET['reset']) && isset($_GET['id'])) {
-    $message = Display::return_message(Login::reset_password($_GET["reset"], $_GET["id"], true), 'normal', false);
+    $message = Display::return_message(
+        Login::reset_password($_GET["reset"], $_GET["id"], true),
+        'normal',
+        false
+    );
 	$message .= '<a href="'.api_get_path(WEB_CODE_PATH).'auth/lostPassword.php" class="btn btn-back" >'.get_lang('Back').'</a>';
-	echo $message;
+	Display::addFlash($message);
 } else {
 	$form = new FormValidator('lost_password');
     $form->addElement('header', $tool_name);
-	$form->addElement('text', 'user', array(get_lang('LoginOrEmailAddress'), get_lang('EnterEmailUserAndWellSendYouPassword')), array('size'=>'40'));
+    $form->addElement(
+        'text',
+        'user',
+        array(
+            get_lang('LoginOrEmailAddress'),
+            get_lang('EnterEmailUserAndWellSendYouPassword'),
+        ),
+        array('size' => '40')
+    );
 	$form->addButtonSend(get_lang('Send'));
 
 	// Setting the rules
@@ -88,24 +98,46 @@ if (isset($_GET['reset']) && isset($_GET['id'])) {
 
 	if ($form->validate()) {
 		$values = $form->exportValues();
-        $users_related_to_username = Login::get_user_accounts_by_username(
+
+        $usersRelatedToUsername = Login::get_user_accounts_by_username(
             $values['user']
         );
 
-		if ($users_related_to_username) {
+		if ($usersRelatedToUsername) {
             $by_username = true;
-            foreach ($users_related_to_username as $user) {
+            foreach ($usersRelatedToUsername as $user) {
                 if ($_configuration['password_encryption'] != 'none') {
-                    Login::handle_encrypted_password($user, $by_username);
+                    $setting = api_get_setting('user_reset_password');
+                    if ($setting === 'true') {
+                        $userObj = Database::getManager()->getRepository('ChamiloUserBundle:User')->find($user['uid']);
+                        Login::sendResetEmail($userObj);
+                    } else {
+                        $message = Login::handle_encrypted_password($user, $by_username);
+                        Display::addFlash($message);
+                    }
                 } else {
-                    Login::send_password_to_user($user, $by_username);
+                    $message = Login::send_password_to_user($user, $by_username);
+                    Display::addFlash($message);
                 }
             }
 		} else {
-			Display::display_warning_message(get_lang('NoUserAccountWithThisEmailAddress'));
+            Display::addFlash(
+                Display::return_message(
+                    get_lang('NoUserAccountWithThisEmailAddress'),
+                    'warning'
+                )
+            );
 		}
 	} else {
-		$form->display();
+		$formToString = $form->returnForm();
 	}
 }
-Display::display_footer();
+
+
+$controller = new IndexManager($tool_name);
+$controller->set_login_form();
+$tpl = $controller->tpl;
+$tpl->assign('form', $formToString);
+
+$template = $tpl->get_template('auth/lost_password.tpl');
+$tpl->display($template);

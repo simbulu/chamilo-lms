@@ -39,11 +39,11 @@
                     {% endif %}
 
                     {% if session.teachers %}
-                        <h5>{{ "teacher.png"|icon(16) ~ session.teachers }}</h5>
+                        <h5 class="teacher-name">{{ "teacher.png"|icon(16) ~ session.teachers }}</h5>
                     {% endif %}
 
                     {% if session.coaches %}
-                        <h5>{{ "teacher.png"|icon(16) ~ session.coaches }}</h5>
+                        <h5 class="teacher-name">{{ "teacher.png"|icon(16) ~ session.coaches }}</h5>
                     {% endif %}
                 </div>
 
@@ -59,9 +59,9 @@
             <div class="row">
                 <div class="col-md-12">
                     {% if session.subtitle %}
-                        <p class="subtitle-session">
-                            <i class="fa fa-clock-o"></i> <em>{{ session.subtitle }}</em>
-                        </p>
+                        <div class="subtitle-session">
+                            <i class="fa fa-clock-o"></i> {{ session.subtitle }}
+                        </div>
                     {% endif %}
                     {% if session.show_description %}
                         <div class="description-session">

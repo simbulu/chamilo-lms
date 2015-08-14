@@ -251,6 +251,7 @@ class Plugin
         }
         $result->setDefaults($defaults);
         $result->addButtonSave($this->get_lang('Save'), 'submit_button');
+
         return $result;
     }
 
@@ -342,11 +343,14 @@ class Plugin
                 $languageParentInfo = api_get_language_info($languageParentId);
                 $languageParentFolder = $languageParentInfo['dokeos_folder'];
 
-                include "{$root}{$plugin_name}/lang/{$languageParentFolder}.php";
+                $parentPath = "{$root}{$plugin_name}/lang/{$languageParentFolder}.php";
+                if (is_readable($parentPath)) {
+                    include $parentPath;
 
-                if (!empty($strings)) {
-                    foreach ($strings as $key => $string) {
-                        $this->strings[$key] = $string;
+                    if (!empty($strings)) {
+                        foreach ($strings as $key => $string) {
+                            $this->strings[$key] = $string;
+                        }
                     }
                 }
             }
@@ -362,6 +366,7 @@ class Plugin
     /**
      * Caller for the install_course_fields() function
      * @param int $courseId
+     *
      * @param boolean $addToolLink Whether to add a tool link on the course homepage
      *
      * @return void
@@ -376,6 +381,7 @@ class Plugin
      * @param int $courseId Course integer ID
      * @param boolean $add_tool_link Whether to add a tool link or not
      * (some tools might just offer a configuration section and act on the backend)
+     *
      * @return boolean  False on error, null otherwise
      */
     public function install_course_fields($courseId, $add_tool_link = true)
@@ -391,36 +397,53 @@ class Plugin
         // Adding course settings.
         if (!empty($this->course_settings)) {
             foreach ($this->course_settings as $setting) {
-                $variable = Database::escape_string($setting['name']);
+                $variable = $setting['name'];
                 $value ='';
-
                 if (isset($setting['init_value'])) {
-                    $value = Database::escape_string($setting['init_value']);
+                    $value = ($setting['init_value']);
                 }
 
                 $type = 'textfield';
                 if (isset($setting['type'])) {
-                    $type = Database::escape_string($setting['type']);
+                    $type = $setting['type'];
                 }
 
                 if (isset($setting['group'])) {
-                    $group = Database::escape_string($setting['group']);
-                    $sql = "SELECT value FROM $t_course
-                            WHERE c_id = $courseId AND variable = '$group' AND subkey = '$variable' ";
+                    $group = $setting['group'];
+                    $sql = "SELECT value
+                            FROM $t_course
+                            WHERE
+                                c_id = $courseId AND
+                                variable = '".Database::escape_string($group)."' AND
+                                subkey = '".Database::escape_string($variable)."'
+                            ";
                     $result = Database::query($sql);
                     if (!Database::num_rows($result)) {
-                        $sql = "INSERT INTO $t_course (c_id, variable, subkey, value, category, type) VALUES
-                                ($courseId, '$group', '$variable', '$value', 'plugins', '$type')";
-                        Database::query($sql);
+                        $params = [
+                            'c_id' => $courseId,
+                            'variable' => $group,
+                            'subkey' => $variable,
+                            'value' => $value,
+                            'category' => 'plugins',
+                            'type' => $type
+                        ];
+                        Database::insert($t_course, $params);
                     }
                 } else {
                     $sql = "SELECT value FROM $t_course
                             WHERE c_id = $courseId AND variable = '$variable' ";
                     $result = Database::query($sql);
                     if (!Database::num_rows($result)) {
-                        $sql = "INSERT INTO $t_course (c_id, variable, value, category, subkey, type) VALUES
-                                ($courseId, '$variable','$value', 'plugins', '$plugin_name', '$type')";
-                        Database::query($sql);
+
+                        $params = [
+                            'c_id' => $courseId,
+                            'variable' => $variable,
+                            'subkey' => $plugin_name,
+                            'value' => $value,
+                            'category' => 'plugins',
+                            'type' => $type
+                        ];
+                        Database::insert($t_course, $params);
                     }
                 }
             }
@@ -432,25 +455,25 @@ class Plugin
         }
 
         //Add an icon in the table tool list
-        $t_tool = Database::get_course_table(TABLE_TOOL_LIST);
-        $sql = "SELECT name FROM $t_tool
+        $table = Database::get_course_table(TABLE_TOOL_LIST);
+        $sql = "SELECT name FROM $table
                 WHERE c_id = $courseId AND name = '$plugin_name' ";
         $result = Database::query($sql);
         if (!Database::num_rows($result)) {
             $tool_link = "$plugin_name/start.php";
-            $visibility = AddCourse::string2binary(api_get_setting('course_create_active_tools', $plugin_name));
+            //$visibility = AddCourse::string2binary(api_get_setting('course_create_active_tools', $plugin_name));
 
             $cToolId = AddCourse::generateToolId($courseId);
 
             Database::insert(
-                $t_tool,
+                $table,
                 [
                     'id' => $cToolId,
                     'c_id' => $courseId,
                     'name' => $plugin_name,
                     'link' => $tool_link,
                     'image' => "$plugin_name.png",
-                    'visibility' => $visibility,
+                    'visibility' => 1,
                     'admin' => 0,
                     'address' => 'squaregrey.gif',
                     'added_tool' => 'NO',

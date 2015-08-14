@@ -11,6 +11,8 @@ use ChamiloSession as Session;
  * @package chamilo.login
  */
 
+use Chamilo\UserBundle\Entity\User;
+
 /**
  * Class
  * @package chamilo.login
@@ -83,7 +85,6 @@ class Login
      */
     public static function send_password_to_user($user, $by_username = false)
     {
-
         $email_subject = "[" . api_get_setting('siteName') . "] " . get_lang('LoginRequest'); // SUBJECT
 
         if ($by_username) { // Show only for lost password
@@ -109,9 +110,17 @@ class Login
         $email_admin = api_get_setting('emailAdministrator');
 
         if (api_mail_html('', $email_to, $email_subject, $email_body, $sender_name, $email_admin) == 1) {
+
             return get_lang('YourPasswordHasBeenReset');
         } else {
-            $admin_email = Display :: encrypted_mailto_link(api_get_setting('emailAdministrator'), api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname')));
+            $admin_email = Display:: encrypted_mailto_link(
+                api_get_setting('emailAdministrator'),
+                api_get_person_name(
+                    api_get_setting('administratorName'),
+                    api_get_setting('administratorSurname')
+                )
+            );
+
             return sprintf(get_lang('ThisPlatformWasUnableToSendTheEmailPleaseContactXForMoreInformation'), $admin_email);
         }
     }
@@ -124,10 +133,12 @@ class Login
      *
      * @author Olivier Cauberghe <olivier.cauberghe@UGent.be>, Ghent University
      */
-    public static function handle_encrypted_password($user, $by_username = false) {
+    public static function handle_encrypted_password($user, $by_username = false)
+    {
         $email_subject = "[" . api_get_setting('siteName') . "] " . get_lang('LoginRequest'); // SUBJECT
 
-        if ($by_username) { // Show only for lost password
+        if ($by_username) {
+        // Show only for lost password
             $user_account_list = self::get_user_account_list($user, true, $by_username); // BODY
             $email_to = $user['email'];
         } else {
@@ -140,25 +151,79 @@ class Login
 
         $email_body .= "\n\n" . get_lang('SignatureFormula') . ",\n" . api_get_setting('administratorName') . " " . api_get_setting('administratorSurname') . "\n" . get_lang('PlataformAdmin') . " - " . api_get_setting('siteName');
 
-        $sender_name = api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'), null, PERSON_NAME_EMAIL_ADDRESS);
+        $sender_name = api_get_person_name(
+            api_get_setting('administratorName'),
+            api_get_setting('administratorSurname'),
+            null,
+            PERSON_NAME_EMAIL_ADDRESS
+        );
         $email_admin = api_get_setting('emailAdministrator');
 
-        if (@api_mail_html('', $email_to, $email_subject, $email_body, $sender_name, $email_admin) == 1) {
+        $result = @api_mail_html(
+            '',
+            $email_to,
+            $email_subject,
+            $email_body,
+            $sender_name,
+            $email_admin
+        );
+
+        if ($result == 1) {
             if (CustomPages::enabled()) {
                 return get_lang('YourPasswordHasBeenEmailed');
             } else {
-                Display::display_confirmation_message(get_lang('YourPasswordHasBeenEmailed'));
+                return Display::return_message(get_lang('YourPasswordHasBeenEmailed'));
             }
         } else {
-            $admin_email = Display :: encrypted_mailto_link(api_get_setting('emailAdministrator'), api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname')));
+            $admin_email = Display:: encrypted_mailto_link(
+                api_get_setting('emailAdministrator'),
+                api_get_person_name(
+                    api_get_setting('administratorName'),
+                    api_get_setting('administratorSurname')
+                )
+            );
             $message = sprintf(get_lang('ThisPlatformWasUnableToSendTheEmailPleaseContactXForMoreInformation'), $admin_email);
 
             if (CustomPages::enabled()) {
                 return $message;
             } else {
-                Display::display_error_message($message, false);
+                return Display::return_message($message, 'error');
             }
         }
+    }
+
+    /**
+     * @param User $user
+     */
+    public function sendResetEmail(User $user)
+    {
+        //if (null === $user->getConfirmationToken()) {
+            $uniqueId = api_get_unique_id();
+            $user->setConfirmationToken($uniqueId);
+            $user->setPasswordRequestedAt(new \DateTime());
+
+            Database::getManager()->persist($user);
+            Database::getManager()->flush();
+
+            $url = api_get_path(WEB_CODE_PATH).'auth/reset.php?token='.$uniqueId;
+
+            $mailTemplate = new Template(null, false, false, false, false, false);
+            $mailTemplate->assign('complete_user_name', $user->getCompleteName());
+            $mailTemplate->assign('link', $url);
+
+            $mailLayout = $mailTemplate->get_template('mail/reset_password.tpl');
+
+            $mailSubject = get_lang('ResetPasswordInstructions');
+            $mailBody = $mailTemplate->fetch($mailLayout);
+
+            api_mail_html(
+                $user->getCompleteName(),
+                $user->getEmail(),
+                $mailSubject,
+                $mailBody
+            );
+            Display::addFlash(Display::return_message(get_lang('CheckYourEmailAndFollowInstructions')));
+        //}
     }
 
     /**
@@ -789,7 +854,7 @@ class Login
      * Returns true if user exists in the platform when asking the password
      *
      * @param string $username (email or username)
-     * @return boolean
+     * @return array|boolean
      */
     public static function get_user_accounts_by_username($username)
     {
@@ -801,7 +866,6 @@ class Login
             $email = false;
         }
 
-		$condition = '';
 		if ($email) {
 			$condition = "LOWER(email) = '".Database::escape_string($username)."' ";
 		} else {
@@ -811,10 +875,10 @@ class Login
 		$tbl_user = Database :: get_main_table(TABLE_MAIN_USER);
 		$query = "SELECT user_id AS uid, lastname AS lastName, firstname AS firstName, username AS loginName, password, email,
                          status AS status, official_code, phone, picture_uri, creator_id
-				 FROM  $tbl_user
+				 FROM $tbl_user
 				 WHERE ( $condition AND active = 1) ";
-		$result 	= Database::query($query);
-		$num_rows 	= Database::num_rows($result);
+		$result = Database::query($query);
+        $num_rows = Database::num_rows($result);
         if ($result && $num_rows > 0) {
             return Database::store_result($result);
         }

@@ -3105,8 +3105,8 @@ $MyStats = "View my progress";
 $Logout = "Logout";
 $MyAgenda = "Personal agenda";
 $CourseHomepage = "Course home";
-$CourseManagerview = "Teacher View";
-$StudentView = "Learner View";
+$SwitchToTeacherView = "Switch to teacher view";
+$SwitchToStudentView = "Switch to student view";
 $AddResource = "Add it";
 $AddedResources = "Attachments";
 $TimeReportForTeacherX = "Time report for teacher %s";
@@ -4734,7 +4734,7 @@ $Store = "Store";
 $DeleteAll = "Delete all metadata";
 $ConfirmDelete = "Do you *really* want to delete all metadata?";
 $WorkOn = "on";
-$Continue = "Continue with";
+$Continue = "Continue";
 $Create = "Create";
 $RemainingFor = "obsolete entries removed for category";
 $WarningDups = " - duplicate categorynames were removed from the list!";
@@ -5351,8 +5351,6 @@ $SendEmailToAdminComment = "Send an email to the platform administrator, each ti
 $UserTag = "User tag";
 $SelectSession = "Select session";
 $SpecialCourse = "Special course";
-$MathMimetexTitle = "mimeTEX mathematical editor";
-$MathMimetexComment = "Enable mimeTeX mathematical editor. The activation is not fully realized if not previously installed on the server the executable MimeTex file. See the Chamilo installation guide.";
 $MathASCIImathMLTitle = "ASCIIMathML mathematical editor";
 $MathASCIImathMLComment = "Enable ASCIIMathML mathematical editor";
 $YoutubeForStudentsTitle = "Allow learners to insert videos from YouTube";
@@ -6187,8 +6185,6 @@ $ChatFiles = "Chat conversations history";
 $Flash = "Flash";
 $Video = "Video";
 $Images = "Images";
-$AsciiSvgTitle = "Mathematical graphics editor ASCIIsvg";
-$AsciiSvgComment = "Activation of mathematical graphics editor (ASCIIsvg).";
 $Text2AudioTitle = "Enable online services for text to speech conversion";
 $Text2AudioComment = "Online tool to convert text to speech. Uses speech synthesis technology to generate audio files saved into your course.";
 $ShowUsersFoldersTitle = "Show users folders in the documents tool";
@@ -6208,8 +6204,8 @@ $BuildMP3 = "Build mp3";
 $Voice = "Voice";
 $Female = "Female";
 $Male = "Male";
-$IncludeAsciiMathMlTitle = "Load the file ASCIIMathML.js in all the system's pages";
-$IncludeAsciiMathMlComment = "Activate this setting if you want to show ASCIIMathML-based mathematical formulas and ASCIIsvg-based mathematical graphics not only in the \"Documents\" tool, but elsewhere in the system.";
+$IncludeAsciiMathMlTitle = "Load the Mathjax library in all the system pages";
+$IncludeAsciiMathMlComment = "Activate this setting if you want to show MathML-based mathematical formulas and ASCIIsvg-based mathematical graphics not only in the \"Documents\" tool, but elsewhere in the system.";
 $CourseHideToolsTitle = "Hide tools from teachers";
 $CourseHideToolsComment = "Check the tools you want to hide from teachers. This will prohibit access to the tool.";
 $GoogleAudio = "Use Google audio services";
@@ -7411,4 +7407,96 @@ $FieldTypeCheckbox = "Checkbox options";
 $FieldTypeInteger = "Integer value";
 $FieldTypeFileImage = "Image file";
 $FieldTypeFloat = "Float value";
+$DocumentsDefaultVisibilityDefinedInCourseTitle = "Document visibility defined in course";
+$DocumentsDefaultVisibilityDefinedInCourseComment = "The default document visibility for all courses";
+$HtmlPurifierWikiTitle = "HTMLPurifier in Wiki";
+$HtmlPurifierWikiComment = "Enable HTML purifier in the wiki tool (will increase security but reduce style features)";
+$ClickOrDropFilesHere = "Click or drop files";
+$RemoveTutorStatus = "Remove tutor status";
+$ImportGradebookInCourse = "Import gradebook from base course";
+$InstitutionAddressTitle = "Institution address";
+$InstitutionAddressComment = "Address";
+$LatestLoginInCourse = "Latest access in course";
+$LatestLoginInPlatform = "Latest login in platform";
+$FirstLoginInPlatform = "First login in platform";
+$FirstLoginInCourse = "First access to course";
+$QuotingToXUser = "Quoting to %s";
+$LoadMoreComments = "Load more comments";
+$ShowProgress = "Show progress";
+$XPercent = "%s %%";
+$CheckRequirements = "Check requirements";
+$ParentLanguageX = "Parent language: %s";
+$RegisterTermsOfSubLanguageForX = "Define new terms for sub-language %s by searching some term, then save each translation by clicking the save button. You will then have to switch your own user language to see the new terms appear.";
+$SeeSequences = "See sequences";
+$SessionRequirements = "Session requirements";
+$IsRequirement = "Is requirement";
+$ConsiderThisGradebookAsRequirementForASessionSequence = "Consider this gradebook as a requirement to complete the course (influences the sessions sequences)";
+$DistinctUsersLogins = "Distinct users logins";
+$AreYouSureToSubscribe = "Are you sure to subscribe?";
+$CheckYourEmailAndFollowInstructions = "Check your email and follow the instructions.";
+$LinkExpired = "Link expired, please try again.";
+$ResetPasswordInstructions = "Instructions for the password change procedure";
+$ResetPasswordCommentWithUrl = "You are receiving this message because you (or someone pretending to be you) have requested a new password to be generated for you.
+
+To set a the new password you need to activate it. To do this, please click this link:
+
+%s
+
+If you did not request this procedure, then please ignore this message. If you keep receiving it, please contact the portal administrator.";
+$CronRemindCourseExpirationActivateTitle = "Remind Course Expiration cron";
+$CronRemindCourseExpirationActivateComment = "Enable the Remind Course Expiration cron";
+$CronRemindCourseExpirationFrequencyTitle = "Frequency for the Remind Course Expiration cron";
+$CronRemindCourseExpirationFrequencyComment = "Number of days before the expiration of the course to consider to send reminder mail";
+$CronCourseFinishedActivateText = "Course Finished cron";
+$CronCourseFinishedActivateComment = "Activate the Course Finished cron";
+$MailCronCourseFinishedSubject = "End of course %s";
+$MailCronCourseFinishedBody = "Dear %s,
+
+Thank you for your participation to course %s. We hope you've acquired new relevant knowledge and enjoyed the course.
+
+You can check your performance in the course through the My Progress section.
+
+Best regards,
+
+%s Team";
+$GenerateDefaultContent = "Generate default content";
+$ThanksForYourSubscription = "Thanks for your subscription";
+$XTeam = "%s team.";
+$YouCanStartSubscribingToCoursesEnteringToXUrl = "You can start subscribing to courses entering to %s";
+$VideoUrl = "Video URL";
+$AddAttachment = "Add attachment";
+$FieldTypeOnlyLetters = "Text only letters";
+$FieldTypeAlphanumeric = "Text only alphanumeric characters";
+$OnlyLetters = "Only letters";
+$SelectFillTheBlankSeparator = "Select a blanks marker";
+$RefreshBlanks = "Refresh terms";
+$WordTofind = "Word to find";
+$BlankInputSize = "Input size of box to fill";
+$DateFormatLongNoDayJS = "MM dd, yy";
+$TimeFormatNoSecJS = "HH:mm";
+$AtTime = " at";
+$SendSubscriptionNotification = "Send mail notification for subscription";
+$SendAnEmailWhenAUserBeingSubscribed = "Send an email when a user being subscribed to session";
+$SelectDate = "Select date";
+$OnlyLettersAndSpaces = "Only letters and spaces";
+$OnlyLettersAndNumbersAndSpaces = "Only letters, numbers and spaces";
+$FieldTypeLettersSpaces = "Text letters and spaces";
+$CronRemindCourseFinishedActivateTitle = "Send course finished notification";
+$FieldTypeAlphanumericSpaces = "Text alphanumeric characters and spaces";
+$CronRemindCourseFinishedActivateComment = "Whether to send an e-mail to students when their course (session) is finished. This requires cron tasks to be configured (see main/cron/ directory).";
+$ThanksForRegisteringToSite = "Thanks for registering to %s.";
+$AllowCoachFeedbackExercisesTitle = "Allow coaches to comment in review of exercises";
+$AllowCoachFeedbackExercisesComment = "Allow coaches to edit feedback during review of exercises";
+$PreventMultipleSimultaneousLoginTitle = "Prevent simultaneous login";
+$PreventMultipleSimultaneousLoginComment = "Prevent users connecting with the same account more than once. This is a good option on pay-per-access portals, but might be restrictive during testing as only one browser can connect with any given account.";
+$ShowAdditionalColumnsInStudentResultsPageTitle = "Show additional columns in gradebook";
+$ShowAdditionalColumnsInStudentResultsPageComment = "Show additional columns in the student view of the gradebook with the best score of all students, the relative position of the student looking at the report and the average score of the whole group of students.";
+$CourseCatalogIsPublicTitle = "Publish course catalogue";
+$CourseCatalogIsPublicComment = "Make the courses catalogue available to anonymous users (the general public) without the need to login.";
+$ResetPasswordTokenTitle = "Enable password reset token";
+$ResetPasswordTokenComment = "This option allows to generate a expiring single-use token sent by e-mail to the user to reset his/her password.";
+$ResetPasswordTokenLimitTitle = "Time limit for password reset token";
+$ResetPasswordTokenLimitComment = "The number of seconds before the generated token automatically expires and cannot be used anymore (a new token needs to be generated).";
+$ViewMyCoursesListBySessionTitle = "View my courses by session";
+$ViewMyCoursesListBySessionComment = "Enable an additional 'My courses' page where sessions appear as part of courses, rather than the opposite.";
 ?>

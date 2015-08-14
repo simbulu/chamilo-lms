@@ -98,10 +98,10 @@ function settingsForm($defaults)
         $form->createElement('radio', 'student_delete_own_publication', null, get_lang('No'), 0)
     );
     $form->addGroup($group, '', get_lang('StudentAllowedToDeleteOwnPublication'));
-    $form->addElement('button', 'submit', get_lang('Save'));
+    $form->addButtonSave(get_lang('Save'));
     $form->setDefaults($defaults);
 
-    return $form->return_form();
+    return $form->returnForm();
 }
 
 /**
@@ -544,11 +544,11 @@ function showStudentWorkGrid()
     );
 
     $columnModel = array(
-        array('name'=>'type', 'index'=>'type', 'width'=>'30',   'align'=>'left', 'sortable' => 'false'),
+        array('name'=>'type', 'index'=>'type', 'width'=>'30',   'align'=>'center', 'sortable' => 'false'),
         array('name'=>'title', 'index'=>'title', 'width'=>'250',   'align'=>'left'),
-        array('name'=>'expires_on', 'index'=>'expires_on', 'width'=>'80',  'align'=>'left', 'sortable'=>'false'),
-        array('name'=>'feedback', 'index'=>'feedback', 'width'=>'80',  'align'=>'left'),
-        array('name'=>'last_upload', 'index'=>'feedback', 'width'=>'125',  'align'=>'left'),
+        array('name'=>'expires_on', 'index'=>'expires_on', 'width'=>'80',  'align'=>'center', 'sortable'=>'false'),
+        array('name'=>'feedback', 'index'=>'feedback', 'width'=>'80',  'align'=>'center'),
+        array('name'=>'last_upload', 'index'=>'feedback', 'width'=>'125',  'align'=>'center'),
     );
 
     if ($courseInfo['show_score'] == 0) {
@@ -584,11 +584,11 @@ function showStudentWorkGrid()
 function showTeacherWorkGrid()
 {
     $columnModel = array(
-        array('name'=>'type', 'index'=>'type', 'width'=>'35', 'align'=>'left', 'sortable' => 'false'),
+        array('name'=>'type', 'index'=>'type', 'width'=>'35', 'align'=>'center', 'sortable' => 'false'),
         array('name'=>'title', 'index'=>'title',  'width'=>'300',   'align'=>'left', 'wrap_cell' => "true"),
-        array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'125',  'align'=>'left'),
-        array('name'=>'expires_on', 'index'=>'expires_on', 'width'=>'125',  'align'=>'left'),
-        array('name'=>'amount', 'index'=>'end_on', 'width'=>'110',  'align'=>'left'),
+        array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'125',  'align'=>'center'),
+        array('name'=>'expires_on', 'index'=>'expires_on', 'width'=>'125',  'align'=>'center'),
+        array('name'=>'amount', 'index'=>'end_on', 'width'=>'110',  'align'=>'center'),
         array('name'=>'actions', 'index'=>'actions', 'width'=>'110', 'align'=>'left', 'sortable'=>'false')
     );
 
@@ -686,23 +686,21 @@ function build_work_move_to_selector($folders, $curdirpath, $move_file, $group_d
     $course_id = api_get_course_int_id();
     $move_file = intval($move_file);
     $tbl_work = Database::get_course_table(TABLE_STUDENT_PUBLICATION);
-    $sql = "SELECT title, url FROM $tbl_work WHERE c_id = $course_id AND id ='".$move_file."'";
+    $sql = "SELECT title, url FROM $tbl_work
+            WHERE c_id = $course_id AND id ='".$move_file."'";
     $result = Database::query($sql);
     $row = Database::fetch_array($result, 'ASSOC');
     $title = empty($row['title']) ? basename($row['url']) : $row['title'];
 
-    global $gradebook;
-    //@todo use formvalidator please!
-    $form = '<form class="form-horizontal" name="move_to_form" action="'.api_get_self().'?'.api_get_cidreq().'&gradebook='.$gradebook.'&curdirpath='.Security::remove_XSS($curdirpath).'" method="POST">';
-    $form .= '<legend>'.get_lang('MoveFile').' - '.Security::remove_XSS($title).'</legend>';
-    $form .= '<input type="hidden" name="item_id" value="'.$move_file.'" />';
-    $form .= '<input type="hidden" name="action" value="move_to" />';
-    $form .= '<div class="control-group">
-                <label>
-                    <span class="form_required">*</span>'.get_lang('Select').'
-                </label>
-                <div class="controls">';
-    $form .= ' <select name="move_to_id">';
+    $form = new FormValidator(
+        'move_to_form',
+        'post',
+        api_get_self().'?'.api_get_cidreq().'&curdirpath='.Security::remove_XSS($curdirpath)
+    );
+
+    $form->addHeader(get_lang('MoveFile').' - '.Security::remove_XSS($title));
+    $form->addHidden('item_id', $move_file);
+    $form->addHidden('action', 'move_to');
 
     //group documents cannot be uploaded in the root
     if ($group_dir == '') {
@@ -716,7 +714,8 @@ function build_work_move_to_selector($folders, $curdirpath, $move_file, $group_d
                 //2. inside the folder you want to move
                 //3. inside a subfolder of the folder you want to move
                 if (($curdirpath != $folder) && ($folder != $move_file) && (substr($folder, 0, strlen($move_file) + 1) != $move_file.'/')) {
-                    $form .= '<option value="'.$fid.'">'.$folder.'</option>';
+                    //$form .= '<option value="'.$fid.'">'.$folder.'</option>';
+                    $options[$fid] = $folder;
                 }
             }
         }
@@ -729,22 +728,16 @@ function build_work_move_to_selector($folders, $curdirpath, $move_file, $group_d
                 //cannot copy dir into his own subdir
                 $display_folder = substr($folder, strlen($group_dir));
                 $display_folder = ($display_folder == '') ? '/ ('.get_lang('Root').')' : $display_folder;
-                $form .= '<option value="'.$fid.'">'.$display_folder.'</option>'."\n";
+                //$form .= '<option value="'.$fid.'">'.$display_folder.'</option>'."\n";
+                $options[$fid] = $display_folder;
             }
         }
     }
 
-    $form .= '</select>';
-    $form .= '  </div>
-            </div>';
-    $form .= '<div class="control-group">
-                    <div class="controls">
-                        <button type="submit" class="save" name="move_file_submit">'.get_lang('MoveFile').'</button>
-                    </div>
-                </div>';
-    $form .= '</form>';
-    $form .= '<div style="clear: both; margin-bottom: 10px;"></div>';
-    return $form;
+    $form->addSelect('move_to_id', get_lang('Select'), $options);
+    $form->addButtonSend(get_lang('MoveFile'), 'move_file_submit');
+
+    return $form->returnForm();
 }
 
 /**
@@ -880,20 +873,24 @@ function get_work_path($id)
 
 /**
  * Update the url of a work in the student_publication table
- * @param   integer $id of the work to update
- * @param   string  $new_path Destination directory where the work has been moved (must end with a '/')
+ * @param integer $id of the work to update
+ * @param string  $new_path Destination directory where the work has been moved (must end with a '/')
  * @param int $parent_id
+ *
  * @return  -1 on error, sql query result on success
  */
 function updateWorkUrl($id, $new_path, $parent_id)
 {
-    if (empty($id)) return -1;
+    if (empty($id)) {
+        return -1;
+    }
     $table = Database::get_course_table(TABLE_STUDENT_PUBLICATION);
     $course_id = api_get_course_int_id();
     $id = intval($id);
     $parent_id = intval($parent_id);
 
-    $sql = "SELECT * FROM $table WHERE c_id = $course_id AND id = $id";
+    $sql = "SELECT * FROM $table
+            WHERE c_id = $course_id AND id = $id";
     $res = Database::query($sql);
     if (Database::num_rows($res) != 1) {
         return -1;
@@ -902,12 +899,14 @@ function updateWorkUrl($id, $new_path, $parent_id)
         $filename = basename($row['url']);
         $new_url = $new_path.$filename;
         $new_url = Database::escape_string($new_url);
-        $sql2 = "UPDATE $table SET
-                    url = '$new_url',
-                    parent_id = '$parent_id'
-                 WHERE c_id = $course_id AND id = $id";
-        $res2 = Database::query($sql2);
-        return $res2;
+
+        $sql = "UPDATE $table SET
+                   url = '$new_url',
+                   parent_id = '$parent_id'
+                WHERE c_id = $course_id AND id = $id";
+        $res = Database::query($sql);
+
+        return $res;
     }
 }
 
@@ -1017,18 +1016,21 @@ function insert_all_directory_in_course_table($base_work_dir)
     $work_table = Database :: get_course_table(TABLE_STUDENT_PUBLICATION);
 
     for($i = 0; $i < count($only_dir); $i++) {
-        $url = Database::escape_string($only_dir[$i]);
-        $sql = "INSERT INTO " . $work_table . " SET
-               c_id         = '$course_id',
-               url          = '".$url."',
-               title        = '',
-               description  = '',
-               author       = '',
-               active       = '1',
-               accepted     = '1',
-               filetype     = 'folder',
-               post_group_id = '".$group_id."'";
-        Database::query($sql);
+        $url = $only_dir[$i];
+
+        $params = [
+            'c_id' => $course_id,
+            'url' => $url,
+            'title' => '',
+            'description' => '',
+            'author' => '',
+            'active' => '1',
+            'accepted' => '1',
+            'filetype' => 'folder',
+            'post_group_id' => $group_id,
+        ];
+
+        Database::insert($work_table, $params);
     }
 }
 
@@ -2117,7 +2119,7 @@ function get_work_user_list(
                         if ($locked) {
                             $action .= Display::return_icon('move_na.png', get_lang('Move'),array(), ICON_SIZE_SMALL);
                         } else {
-                            $action .= '<a href="'.$url.'work.php?'.api_get_cidreq().'&action=move&item_id='.$item_id.'" title="'.get_lang('Move').'">'.
+                            $action .= '<a href="'.$url.'work.php?'.api_get_cidreq().'&action=move&item_id='.$item_id.'&id='.$work['parent_id'].'" title="'.get_lang('Move').'">'.
                                 Display::return_icon('move.png', get_lang('Move'),array(), ICON_SIZE_SMALL).'</a>';
                         }
                     }
@@ -3638,28 +3640,28 @@ function processWorkForm($workInfo, $values, $courseInfo, $sessionId, $groupId, 
 
     if ($saveWork) {
         $active = '1';
-        $sql = "INSERT INTO ".$work_table." SET
-                   c_id         = $courseId ,
-                   url          = '".$url . "',
-                   filetype     = 'file',
-                   title        = '".Database::escape_string($title)."',
-                   description  = '".Database::escape_string($description)."',
-                   contains_file = '".$contains_file."',
-                   active       = '".$active."',
-                   accepted     = '1',
-                   post_group_id = '".$groupId."',
-                   sent_date    =  '".api_get_utc_datetime()."',
-                   parent_id    =  '".$workInfo['id']."' ,
-                   session_id   = '".$sessionId."',
-                   user_id      = '".$userId."'";
-
-        Database::query($sql);
-        $workId = Database::insert_id();
-
-        $sql = "UPDATE $work_table SET id = iid WHERE iid = $workId ";
-        Database::query($sql);
+        $params = [
+            'c_id'         => $courseId,
+            'url'          => $url,
+            'filetype'     => 'file',
+            'title'        => $title,
+            'description'  => $description,
+            'contains_file' => $contains_file,
+            'active'       => $active,
+            'accepted'     => '1',
+            'post_group_id' => $groupId,
+            'sent_date'    =>  api_get_utc_datetime(),
+            'parent_id'    =>  $workInfo['id'],
+            'session_id'   => $sessionId,
+            'user_id'      => $userId
+        ];
+        $workId = Database::insert($work_table, $params);
 
         if ($workId) {
+
+            $sql = "UPDATE $work_table SET id = iid WHERE iid = $workId ";
+            Database::query($sql);
+
             if (array_key_exists('filename', $workInfo) && !empty($filename)) {
                 $filename = Database::escape_string($filename);
                 $sql = "UPDATE $work_table SET
@@ -3730,29 +3732,28 @@ function addDir($params, $user_id, $courseInfo, $group_id, $session_id)
     if (!empty($created_dir)) {
         $dirName = '/'.$created_dir;
         $today = api_get_utc_datetime();
-        $sql = "INSERT INTO " . $work_table . " SET
-                c_id = $course_id,
-                url = '".Database::escape_string($dirName)."',
-                title = '".Database::escape_string($params['new_dir'])."',
-                description = '".Database::escape_string($params['description'])."',
-                author = '',
-                active = '1',
-                accepted = '1',
-                filetype = 'folder',
-                post_group_id = '" . $group_id . "',
-                sent_date = '" . $today . "',
-                qualification = '".($params['qualification'] != '' ? Database::escape_string($params['qualification']) : '') ."',
-                parent_id = '',
-                qualificator_id = '',
-                weight = '".Database::escape_string($params['weight'])."',
-                session_id = '".$session_id."',
-                allow_text_assignment = '".Database::escape_string($params['allow_text_assignment'])."',
-                contains_file = 0,
-                user_id = '".$user_id."'";
-        Database::query($sql);
 
-        // Add the directory
-        $id = Database::insert_id();
+        $params = [
+            'c_id' => $course_id,
+            'url' => $dirName,
+            'title' => $params['new_dir'],
+            'description' => $params['description'],
+            'author' => '',
+            'active' => '1',
+            'accepted' => '1',
+            'filetype' => 'folder',
+            'post_group_id' => $group_id,
+            'sent_date' => $today,
+            'qualification' => $params['qualification'] != '' ? $params['qualification'] : '',
+            'parent_id' => '',
+            'qualificator_id' => '',
+            'weight' => $params['weight'],
+            'session_id' => $session_id,
+            'allow_text_assignment' => $params['allow_text_assignment'],
+            'contains_file' => 0,
+            'user_id' => $user_id,
+        ];
+        $id = Database::insert($work_table, $params);
 
         if ($id) {
 
@@ -4247,9 +4248,13 @@ function updateSettings($courseInfo, $showScore, $studentDeleteOwnPublication)
                   WHERE variable = 'student_delete_own_publication' AND c_id = $courseId";
         Database::query($query);
     } else {
-        $query = "INSERT INTO " . $table_course_setting . " (c_id, variable, value, category) VALUES
-                ($courseId, 'student_delete_own_publication' , '".Database::escape_string($studentDeleteOwnPublication) . "','work')";
-        Database::query($query);
+        $params = [
+            'c_id' => $courseId,
+            'variable' => 'student_delete_own_publication',
+            'value' => $studentDeleteOwnPublication,
+            'category' => 'work'
+        ];
+        Database::insert($table_course_setting, $params);
     }
 }
 
@@ -4306,7 +4311,7 @@ function generateMoveForm($item_id, $path, $courseInfo, $groupId, $sessionId)
     $folders = array();
     $session_id = intval($sessionId);
     $groupId = intval($groupId);
-    $sessionCondition = empty($sessionId) ? " AND session_id = 0 " : " AND session_id='".$session_id."'";
+    $sessionCondition = empty($sessionId) ? " AND (session_id = 0 OR session_id IS NULL) " : " AND session_id='".$session_id."'";
     $sql = "SELECT id, url, title
             FROM $work_table
             WHERE
@@ -4330,8 +4335,8 @@ function generateMoveForm($item_id, $path, $courseInfo, $groupId, $sessionId)
 function showStudentList($workId)
 {
     $columnModel = array(
-        array('name'=>'student', 'index'=>'student', 'width'=>'150', 'align'=>'left', 'sortable' => 'false'),
-        array('name'=>'works', 'index'=>'works',  'width'=>'50', 'align'=>'left', 'sortable' => 'false')
+        array('name'=>'student', 'index'=>'student', 'width'=>'350px', 'align'=>'left', 'sortable' => 'false'),
+        array('name'=>'works', 'index'=>'works', 'align'=>'center', 'sortable' => 'false')
     );
     $token = null;
 
@@ -4346,7 +4351,7 @@ function showStudentList($workId)
     $params = array(
         'autowidth' => 'true',
         'height' => 'auto',
-        'rowNum' => 10,
+        'rowNum' => 5,
         'sortname' => $order,
         'sortorder' => 'asc'
     );

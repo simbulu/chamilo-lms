@@ -111,21 +111,15 @@ class GlossaryManager
                 Display::display_error_message(get_lang('GlossaryTermAlreadyExistsYouShouldEditIt'));
             return false;
         } else {
-            $sql = "INSERT INTO $t_glossary (c_id, name, description, display_order, session_id)
-					VALUES(
-						".api_get_course_int_id().",
-						'".Database::escape_string($values['glossary_title'])."',
-						'".Database::escape_string($values['glossary_comment'])."',
-						'".(int)($max_glossary_item + 1)."',
-						'".Database::escape_string($session_id)."'
-						)";
-            $result = Database::query($sql);
 
-            if ($result === false) {
-                return false;
-            }
-
-            $id = Database::insert_id();
+            $params = [
+                'c_id' => api_get_course_int_id(),
+                'name' => $values['glossary_title'],
+                'description' => $values['glossary_comment'],
+                'display_order' => $max_glossary_item + 1,
+                'session_id' => $session_id,
+            ];
+            $id = Database::insert($t_glossary, $params);
             if ($id) {
 
                 $sql = "UPDATE $t_glossary SET glossary_id = $id WHERE iid = $id";
@@ -338,24 +332,35 @@ class GlossaryManager
         echo '<div class="actions">';
 
         if (api_is_allowed_to_edit(null,true)) {
-            echo '<a href="index.php?'.api_get_cidreq().'&action=addglossary&msg=add">'.Display::return_icon('new_glossary_term.png',get_lang('TermAddNew'),'','32').'</a>';
+            echo '<a href="index.php?'.api_get_cidreq().'&action=addglossary&msg=add?'.api_get_cidreq().'">'.
+                Display::return_icon('new_glossary_term.png',get_lang('TermAddNew'),'', ICON_SIZE_MEDIUM).'</a>';
         }
 
-        echo '<a href="index.php?'.api_get_cidreq().'&action=export">'.Display::return_icon('export_csv.png',get_lang('ExportGlossaryAsCSV'),'','32').'</a>';
+        echo '<a href="index.php?'.api_get_cidreq().'&action=export">'.
+            Display::return_icon('export_csv.png',get_lang('ExportGlossaryAsCSV'),'',ICON_SIZE_MEDIUM).'</a>';
         if (api_is_allowed_to_edit(null,true)) {
-            echo '<a href="index.php?'.api_get_cidreq().'&action=import">'.Display::return_icon('import_csv.png',get_lang('ImportGlossary'),'','32').'</a>';
+            echo '<a href="index.php?'.api_get_cidreq().'&action=import">'.
+                Display::return_icon('import_csv.png',get_lang('ImportGlossary'),'',ICON_SIZE_MEDIUM).'</a>';
         }
 
-        echo '<a href="index.php?'.api_get_cidreq().'&action=export_to_pdf">'.Display::return_icon('pdf.png',get_lang('ExportToPDF'),'', ICON_SIZE_MEDIUM).'</a>';
+        echo '<a href="index.php?'.api_get_cidreq().'&action=export_to_pdf">'.
+            Display::return_icon('pdf.png',get_lang('ExportToPDF'),'', ICON_SIZE_MEDIUM).'</a>';
 
         if ((isset($_SESSION['glossary_view']) && $_SESSION['glossary_view'] == 'table') or (!isset($_SESSION['glossary_view']))){
-            echo '<a href="index.php?'.api_get_cidreq().'&action=changeview&view=list">'.Display::return_icon('view_detailed.png',get_lang('ListView'),'','32').'</a>';
+            echo '<a href="index.php?'.api_get_cidreq().'&action=changeview&view=list">'.
+                Display::return_icon('view_detailed.png',get_lang('ListView'),'',ICON_SIZE_MEDIUM).'</a>';
         } else {
-            echo '<a href="index.php?'.api_get_cidreq().'&action=changeview&view=table">'.Display::return_icon('view_text.png',get_lang('TableView'),'','32').'</a>';
+            echo '<a href="index.php?'.api_get_cidreq().'&action=changeview&view=table">'.
+                Display::return_icon('view_text.png',get_lang('TableView'),'',ICON_SIZE_MEDIUM).'</a>';
         }
         echo '</div>';
         if (!$_SESSION['glossary_view'] OR $_SESSION['glossary_view'] == 'table') {
-            $table = new SortableTable('glossary', array('GlossaryManager','get_number_glossary_terms'), array('GlossaryManager','get_glossary_data'),0);
+            $table = new SortableTable(
+                'glossary',
+                array('GlossaryManager', 'get_number_glossary_terms'),
+                array('GlossaryManager', 'get_glossary_data'),
+                0
+            );
             //$table->set_header(0, '', false);
             $table->set_header(0, get_lang('TermName'), true);
             $table->set_header(1, get_lang('TermDefinition'), true);

@@ -895,6 +895,7 @@ class Agenda
      * @param int $groupId
      * @param int $user_id
      * @param string $format
+     *
      * @return array|string
      */
     public function getEvents(
@@ -1034,15 +1035,14 @@ class Agenda
                             api_get_user_id(),
                             $this->eventOtherSessionColor
                         );
-
                     }
                 }
 
                 if (!empty($my_course_list) && $sessionFilterActive == false) {
-                    foreach ($my_course_list as $course_info_item) {
-                        $courseInfo = api_get_course_info_by_id($course_item['real_id']);
+                    foreach ($my_course_list as $courseInfoItem) {
+                        $courseInfo = api_get_course_info_by_id($courseInfoItem['real_id']);
                         if (isset($course_id) && !empty($course_id)) {
-                            if ($course_info_item['real_id'] == $course_id) {
+                            if ($courseInfo['real_id'] == $course_id) {
                                 $this->getCourseEvents($start, $end, $courseInfo);
                             }
                         } else {
@@ -1541,23 +1541,25 @@ class Agenda
         }
 
         if (Database::num_rows($result)) {
-
-            $events_added = array_column($this->events, 'id');
-
+            $eventsAdded = array_column($this->events, 'id');
             while ($row = Database::fetch_array($result, 'ASSOC')) {
                 $eventId = $row['ref'];
-                $items = $this->getUsersAndGroupSubscribedToEvent($eventId, $course_id, $this->sessionId);
+                $items = $this->getUsersAndGroupSubscribedToEvent(
+                    $eventId,
+                    $course_id,
+                    $this->sessionId
+                );
                 $group_to_array = $items['groups'];
                 $user_to_array = $items['users'];
                 $event = array();
                 $event['id'] = 'course_'.$row['id'];
 
                 // To avoid doubles
-                if (in_array($event['id'], $events_added)) {
+                if (in_array($event['id'], $eventsAdded)) {
                     continue;
                 }
 
-                $events_added[] = $row['id'];
+                $eventsAdded[] = $row['id'];
                 $attachment = $this->getAttachment($row['id'], $courseInfo);
 
                 if (!empty($attachment)) {
@@ -1573,7 +1575,6 @@ class Agenda
                 $event['className'] = 'course';
                 $event['allDay'] = 'false';
                 $event['course_id'] = $course_id;
-
                 $event['borderColor'] = $event['backgroundColor'] = $this->event_course_color;
 
                 $sessionInfo = [];
@@ -1601,8 +1602,10 @@ class Agenda
 
                 if (api_is_allowed_to_edit() && $this->type == 'course') {
                     $event['editable'] = true;
-                    if ($coachCanEdit == false) {
-                        $event['editable'] = false;
+                    if (!empty($session_id)) {
+                        if ($coachCanEdit == false) {
+                            $event['editable'] = false;
+                        }
                     }
                 }
 
@@ -1678,22 +1681,29 @@ class Agenda
      */
     public function getPlatformEvents($start, $end)
     {
-        $start = intval($start);
-        $end = intval($end);
+        $start = isset($start) && !empty($start) ? api_get_utc_datetime(intval($start)) : null;
+        $end = isset($end) && !empty($end) ? api_get_utc_datetime(intval($end)) : null;
 
-        $condition = null;
-        if ($start !== 0) {
-            $start = api_get_utc_datetime($start);
-            $condition = " AND (start_date >= '".$start."' OR end_date >= '".$start."')";
+        $dateCondition = '';
+
+        if (!empty($start) && !empty($end)) {
+            $dateCondition .= "AND (
+                 start_date BETWEEN '".$start."' AND '".$end."' OR
+                 end_date BETWEEN '".$start."' AND '".$end."' OR
+                 (
+                     start_date IS NOT NULL AND end_date IS NOT NULL AND
+                     YEAR(start_date) = YEAR(end_date) AND
+                     MONTH('$start') BETWEEN MONTH(start_date) AND MONTH(end_date)
+                 )
+            )";
         }
-        if ($end !== 0) {
-            $end = api_get_utc_datetime($end);
-            $condition .= " AND (start_date <= '".$end."' OR end_date <= '".$end."')";
-        }
+
         $access_url_id = api_get_current_access_url_id();
 
-        $sql = "SELECT * FROM ".$this->tbl_global_agenda."
-                       WHERE access_url_id = $access_url_id$condition";
+        $sql = "SELECT *
+                FROM ".$this->tbl_global_agenda."
+                WHERE access_url_id = $access_url_id
+                $dateCondition";
         $result = Database::query($sql);
         $my_events = array();
         if (Database::num_rows($result)) {
@@ -1730,6 +1740,7 @@ class Agenda
                 $this->events[] = $event;
             }
         }
+
         return $my_events;
     }
 
@@ -1741,7 +1752,13 @@ class Agenda
      */
     private function formatEventDate($utcTime)
     {
-        return date(DateTime::ISO8601, api_strtotime(api_get_local_time($utcTime)));
+        $utcTimeZone = new DateTimeZone('UTC');
+        $platformTimeZone = new DateTimeZone(_api_get_timezone());
+
+        $eventDate = new DateTime($utcTime, $utcTimeZone);
+        $eventDate->setTimezone($platformTimeZone);
+
+        return $eventDate->format(DateTime::ISO8601);
     }
 
     /**
@@ -1751,7 +1768,7 @@ class Agenda
      */
     public static function construct_not_selected_select_form($group_list = null, $user_list = null, $to_already_selected = array())
     {
-        $html = '<select id="users_to_send_id" data-placeholder="'.get_lang('Select').'" name="users_to_send[]" multiple="multiple" style="width:250px" class="chzn-select">';
+        $html = '<select id="users_to_send_id" data-placeholder="'.get_lang('Select').'" name="users_to_send[]" multiple="multiple">';
         if ($to_already_selected == 'everyone') {
             $html .= '<option value="everyone" checked="checked">'.get_lang('Everyone').'</option>';
         } else {
@@ -1813,8 +1830,7 @@ class Agenda
             'id' => 'users_to_send_id',
             'data-placeholder' => get_lang('Select'),
             'multiple' => 'multiple',
-            'style' => 'width:250px',
-            //'class' => 'chzn-select'
+            'class' => 'multiple-select'
         );
 
         if (!empty($attributes)) {
@@ -1866,7 +1882,6 @@ class Agenda
             }
             $select->addOptGroup($options, get_lang('Groups'));
         }
-
 
         // adding the individual users to the select form
         if (is_array($userList)) {
@@ -2263,18 +2278,22 @@ class Agenda
                 $new_file_name = uniqid('');
                 $new_path = $uploadDir.'/'.$new_file_name;
                 $result = @move_uploaded_file($fileUserUpload['tmp_name'], $new_path);
-                $comment = Database::escape_string($comment);
-                $file_name = Database::escape_string($file_name);
                 $course_id = api_get_course_int_id();
                 $size = intval($fileUserUpload['size']);
                 // Storing the attachments if any
                 if ($result) {
-                    $sql = 'INSERT INTO '.$agenda_table_attachment.'(c_id, filename, comment, path, agenda_id, size) '.
-                        "VALUES ($course_id, '".$file_name."', '".$comment."', '".$new_file_name."' , '".$eventId."', '".$size."' )";
-                    Database::query($sql);
-                    $id = Database::insert_id();
+                    $params = [
+                        'c_id' => $course_id,
+                        'filename' => $file_name,
+                        'comment' => $comment,
+                        'path' => $new_file_name,
+                        'agenda_id' => $eventId,
+                        'size' => $size
+                    ];
+                    $id = Database::insert($agenda_table_attachment, $params);
                     if ($id) {
-                        $sql = "UPDATE $agenda_table_attachment SET id = iid WHERE iid = $id";
+                        $sql = "UPDATE $agenda_table_attachment
+                                SET id = iid WHERE iid = $id";
                         Database::query($sql);
 
                         api_item_property_update(
@@ -2440,10 +2459,16 @@ class Agenda
      */
     public function displayActions($view, $filter = 0)
     {
+        $courseInfo = api_get_course_info();
+
         $actions = "<a href='".api_get_path(WEB_CODE_PATH)."calendar/agenda_js.php?type={$this->type}'>".
             Display::return_icon('calendar.png', get_lang('Calendar'), '', ICON_SIZE_MEDIUM)."</a>";
 
-        $actions .= "<a href='".api_get_path(WEB_CODE_PATH)."calendar/agenda_list.php?type={$this->type}&".api_get_cidreq()."'>".
+        $courseCondition = '';
+        if (!empty($courseInfo)) {
+            $courseCondition = api_get_cidreq();
+        }
+        $actions .= "<a href='".api_get_path(WEB_CODE_PATH)."calendar/agenda_list.php?type={$this->type}&".$courseCondition."'>".
             Display::return_icon('week.png', get_lang('AgendaList'), '', ICON_SIZE_MEDIUM)."</a>";
 
         if (api_is_allowed_to_edit(false, true) ||
@@ -2997,7 +3022,7 @@ class Agenda
 
             // if the student has specified a course we a add a link to that course
             if ($item['course'] <> "") {
-                $url = api_get_path(WEB_CODE_PATH)."calendar/agenda.php?cidReq=".urlencode($item['course'])."&amp;day=$day&amp;month=$month&amp;year=$year#$day"; // RH  //Patrick Cool: to highlight the relevant agenda item
+                $url = api_get_path(WEB_CODE_PATH)."calendar/agenda.php?cidReq=".urlencode($item['course'])."&day=$day&month=$month&year=$year#$day"; // RH  //Patrick Cool: to highlight the relevant agenda item
                 $course_link = "<a href=\"$url\" title=\"".$item['course']."\">".$item['course']."</a>";
             } else {
                 $course_link = "";
@@ -3008,7 +3033,7 @@ class Agenda
                 // This is the array construction for the WEEK or MONTH view
 
                 //Display events in agenda
-                $agendaitems[$day] .= "<div><i>$time_minute</i> $course_link <a href=\"myagenda.php?action=view&amp;view=personal&amp;day=$day&amp;month=$month&amp;year=$year&amp;id=".$item['id']."#".$item['id']."\" class=\"personal_agenda\">".$item['title']."</a></div><br />";
+                $agendaitems[$day] .= "<div><i>$time_minute</i> $course_link <a href=\"myagenda.php?action=view&view=personal&day=$day&month=$month&year=$year&id=".$item['id']."#".$item['id']."\" class=\"personal_agenda\">".$item['title']."</a></div><br />";
 
             } else {
                 // this is the array construction for the DAY view
@@ -3018,7 +3043,7 @@ class Agenda
                 }
 
                 //Display events by list
-                $agendaitems[$halfhour] .= "<div><i>$time_minute</i> $course_link <a href=\"myagenda.php?action=view&amp;view=personal&amp;day=$day&amp;month=$month&amp;year=$year&amp;id=".$item['id']."#".$item['id']."\" class=\"personal_agenda\">".$item['title']."</a></div>";
+                $agendaitems[$halfhour] .= "<div><i>$time_minute</i> $course_link <a href=\"myagenda.php?action=view&view=personal&day=$day&month=$month&year=$year&id=".$item['id']."#".$item['id']."\" class=\"personal_agenda\">".$item['title']."</a></div>";
             }
         }
         return $agendaitems;
@@ -3057,8 +3082,8 @@ class Agenda
         $prev_year = ($month == 12 ? $year +1 : $year);
 
         if ($show_content)  {
-            $back_url = Display::url($prev_icon, api_get_self()."?coursePath=".urlencode($course_path)."&amp;courseCode=".Security::remove_XSS($g_cc)."&amp;action=view&amp;view=month&amp;month=".$next_month."&amp;year=".$next_year);
-            $next_url = Display::url($next_icon, api_get_self()."?coursePath=".urlencode($course_path)."&amp;courseCode=".Security::remove_XSS($g_cc)."&amp;action=view&amp;view=month&amp;month=".$prev_month."&amp;year=".$prev_year);
+            $back_url = Display::url($prev_icon, api_get_self()."?coursePath=".urlencode($course_path)."&courseCode=".Security::remove_XSS($g_cc)."&action=view&view=month&month=".$next_month."&year=".$next_year);
+            $next_url = Display::url($next_icon, api_get_self()."?coursePath=".urlencode($course_path)."&courseCode=".Security::remove_XSS($g_cc)."&action=view&view=month&month=".$prev_month."&year=".$prev_year);
         } else {
             $back_url = Display::url($prev_icon, '', array('onclick'=>"load_calendar('".$user_id."','".$next_month."', '".$next_year."'); "));
             $next_url = Display::url($next_icon, '', array('onclick'=>"load_calendar('".$user_id."','".$prev_month."', '".$prev_year."'); "));
@@ -3249,7 +3274,7 @@ class Agenda
                 $agendaday = date("j",strtotime($item['start_date']));
                 $month = date("n",strtotime($item['start_date']));
                 $year = date("Y",strtotime($item['start_date']));
-                $URL = api_get_path(WEB_PATH)."main/calendar/agenda.php?cidReq=".urlencode($course["code"])."&amp;day=$agendaday&amp;month=$month&amp;year=$year#$agendaday";
+                $URL = api_get_path(WEB_PATH)."main/calendar/agenda.php?cidReq=".urlencode($course["code"])."&day=$agendaday&month=$month&year=$year#$agendaday";
                 list($year,$month,$day,$hour,$min,$sec) = split('[-: ]',$item['start_date']);
                 $start_date = $year.$month.$day.$hour.$min;
                 list($year,$month,$day,$hour,$min,$sec) = split('[-: ]',$item['end_date']);

@@ -42,6 +42,8 @@ $TBL_TRACK_ATTEMPT = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT)
 $TBL_TRACK_ATTEMPT_RECORDING = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT_RECORDING);
 $TBL_LP_ITEM_VIEW = Database :: get_course_table(TABLE_LP_ITEM_VIEW);
 
+$allowCoachFeedbackExercises = api_get_setting('allow_coach_feedback_exercises') === 'true';
+
 $course_id = api_get_course_int_id();
 $exercise_id = isset($_REQUEST['exerciseId']) ? intval($_REQUEST['exerciseId']) : null;
 $filter_user = isset($_REQUEST['filter_by_user']) ? intval($_REQUEST['filter_by_user']) : null;
@@ -52,7 +54,7 @@ if (empty($exercise_id)) {
     api_not_allowed(true);
 }
 
-if (!$is_allowedToEdit) {
+if (!$is_allowedToEdit && !$allowCoachFeedbackExercises) {
     api_not_allowed(true);
 }
 
@@ -123,7 +125,7 @@ if (!empty($_REQUEST['export_report']) && $_REQUEST['export_report'] == '1') {
 //Send student email @todo move this code in a class, library
 if (isset($_REQUEST['comments']) &&
     $_REQUEST['comments'] == 'update' &&
-    ($is_allowedToEdit || $is_tutor)
+    ($is_allowedToEdit || $is_tutor || $allowCoachFeedbackExercises)
 ) {
     //filtered by post-condition
     $id = intval($_GET['exeid']);
@@ -172,23 +174,34 @@ if (isset($_REQUEST['comments']) &&
     }
 
     for ($i = 0; $i < $loop_in_track; $i++) {
-        $my_marks = Database::escape_string($_POST['marks_'.$array_content_id_exe[$i]]);
-        $contain_comments = Database::escape_string($_POST['comments_'.$array_content_id_exe[$i]]);
+        $my_marks = $_POST['marks_'.$array_content_id_exe[$i]];
+        $contain_comments = $_POST['comments_'.$array_content_id_exe[$i]];
         if (isset($contain_comments)) {
-            $my_comments = Database::escape_string($_POST['comments_'.$array_content_id_exe[$i]]);
+            $my_comments = $_POST['comments_'.$array_content_id_exe[$i]];
         } else {
             $my_comments = '';
         }
         $my_questionid = intval($array_content_id_exe[$i]);
 
-        $sql = "UPDATE $TBL_TRACK_ATTEMPT SET marks = '$my_marks', teacher_comment = '$my_comments'
-                WHERE question_id = ".$my_questionid." AND exe_id=".$id;
-        Database::query($sql);
+        $params = [
+            'marks' => $my_marks,
+            'teacher_comment' => $my_comments
+        ];
+        Database::update(
+            $TBL_TRACK_ATTEMPT,
+            $params,
+            ['question_id = ? AND exe_id = ?' => [$my_questionid, $id]]
+        );
 
-        //Saving results in the track recording table
-        $sql = 'INSERT INTO '.$TBL_TRACK_ATTEMPT_RECORDING.' (exe_id, question_id, marks, insert_date, author, teacher_comment)
-                VALUES ('."'$id','".$my_questionid."','$my_marks','".api_get_utc_datetime()."','".api_get_user_id()."'".',"'.$my_comments.'")';
-        Database::query($sql);
+        $params = [
+            'exe_id' => $id,
+            'question_id' => $my_questionid,
+            'marks' => $my_marks,
+            'insert_date' => api_get_utc_datetime(),
+            'author' => api_get_user_id(),
+            'teacher_comment' => $my_comments
+        ];
+        Database::insert($TBL_TRACK_ATTEMPT_RECORDING, $params);
     }
 
     $qry = 'SELECT DISTINCT question_id, marks
@@ -200,7 +213,8 @@ if (isset($_REQUEST['comments']) &&
         $tot += $row['marks'];
     }
 
-    $sql = "UPDATE $TBL_TRACK_EXERCISES SET exe_result = '".floatval($tot)."'
+    $sql = "UPDATE $TBL_TRACK_EXERCISES
+            SET exe_result = '".floatval($tot)."'
             WHERE exe_id = ".$id;
     Database::query($sql);
 
@@ -227,6 +241,14 @@ if (isset($_REQUEST['comments']) &&
             $message,
             api_get_user_id()
         );
+
+        if ($allowCoachFeedbackExercises) {
+            Display::addFlash(
+                Display::return_message(get_lang('MessageSent'))
+            );
+            header('Location: ' . api_get_path(WEB_PATH));
+            exit;
+        }
     }
 
     //Updating LP score here
@@ -289,7 +311,7 @@ if (($is_allowedToEdit || $is_tutor || api_is_coach()) &&
         Database::query($sql);
         $sql = 'DELETE FROM '.$TBL_TRACK_ATTEMPT.' WHERE exe_id = '.$exe_id;
         Database::query($sql);
-        header('Location: exercise_report.php?cidReq='.Security::remove_XSS($_GET['cidReq']).'&exerciseId='.$exercise_id);
+        header('Location: exercise_report.php?'.api_get_cidreq().'&exerciseId='.$exercise_id);
         exit;
     }
 }
@@ -623,7 +645,7 @@ $extra_params['height'] = 'auto';
             });
         });
 </script>
-<form id="export_report_form" method="post" action="exercise_report.php">
+<form id="export_report_form" method="post" action="exercise_report.php?<?php echo api_get_cidreq(); ?>">
     <input type="hidden" name="csvBuffer" id="csvBuffer" value="" />
     <input type="hidden" name="export_report" id="export_report" value="1" />
     <input type="hidden" name="exerciseId" id="exerciseId" value="<?php echo $exercise_id ?>" />

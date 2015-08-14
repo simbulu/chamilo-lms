@@ -357,7 +357,10 @@ function downloadMP3_google($filepath, $dir)
 		echo '<script>window.location.href="'.$location.'"</script>';
 		return;
 	}
-    global $_course, $_user;
+
+	$_course = api_get_course_info();
+	$_user = api_get_user_info();
+
 	$clean_title=trim($_POST['title']);
 	$clean_text=trim($_POST['text']);
 	if(empty($clean_title) || empty($clean_text)){
@@ -424,8 +427,25 @@ function downloadMP3_google($filepath, $dir)
 	$current_session_id = api_get_session_id();
 	$groupId = api_get_group_id();
 	$relativeUrlPath=$dir;
-	$doc_id = add_document($_course, $relativeUrlPath.$audio_filename, 'file', filesize($documentPath), $audio_title);
-	api_item_property_update($_course, TOOL_DOCUMENT, $doc_id, 'DocumentAdded', $_user['user_id'], $groupId, null, null, null, $current_session_id);
+	$doc_id = add_document(
+		$_course,
+		$relativeUrlPath.$audio_filename,
+		'file',
+		filesize($documentPath),
+		$audio_title
+	);
+	api_item_property_update(
+		$_course,
+		TOOL_DOCUMENT,
+		$doc_id,
+		'DocumentAdded',
+		$_user['user_id'],
+		$groupId,
+		null,
+		null,
+		null,
+		$current_session_id
+	);
 	Display::display_confirmation_message(get_lang('DocumentCreated'));
 	//return to location
 	echo '<script>window.location.href="'.$location.'"</script>';
@@ -447,7 +467,8 @@ function downloadMP3_pediaphon($filepath, $dir)
 		echo '<script>window.location.href="'.$location.'"</script>';
 		return;
 	}
-    global $_course, $_user;
+	$_course = api_get_course_info();
+	$_user = api_get_user_info();
 	$clean_title=trim($_POST['title']);
 	$clean_title= Database::escape_string($clean_title);
 	$clean_text=trim($_POST['text']);

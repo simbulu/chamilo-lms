@@ -501,7 +501,7 @@ function modify_filter($user_id, $url_params, $row) {
     if (api_is_platform_admin() || (api_is_session_admin() && $current_user_status_label == $statusname[STUDENT])) {
     	if (!$user_is_anonymous) {
             if (api_global_admin_can_edit_admin($user_id)) {
-                $result .= '<a href="user_list.php?action=login_as&amp;user_id='.$user_id.'&amp;sec_token='.$_SESSION['sec_token'].'">'.Display::return_icon('login_as.png', get_lang('LoginAs')).'</a>&nbsp;&nbsp;';
+                $result .= '<a href="user_list.php?action=login_as&user_id='.$user_id.'&sec_token='.$_SESSION['sec_token'].'">'.Display::return_icon('login_as.png', get_lang('LoginAs')).'</a>&nbsp;&nbsp;';
             } else {
                 $result .= Display::return_icon('login_as_na.png', get_lang('LoginAs')).'&nbsp;&nbsp;';
             }
@@ -572,7 +572,7 @@ function modify_filter($user_id, $url_params, $row) {
 	}
 
     if (api_is_platform_admin()) {
-        $result .= ' <a href="'.api_get_path(WEB_AJAX_PATH).'agenda.ajax.php?a=get_user_agenda&amp;user_id='.$user_id.'&modal_size=lg" class="agenda_opener ajax">'.
+        $result .= ' <a href="'.api_get_path(WEB_AJAX_PATH).'agenda.ajax.php?a=get_user_agenda&user_id='.$user_id.'&modal_size=lg" class="agenda_opener ajax">'.
             Display::return_icon('month.png', get_lang('FreeBusyCalendar'), array(), ICON_SIZE_SMALL).'</a>';
         $deleteAllowed = !api_get_configuration_value('deny_delete_users');
         if ($deleteAllowed) {
@@ -581,7 +581,7 @@ function modify_filter($user_id, $url_params, $row) {
                 api_global_admin_can_edit_admin($user_id)
             ) {
                 // you cannot lock yourself out otherwise you could disable all the accounts including your own => everybody is locked out and nobody can change it anymore.
-                $result .= ' <a href="user_list.php?action=delete_user&amp;user_id='.$user_id.'&amp;'.$url_params.'&amp;sec_token='.$_SESSION['sec_token'].'"  onclick="javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang("ConfirmYourChoice"),ENT_QUOTES,$charset))."'".')) return false;">'.Display::return_icon('delete.png', get_lang('Delete'), array(), ICON_SIZE_SMALL).'</a>';
+                $result .= ' <a href="user_list.php?action=delete_user&user_id='.$user_id.'&'.$url_params.'&sec_token='.$_SESSION['sec_token'].'"  onclick="javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang("ConfirmYourChoice"),ENT_QUOTES,$charset))."'".')) return false;">'.Display::return_icon('delete.png', get_lang('Delete'), array(), ICON_SIZE_SMALL).'</a>';
             } else {
                 $result .= Display::return_icon('delete_na.png', get_lang('Delete'), array(), ICON_SIZE_SMALL);
             }
@@ -602,7 +602,7 @@ function modify_filter($user_id, $url_params, $row) {
  */
 function active_filter($active, $params, $row)
 {
-	global $_user;
+    $_user = api_get_user_info();
 
     if ($active == '1') {
         $action = 'Lock';
@@ -726,7 +726,7 @@ if (!empty($action)) {
 
 // Create a search-box
 $form = new FormValidator('search_simple', 'get', '', '', array(), FormValidator::LAYOUT_INLINE);
-$form->addElement('text', 'keyword', get_lang('Keyword'), array('id' => 'user-search-keyword'));
+$form->addElement('text', 'keyword');
 $form->addButtonSearch(get_lang('Search'));
 $form->addElement(
     'static',
@@ -773,28 +773,17 @@ while ($row_admin = Database::fetch_row($res_admin)) {
 }
 
 // Display Advanced search form.
-$form = new FormValidator('advanced_search', 'get');
+$form = new FormValidator('advanced_search', 'get', '', '', array(), FormValidator::LAYOUT_HORIZONTAL);
 
 $form->addElement('html','<div id="advanced_search_form" style="display:none;">');
 $form->addElement('header', get_lang('AdvancedSearch'));
-$form->addElement('html', '<table>');
+$form->addText('keyword_firstname',get_lang('FirstName'),false);
+$form->addText('keyword_lastname',get_lang('LastName'),false);
 
-$form->addElement('html', '<tr><td>');
-$form->addText('keyword_firstname',get_lang('FirstName'),false,array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td><td width="200px;">');
-$form->addText('keyword_lastname',get_lang('LastName'),false,array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td></tr>');
+$form->addText('keyword_username',get_lang('LoginName'),false);
+$form->addText('keyword_email',get_lang('Email'),false);
 
-$form->addElement('html', '<tr><td>');
-$form->addText('keyword_username',get_lang('LoginName'),false,array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td>');
-$form->addElement('html', '<td>');
-$form->addText('keyword_email',get_lang('Email'),false,array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td></tr>');
-
-$form->addElement('html', '<tr><td>');
-$form->addText('keyword_officialcode',get_lang('OfficialCode'),false,array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td><td>');
+$form->addText('keyword_officialcode',get_lang('OfficialCode'),false);
 
 $status_options = array();
 $status_options['%'] = get_lang('All');
@@ -804,24 +793,17 @@ $status_options[DRH] = get_lang('Drh');
 $status_options[SESSIONADMIN] = get_lang('SessionsAdmin');
 $status_options[PLATFORM_ADMIN] = get_lang('Administrator');
 
-$form->addElement('select','keyword_status',get_lang('Profile'), $status_options, array('style'=>'margin-left:17px'));
-$form->addElement('html', '</td></tr>');
-$form->addElement('html', '<tr><td>');
+$form->addElement('select','keyword_status',get_lang('Profile'), $status_options    );
+
 $active_group = array();
 $active_group[] = $form->createElement('checkbox','keyword_active','', get_lang('Active'));
 $active_group[] = $form->createElement('checkbox','keyword_inactive','', get_lang('Inactive'));
-$form->addGroup($active_group,'',get_lang('ActiveAccount'),'<br/>',false);
-$form->addElement('html', '</td><td>');
+$form->addGroup($active_group,'',get_lang('ActiveAccount'), '<br/>',false);
 
 $form->addElement('checkbox', 'check_easy_passwords', null, get_lang('CheckEasyPasswords'));
 
-$form->addElement('html', '</td></tr>');
-
-$form->addElement('html', '<tr><td>');
 $form->addButtonSearch(get_lang('SearchUsers'));
-$form->addElement('html', '</td></tr>');
 
-$form->addElement('html', '</table>');
 
 $defaults = array();
 $defaults['keyword_active'] = 1;
@@ -831,7 +813,12 @@ $form->addElement('html','</div>');
 
 $form = $form->returnForm();
 
-$table = new SortableTable('users', 'get_number_of_users', 'get_user_data', (api_is_western_name_order() xor api_sort_by_first_name()) ? 3 : 2);
+$table = new SortableTable(
+    'users',
+    'get_number_of_users',
+    'get_user_data',
+    (api_is_western_name_order() xor api_sort_by_first_name()) ? 3 : 2
+);
 $table->set_additional_parameters($parameters);
 $table->set_header(0, '', false, 'width="18px"');
 $table->set_header(1, get_lang('Photo'), false);

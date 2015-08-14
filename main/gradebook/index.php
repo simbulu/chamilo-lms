@@ -777,6 +777,9 @@ if ($category != '0') {
                     ['class' => 'btn btn-default']
                 );
             }
+
+            $currentScore = Category::getCurrentScore($stud_id, $category_id, $course_code, $session_id, true);
+            Category::registerCurrentScore($currentScore, $stud_id, $category_id);
         }
     }
 }
@@ -876,7 +879,6 @@ if (isset($first_time) && $first_time==1 && api_is_allowed_to_edit(null,true)) {
                 }
             }
         }
-
 
         $i = 0;
         $allcat = array();

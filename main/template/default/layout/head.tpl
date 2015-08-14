@@ -138,7 +138,14 @@ function get_url_params(q, attribute) {
         }
     }
 }
-
+$(document).ready(function(){
+    $("#open-view-list").click(function(){
+        $("#student-list-work").fadeIn(300);
+    });
+    $("#closed-view-list").click(function(){
+        $("#student-list-work").fadeOut(300);
+    });
+});
 function check_brand() {
     if ($('.subnav').length) {
         if ($(window).width() >= 969) {
@@ -154,28 +161,6 @@ $(window).resize(function() {
 });
 
 $(document).scroll(function() {
-
-    // Top bar scroll effect
-    if ($('body').width() > 959) {
-        if ($('.subnav').length) {
-            if (!$('.subnav').attr('data-top')) {
-                // If already fixed, then do nothing
-                if ($('.subnav').hasClass('subnav-fixed')) return;
-                // Remember top position
-                var offset = $('.subnav').offset();
-                $('.subnav').attr('data-top', offset.top);
-            }
-
-            if ($('.subnav').attr('data-top') - $('.subnav').outerHeight() <= $(this).scrollTop()) {
-                $('.subnav').addClass('subnav-fixed');
-            } else {
-                $('.subnav').removeClass('subnav-fixed');
-            }
-            //$('.subnav .brand').show();
-        }
-    } else {
-        //$('.subnav .brand').hide();
-    }
 
     //Exercise warning fixed at the top
     var fixed =  $("#exercise_clock_warning");
@@ -317,6 +302,13 @@ function showConfirmationPopup(obj, urlParam)
 $(function() {
 
     check_brand();
+    //if exists the toolbar admin
+
+    if($('#toolbar').length){
+        var heigthToolBar= $('#toolbar').height();
+        $('header').css('margin-top', heigthToolBar+'px');
+        $('#page-back').css('padding-top', heigthToolBar+20+'px');
+    }
 
     // Removes the yellow input in Chrome
     if (navigator.userAgent.toLowerCase().indexOf("chrome") >= 0) {
@@ -330,17 +322,6 @@ $(function() {
         });
     }
 
-    // Fixes buttons to the new btn class.
-    /* if (!$('#button').hasClass('btn')) {
-        $("button").addClass('btn');
-    } */
-
-    // Dropdown effect.
-    $('.dropdown-toggle').dropdown();
-
-    // Responsive effect.
-    $(".collapse").collapse();
-
     $(".accordion_jquery").accordion({
         autoHeight: false,
         active: false, // all items closed by default
@@ -349,7 +330,7 @@ $(function() {
     });
 
     // Global popup
-    $('a.ajax').on('click', function(e) {
+    $('body').on('click', 'a.ajax', function(e) {
         e.preventDefault();
 
         var contentUrl = this.href,

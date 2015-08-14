@@ -81,9 +81,6 @@ define('USERNAME_MAX_LENGTH', $defaultUserNameLength);
 // Fix bug in IIS that doesn't fill the $_SERVER['REQUEST_URI'].
 api_request_uri();
 
-// This is for compatibility with MAC computers.
-ini_set('auto_detect_line_endings', '1');
-
 // Include the libraries that are necessary everywhere
 require_once __DIR__.'/../../vendor/autoload.php';
 
@@ -91,7 +88,6 @@ require_once __DIR__.'/../../vendor/autoload.php';
 $libraryPath = api_get_path(LIBRARY_PATH);
 
 // @todo convert this libs in classes
-
 require_once $libraryPath.'database.constants.inc.php';
 require_once $libraryPath.'text.lib.php';
 require_once $libraryPath.'array.lib.php';
@@ -191,7 +187,7 @@ $charset = 'UTF-8';
 \Patchwork\Utf8\Bootup::initAll();
 
 // Start session after the internationalization library has been initialized.
-Chamilo::session()->start($alreadyInstalled);
+ChamiloSession::instance()->start($alreadyInstalled);
 
 // Remove quotes added by PHP  - get_magic_quotes_gpc() is deprecated in PHP 5 see #2970
 
@@ -273,6 +269,15 @@ foreach ($result as & $row) {
     $_plugins[$key][] = $row['selected_value'];
 }
 
+// Error reporting settings.
+if (api_get_setting('server_type') == 'test') {
+    ini_set('display_errors', '1');
+    ini_set('log_errors', '1');
+    error_reporting(-1);
+} else {
+    error_reporting(E_COMPILE_ERROR | E_ERROR | E_CORE_ERROR);
+}
+
 // Load allowed tag definitions for kses and/or HTMLPurifier.
 require_once $libraryPath.'formvalidator/Rule/allowed_tags.inc.php';
 
@@ -280,12 +285,9 @@ require_once $libraryPath.'formvalidator/Rule/allowed_tags.inc.php';
 // which will then be usable from the banner and header scripts
 $this_section = SECTION_GLOBAL;
 
-// include the local (contextual) parameters of this course or section
-require $includePath.'/local.inc.php';
+// Include Chamilo Mail conf this is added here because the api_get_setting works
 
-//Include Chamilo Mail conf this is added here because the api_get_setting works
-
-//Fixes bug in Chamilo 1.8.7.1 array was not set
+// Fixes bug in Chamilo 1.8.7.1 array was not set
 $administrator['email'] = isset($administrator['email']) ? $administrator['email'] : 'admin@example.com';
 $administrator['name'] = isset($administrator['name']) ? $administrator['name'] : 'Admin';
 
@@ -307,14 +309,6 @@ foreach ($configurationFiles as $file) {
     }
 }
 
-// Error reporting settings.
-if (api_get_setting('server_type') == 'test') {
-    ini_set('display_errors', '1');
-    ini_set('log_errors', '1');
-    error_reporting(-1);
-} else {
-    error_reporting(E_COMPILE_ERROR | E_ERROR | E_CORE_ERROR);
-}
 
 /*  LOAD LANGUAGE FILES SECTION */
 
@@ -411,13 +405,15 @@ if (!empty($valid_languages)) {
     if (!in_array($user_language, $valid_languages['folder'])) {
         $user_language = api_get_setting('platformLanguage');
     }
+
     $language_priority1 = api_get_setting('languagePriority1');
     $language_priority2 = api_get_setting('languagePriority2');
     $language_priority3 = api_get_setting('languagePriority3');
     $language_priority4 = api_get_setting('languagePriority4');
 
-    if (in_array($user_language, $valid_languages['folder']) &&
-        (isset($_GET['language']) || isset($_POST['language_list']) || !empty($browser_language))
+    if (isset($_GET['language']) ||
+        (isset($_POST['language_list']) && !empty($_POST['language_list'])) ||
+        !empty($browser_language)
     ) {
         $user_selected_language = $user_language; // $_GET['language']; or HTTP_ACCEPT_LANGUAGE
         $_SESSION['user_language_choice'] = $user_selected_language;
@@ -425,13 +421,13 @@ if (!empty($valid_languages)) {
     }
 
     if (!empty($language_priority4) && api_get_language_from_type($language_priority4) !== false) {
-        $language_interface =  api_get_language_from_type($language_priority4);
+        $language_interface = api_get_language_from_type($language_priority4);
     } else {
         $language_interface = api_get_setting('platformLanguage');
     }
 
     if (!empty($language_priority3) && api_get_language_from_type($language_priority3) !== false) {
-        $language_interface =  api_get_language_from_type($language_priority3);
+        $language_interface = api_get_language_from_type($language_priority3);
     } else {
         if (isset($_SESSION['user_language_choice'])) {
             $language_interface = $_SESSION['user_language_choice'];
@@ -439,12 +435,13 @@ if (!empty($valid_languages)) {
     }
 
     if (!empty($language_priority2) && api_get_language_from_type($language_priority2) !== false) {
-        $language_interface =  api_get_language_from_type($language_priority2);
+        $language_interface = api_get_language_from_type($language_priority2);
     } else {
         if (isset($_user['language'])) {
             $language_interface = $_user['language'];
         }
     }
+
     if (!empty($language_priority1) && api_get_language_from_type($language_priority1) !== false) {
         $language_interface =  api_get_language_from_type($language_priority1);
     } else {
@@ -452,6 +449,7 @@ if (!empty($valid_languages)) {
             $language_interface = $_course['language'];
         }
     }
+
 }
 
 // Sometimes the variable $language_interface is changed
@@ -491,8 +489,12 @@ if (!empty($parent_path)) {
     }
 }
 
+// include the local (contextual) parameters of this course or section
+require $includePath.'/local.inc.php';
+
 // The global variable $text_dir has been defined in the language file trad4all.inc.php.
-// For determing text direction correspondent to the current language we use now information from the internationalization library.
+// For determining text direction correspondent to the current language
+// we use now information from the internationalization library.
 $text_dir = api_get_text_direction();
 
 // ===== "who is logged in?" module section =====
@@ -557,7 +559,9 @@ if (!isset($_SESSION['login_as']) && isset($_user)) {
 // The langstat object will then be used in the get_lang() function.
 // This block can be removed to speed things up a bit as it should only ever
 // be used in development versions.
-if (isset($_configuration['language_measure_frequency']) && $_configuration['language_measure_frequency'] == 1) {
+if (isset($_configuration['language_measure_frequency']) &&
+    $_configuration['language_measure_frequency'] == 1
+) {
     require_once api_get_path(SYS_CODE_PATH).'/cron/lang/langstats.class.php';
     $langstats = new langstats();
 }

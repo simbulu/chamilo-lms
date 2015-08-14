@@ -20,7 +20,7 @@ use Symfony\Component\Security\Core\Encoder\PlaintextPasswordEncoder;
  */
 class UserManager
 {
-    // This contants are deprecated use the constants located in ExtraField
+    // This constants are deprecated use the constants located in ExtraField
     const USER_FIELD_TYPE_TEXT = 1;
     const USER_FIELD_TYPE_TEXTAREA = 2;
     const USER_FIELD_TYPE_RADIO = 3;
@@ -275,10 +275,9 @@ class UserManager
             }
         }
 
-        $firstName = Security::remove_XSS($firstName);
-        $lastName = Security::remove_XSS($lastName);
-        $loginName = Security::remove_XSS($loginName);
-        $phone = Security::remove_XSS($phone);
+        if (empty($password)) {
+            return api_set_failure('ThisFieldIsRequired');
+        }
 
         // database table definition
         $table_user = Database::get_main_table(TABLE_MAIN_USER);
@@ -364,7 +363,11 @@ class UserManager
 
             if (!empty($email) && $send_mail) {
                 $recipient_name = api_get_person_name($firstName, $lastName, null, PERSON_NAME_EMAIL_ADDRESS);
-                $emailsubject = '['.api_get_setting('siteName').'] '.get_lang('YourReg').' '.api_get_setting('siteName');
+                $tplSubject = new Template(null, false, false, false, false, false);
+                $layoutSubject = $tplSubject->get_template(
+                    'mail/subject_registration_platform.tpl'
+                );
+                $emailSubject = $tplSubject->fetch($layoutSubject);
                 $sender_name = api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'), null, PERSON_NAME_EMAIL_ADDRESS);
                 $email_admin = api_get_setting('emailAdministrator');
 
@@ -372,12 +375,19 @@ class UserManager
                     $access_url_id = api_get_current_access_url_id();
                     if ($access_url_id != -1) {
                         $url = api_get_access_url($access_url_id);
-                        $emailbody = get_lang('Dear')." ".stripslashes(api_get_person_name($firstName, $lastName)).",\n\n".get_lang('YouAreReg')." ".api_get_setting('siteName')." ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : ".$loginName."\n".get_lang('Pass')." : ".stripslashes($original_password)."\n\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is')." : ".$url['url']."\n\n".get_lang('Problem')."\n\n".get_lang('SignatureFormula').",\n\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')."\nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email')." : ".api_get_setting('emailAdministrator');
                     }
                 } else {
-                    $emailbody = get_lang('Dear')." ".stripslashes(api_get_person_name($firstName, $lastName)).",\n\n".get_lang('YouAreReg')." ".api_get_setting('siteName')." ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : ".$loginName."\n".get_lang('Pass')." : ".stripslashes($original_password)."\n\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is')." : ".$_configuration['root_web']."\n\n".get_lang('Problem')."\n\n".get_lang('SignatureFormula').",\n\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')."\nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email')." : ".api_get_setting('emailAdministrator');
+                    $url = $_configuration['root_web'];
                 }
+                $tplContent = new Template(null, false, false, false, false, false);
+                // variables for the default template
+                $tplContent->assign('complete_name', stripslashes(api_get_person_name($firstName, $lastName)));
+                $tplContent->assign('login_name', $loginName);
+                $tplContent->assign('original_password', stripslashes($original_password));
+                $tplContent->assign('mailWebPath', $url);
 
+                $layoutContent = $tplContent->get_template('mail/content_registration_platform.tpl');
+                $emailBody = $tplContent->fetch($layoutContent);
                 /* MANAGE EVENT WITH MAIL */
                 if (EventsMail::check_if_using_class('user_registration')) {
                     $values["about_user"] = $return;
@@ -398,8 +408,8 @@ class UserManager
                     api_mail_html(
                         $recipient_name,
                         $email,
-                        $emailsubject,
-                        $emailbody,
+                        $emailSubject,
+                        $emailBody,
                         $sender_name,
                         $email_admin,
                         null,
@@ -1451,28 +1461,28 @@ class UserManager
         $pictureWebFile = $imageWebPath['file'];
         $pictureWebDir = $imageWebPath['dir'];
 
-        $pictureAnonymous = 'unknown.jpg';
+        $pictureAnonymous = 'icons/128/unknown.png';
         $gravatarSize = 22;
         $realSizeName = 'small_';
 
         switch ($size) {
             case USER_IMAGE_SIZE_SMALL:
-                $pictureAnonymous = 'unknown_22.jpg';
+                $pictureAnonymous = 'icons/22/unknown.png';
                 $realSizeName = 'small_';
                 $gravatarSize = 22;
                 break;
             case USER_IMAGE_SIZE_MEDIUM:
-                $pictureAnonymous = 'unknown_50_50.jpg';
+                $pictureAnonymous = 'icons/64/unknown.png';
                 $realSizeName = 'medium_';
                 $gravatarSize = 50;
                 break;
             case USER_IMAGE_SIZE_ORIGINAL:
-                $pictureAnonymous = 'unknown.jpg';
+                $pictureAnonymous = 'icons/128/unknown.png';
                 $realSizeName = '';
                 $gravatarSize = 108;
                 break;
             case USER_IMAGE_SIZE_BIG:
-                $pictureAnonymous = 'unknown.jpg';
+                $pictureAnonymous = 'icons/128/unknown.png';
                 $realSizeName = 'big_';
                 $gravatarSize = 200;
                 break;
@@ -3041,8 +3051,6 @@ class UserManager
         return $temp;
     }
 
-
-
     /**
      * @author Isaac flores <isaac.flores@dokeos.com>
      * @param string The email administrator
@@ -3069,9 +3077,9 @@ class UserManager
         for ($i = 0; $i < count($array_users_administrator); $i++) {
             $sql_insert_outbox = "INSERT INTO $table_message(user_sender_id, user_receiver_id, msg_status, send_date, title, content ) ".
                 " VALUES (".
-                "'".(int) $user_id."', '".(int) ($array_users_administrator[$i])."', '4', '".date('Y-m-d H:i:s')."','".Database::escape_string($title)."','".Database::escape_string($content)."'".
+                "'".(int) $user_id."', '".(int) ($array_users_administrator[$i])."', '4', '".api_get_utc_datetime()."','".Database::escape_string($title)."','".Database::escape_string($content)."'".
                 ")";
-            $rs = Database::query($sql_insert_outbox);
+            Database::query($sql_insert_outbox);
         }
     }
 
@@ -3659,21 +3667,6 @@ class UserManager
         </script>';
 
         return $js.$form->returnForm();
-
-        return '
-        <form method="GET" class="form-search" action="'.api_get_path(WEB_PATH).'main/social/search.php">
-                <input placeholder="'.get_lang('UsersGroups').'" type="text" value="'.api_htmlentities(Security::remove_XSS($query)).'" name="q"/> &nbsp;
-                ' . get_lang('Type') .'
-
-                <option value="0">--'.get_lang('Select').'--</option>
-                <option value="1"' . (($searchType=='1')?'selected="selected"':"") . '>--' . get_lang('User') .'--</option>
-                <option value="2"' . (($searchType=='2')?'selected="selected"':"") . '>--' . get_lang('Group') . '--</option>
-                </select>
-                '.$extraFields.'
-                <button class="btn btn-primary" type="submit" value="search">'.get_lang('Search').'</button>
-        </form>
-
-        ';
     }
 
     /**
@@ -5076,17 +5069,21 @@ SQL;
 
             $headers = [
                 [
-                    'url' => $userPath.'user.php?'.api_get_cidreq(),
-                    'content' => get_lang('Users'),
+                    'url' => $userPath.'user.php?'.api_get_cidreq().'&type='.STUDENT,
+                    'content' => get_lang('Students'),
                 ],
                 [
+                    'url' => $userPath.'user.php?'.api_get_cidreq().'&type='.COURSEMANAGER,
+                    'content' => get_lang('Teachers'),
+                ],
+                /*[
                     'url' => $userPath.'subscribe_user.php?'.api_get_cidreq(),
                     'content' => get_lang('Students'),
                 ],
                 [
                     'url' => $userPath.'subscribe_user.php?type=teacher&'.api_get_cidreq(),
                     'content' => get_lang('Teachers'),
-                ],
+                ],*/
                 [
                     'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
                     'content' => get_lang('Groups'),

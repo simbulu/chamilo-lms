@@ -110,7 +110,7 @@ function showChatConnect() {
     }
     $("<div />" ).attr("id","chatmain")
 	.addClass("chatboxmain")
-	.html('<div class="chatboxheadmain"><div class="user_status_main">'+button+'</div><div id="chatboxtitlemain">'+label+'</div><div class="chatboxoptions"></div><br clear="all"/></div></div>')
+	.html('<div class="chatboxheadmain"><div class="user_status_main">'+button+'</div><div id="chatboxtitlemain">'+label+'</div><div class="chatboxoptions"></div></div>')
 	.appendTo($( "body" ));
 }
 
@@ -325,22 +325,22 @@ function restructureChatBoxes() {
  * @param status
  *
  **/
-function chatWith(user_id, user_name, status) {
-	createChatBox(user_id, user_name, 0, status);
+function chatWith(user_id, user_name, status, userImage) {
+	createChatBox(user_id, user_name, 0, status, userImage);
 	$("#chatbox_"+user_id+" .chatboxtextarea").focus();
 }
 
 function chatNotYetWith(message) {
-    $("#message_ajax_reponse").html(message);
-    $("#message_ajax_reponse").css('display', 'block');
-    $("#message_ajax_reponse").attr('class', 'alert');
-    $('#message_ajax_reponse').alert()
+    $("#js_alerts").html(message);
+    $("#js_alerts").css('display', 'block');
+    $("#js_alerts").attr('class', 'alert alert-warning');
+    $('#js_alerts').alert()
 }
 
 /**
  * Creates a div
  */
-function createChatBox(user_id, chatboxtitle, minimizeChatBox, online) {
+function createChatBox(user_id, chatboxtitle, minimizeChatBox, online, userImage) {
 	if ($("#chatbox_"+user_id).length > 0) {
 		if ($("#chatbox_"+user_id).css('display') == 'none') {
 			$("#chatbox_"+user_id).css('display','block');
@@ -350,101 +350,108 @@ function createChatBox(user_id, chatboxtitle, minimizeChatBox, online) {
 		return;
 	}
 
-	user_is_online = return_online_user(user_id, online);
+	user_is_online = return_online_user(user_id, online, userImage);
 
-        var chatbox = $('<div>')
-            .attr({
-                id: 'chatbox_' + user_id
-            })
-            .addClass('chatbox')
-            .css('bottom', 0);
+	var chatbox = $('<div>')
+		.attr({
+			id: 'chatbox_' + user_id
+		})
+		.addClass('chatbox')
+		.css('bottom', 0);
 
-        var chatboxHead = $('<div>')
-            .addClass('chatboxhead')
-            .append(user_is_online);
+	var chatboxHead = $('<div>')
+		.addClass('chatboxhead')
+		.append(user_is_online);
 
-        $('<div>')
-            .addClass('chatboxtitle')
-            .append(chatboxtitle)
-            .appendTo(chatboxHead);
+    $('<div>')
+        .addClass('chatimage')
+        .append('<img src="'+userImage+'"/>')
+        .appendTo(chatboxHead);
 
-        var chatboxoptions = $('<div>')
-            .addClass('chatboxoptions')
-            .appendTo(chatboxHead);
+	$('<div>')
+		.addClass('chatboxtitle')
+		.append(chatboxtitle)
+		.appendTo(chatboxHead);
 
-        if (!!Modernizr.prefixed('RTCPeerConnection', window)) {
-            $('<a>')
-                .addClass('btn btn-xs')
-                .attr({
-                    href: '#'
-                })
-                .html('<i class="fa fa-video-camera"></i>')
-                .on('click', function(e) {
-                    e.preventDefault();
 
-                    var createForm = $.get(
-                        ajax_url,
-                        {
-                            action: 'start_video',
-                            to: user_id
-                        }
-                    );
 
-                    $.when(createForm).done(function(response) {
-                        $('#global-modal')
-                            .find('.modal-dialog')
-                            .removeClass('modal-lg');
+	var chatboxoptions = $('<div>')
+		.addClass('chatboxoptions')
+		.appendTo(chatboxHead);
 
-                        $('#global-modal')
-                            .find('.modal-body')
-                            .html(response);
+	if (!!Modernizr.prefixed('RTCPeerConnection', window)) {
+		$('<a>')
+			.addClass('btn btn-xs')
+			.attr({
+				href: '#'
+			})
+			.html('<i class="fa fa-video-camera"></i>')
+			.on('click', function(e) {
+				e.preventDefault();
 
-                        $('#global-modal').modal('show');
-                    });
-                })
-                .appendTo(chatboxoptions);
-        }
+				var createForm = $.get(
+					ajax_url,
+					{
+						action: 'start_video',
+						to: user_id
+					}
+				);
 
-        $('<a>')
-            .addClass('btn btn-xs togglelink')
-            .attr({
-                href: 'javascript:void(0)',
-                rel: user_id
-            })
-            .html('<i class="fa fa-toggle-down"></i>')
-            .appendTo(chatboxoptions);
+				$.when(createForm).done(function(response) {
+					$('#global-modal')
+						.find('.modal-dialog')
+						.removeClass('modal-lg');
 
-        $('<a>')
-            .addClass('btn btn-xs closelink')
-            .attr({
-                href: 'javascript:void(0)',
-                rel: user_id
-            })
-            .html('<i class="fa fa-close"></i>')
-            .appendTo(chatboxoptions);
+					$('#global-modal')
+						.find('.modal-body')
+						.html(response);
 
-        $('<br>')
-            .attr('clear', 'all')
-            .appendTo(chatboxHead);
+					$('#global-modal').modal('show');
+				});
+			})
+			.appendTo(chatboxoptions);
+	}
 
-        var chatboxContent = $('<div>')
-            .addClass('chatboxcontent');
+	$('<a>')
+		.addClass('btn btn-xs togglelink')
+		.attr({
+			href: 'javascript:void(0)',
+			rel: user_id
+		})
+		.html('<i class="fa fa-toggle-down"></i>')
+		.appendTo(chatboxoptions);
 
-        var chatboxInput = $('<div>')
-            .addClass('chatboxinput');
+	$('<a>')
+		.addClass('btn btn-xs closelink')
+		.attr({
+			href: 'javascript:void(0)',
+			rel: user_id
+		})
+		.html('<i class="fa fa-close"></i>')
+		.appendTo(chatboxoptions);
 
-        $('<textarea>')
-            .addClass('chatboxtextarea')
-            .on('keydown', function(e) {
-                return checkChatBoxInputKey(e.originalEvent, this, user_id);
-            })
-            .appendTo(chatboxInput);
+	$('<br>')
+		.attr('clear', 'all')
+		.appendTo(chatboxHead);
 
-        chatbox
-            .append(chatboxHead)
-            .append(chatboxContent)
-            .append(chatboxInput)
-            .appendTo('body');
+	var chatboxContent = $('<div>')
+		.addClass('chatboxcontent');
+
+	var chatboxInput = $('<div>')
+		.addClass('chatboxinput');
+
+	$('<textarea>')
+		.addClass('chatboxtextarea')
+		.on('keydown', function(e) {
+			return checkChatBoxInputKey(e.originalEvent, this, user_id);
+		})
+		.appendTo(chatboxInput);
+
+	chatbox
+		.append(chatboxHead)
+		.append(chatboxContent)
+		.append(chatboxInput)
+		.appendTo('body');
 
 	chatBoxeslength = 0;
 
@@ -508,7 +515,7 @@ function createChatBox(user_id, chatboxtitle, minimizeChatBox, online) {
  * @param int       user id
  * @param int       status  1 or 0
  */
-function return_online_user(user_id, status) {
+function return_online_user(user_id, status, userImage) {
 	var div_wrapper = $("<div />" );
 	var new_div = $("<div />" );
 

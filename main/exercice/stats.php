@@ -52,7 +52,8 @@ if (!empty($question_list)) {
             $question_id,
             $exercise_id,
             $courseCode,
-            $sessionId
+            $sessionId,
+            $question_obj->type
         );
 
         $data[$question_id]['name'] = cut($question_obj->question, 100);
@@ -276,8 +277,8 @@ foreach ($data as $row_table) {
 $content .= $table->toHtml();
 
 
-$interbreadcrumb[] = array ("url" => "exercise.php?gradebook=$gradebook", "name" => get_lang('Exercises'));
-$interbreadcrumb[] = array ("url" => "admin.php?exerciseId=$exercise_id","name" => $objExercise->name);
+$interbreadcrumb[] = array("url" => "exercise.php?gradebook=$gradebook&".api_get_cidreq(), "name" => get_lang('Exercises'));
+$interbreadcrumb[] = array("url" => "admin.php?exerciseId=$exercise_id&".api_get_cidreq(), "name" => $objExercise->name);
 
 $tpl = new Template(get_lang('ReportByQuestion'));
 
@@ -285,7 +286,7 @@ $tpl = new Template(get_lang('ReportByQuestion'));
 //$actions[]= array(get_lang('Back'), Display::return_icon('back.png', get_lang('Back'), 'exercise_report.php?'.$exercise_id));
 //$tpl->set_actions($actions);
 
-$actions = '<a href="exercise_report.php?exerciseId='.intval($_GET['exerciseId']).'">' .
+$actions = '<a href="exercise_report.php?exerciseId='.intval($_GET['exerciseId']).'&'.api_get_cidreq().'">' .
     Display :: return_icon('back.png', get_lang('GoBackToQuestionList'),'',ICON_SIZE_MEDIUM).'</a>';
 $actions = Display::div($actions, array('class'=> 'actions'));
 $content = $actions.$content;

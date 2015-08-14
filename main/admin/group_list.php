@@ -190,13 +190,11 @@ function get_recent_group_data($from = 0, $number_of_items = 5, $column, $direct
  */
 function modify_filter($group_id, $url_params, $row) {
     global $charset;
-    global $_user;
-    global $_admins_list;
     $result = null;
     if (api_is_platform_admin()) {
         $result .= '<a href="'.api_get_path(WEB_CODE_PATH).'admin/add_users_to_group.php?id='.$group_id.'">'.Display::return_icon('subscribe_users_social_network.png', get_lang('AddUsersToGroup'), '', ICON_SIZE_SMALL).'</a>';
         $result .= '<a href="group_edit.php?id='.$group_id.'">'.Display::return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL).'</a>&nbsp;&nbsp;';
-        $result .= '<a href="group_list.php?action=delete_group&amp;group_id='.$group_id.'&amp;'.$url_params.'&amp;sec_token='.$_SESSION['sec_token'].'"  onclick="javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang("ConfirmYourChoice"), ENT_QUOTES, $charset))."'".')) return false;">'.Display::return_icon('delete.png', get_lang('Delete'), array(), ICON_SIZE_SMALL).'</a>';
+        $result .= '<a href="group_list.php?action=delete_group&group_id='.$group_id.'&'.$url_params.'&sec_token='.$_SESSION['sec_token'].'"  onclick="javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang("ConfirmYourChoice"), ENT_QUOTES, $charset))."'".')) return false;">'.Display::return_icon('delete.png', get_lang('Delete'), array(), ICON_SIZE_SMALL).'</a>';
     }
     return $result;
 }
@@ -210,8 +208,9 @@ function modify_filter($group_id, $url_params, $row) {
  * @param string $url_params
  * @return string Some HTML-code with the lock/unlock button
  */
-function active_filter($active, $url_params, $row) {
-    global $_user;
+function active_filter($active, $url_params, $row)
+{
+    $_user = api_get_user_info();
 
     if ($active == '1') {
         $action = 'lock';
@@ -227,7 +226,7 @@ function active_filter($active, $url_params, $row) {
     if ($action == 'edit') {
         $result = Display::return_icon($image.'.gif', get_lang('AccountExpired'));
     } elseif ($row['0'] <> $_user['user_id']) { // you cannot lock yourself out otherwise you could disable all the accounts including your own => everybody is locked out and nobody can change it anymore.
-        $result = '<a href="user_list.php?action='.$action.'&amp;user_id='.$row['0'].'&amp;'.$url_params.'&amp;sec_token='.$_SESSION['sec_token'].'">'.Display::return_icon($image.'.gif', get_lang(ucfirst($action))).'</a>';
+        $result = '<a href="user_list.php?action='.$action.'&user_id='.$row['0'].'&'.$url_params.'&sec_token='.$_SESSION['sec_token'].'">'.Display::return_icon($image.'.gif', get_lang(ucfirst($action))).'</a>';
     }
     return $result;
 }
@@ -251,7 +250,8 @@ function lock_unlock_user($status, $user_id) {
     }
 
     if (($status_db == '1' OR $status_db == '0') AND is_numeric($user_id)) {
-        $sql = "UPDATE $user_table SET active=".intval($status_db)." WHERE user_id=".intval($user_id)."";
+        $sql = "UPDATE $user_table SET active=".intval($status_db)."
+                WHERE user_id=".intval($user_id)."";
         $result = Database::query($sql);
     }
 

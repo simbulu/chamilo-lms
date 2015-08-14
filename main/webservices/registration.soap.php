@@ -4823,8 +4823,8 @@ function WSSuscribeUsersToSession($params)
         foreach ($usersList as $enreg_user) {
             $enreg_user = Database::escape_string($enreg_user);
             $nbr_users++;
-            $sql = "INSERT IGNORE INTO $tbl_session_rel_user(session_id, user_id)
-                    VALUES ('$sessionId','$enreg_user')";
+            $sql = "INSERT IGNORE INTO $tbl_session_rel_user(session_id, user_id, registered_at)
+                    VALUES ('$sessionId','$enreg_user', '" . api_get_utc_datetime() . "')";
             Database::query($sql);
         }
 
@@ -4915,7 +4915,6 @@ function WSSubscribeUserToSessionSimple($params) {
                 $session_id,
                 array($user_id),
                 SESSION_VISIBLE_READ_ONLY,
-                false,
                 false
             );
             if ($debug) error_log('User registered to the course: '.$session_id);

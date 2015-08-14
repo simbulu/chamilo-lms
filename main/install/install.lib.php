@@ -11,6 +11,9 @@
  */
 
 use Doctrine\ORM\EntityManager;
+use Chamilo\CoreBundle\Entity\ExtraField;
+use Chamilo\CoreBundle\Entity\ExtraFieldOptions;
+use Chamilo\CoreBundle\Entity\ExtraFieldValues;
 
 /*      CONSTANTS */
 define('SYSTEM_CONFIG_FILENAME', 'configuration.dist.php');
@@ -500,10 +503,6 @@ function get_config_param($param, $updatePath = '')
 
 /**
  * Gets a configuration parameter from the database. Returns returns null on failure.
- * @param   string  $host DB Host
- * @param   string  $login DB login
- * @param   string  $pass DB pass
- * @param   string  $dbName DB name
  * @param   string  $param Name of param we want
  * @return  mixed   The parameter value or null if not found
  */
@@ -660,7 +659,7 @@ function display_language_selection()
  * @param string $installType
  * @param boolean $badUpdatePath
  * @param boolean $badUpdatePath
- * @param string The updatePath given (if given)
+ * @param string $updatePath The updatePath given (if given)
  * @param array $update_from_version_8 The different subversions from version 1.9
  *
  * @author unknow
@@ -1292,13 +1291,20 @@ function displayDatabaseParameter(
  * Displays step 3 - a form where the user can enter the installation settings
  * regarding the databases - login and password, names, prefixes, single
  * or multiple databases, tracking or not...
+ * @param string $installType
+ * @param string $dbHostForm
+ * @param string $dbUsernameForm
+ * @param string $dbPassForm
+ * @param string $dbNameForm
+ * @param string $installationProfile
  */
 function display_database_settings_form(
     $installType,
     $dbHostForm,
     $dbUsernameForm,
     $dbPassForm,
-    $dbNameForm
+    $dbNameForm,
+    $installationProfile = ''
 ) {
     if ($installType == 'update') {
         global $_configuration;
@@ -1447,6 +1453,11 @@ function display_database_settings_form(
 /**
  * Displays a parameter in a table row.
  * Used by the display_configuration_settings_form function.
+ * @param string $installType
+ * @param string $parameterName
+ * @param string $formFieldName
+ * @param string $parameterValue
+ * @param string $displayWhenUpdate
  */
 function display_configuration_parameter(
     $installType,
@@ -1467,6 +1478,21 @@ function display_configuration_parameter(
 
 /**
  * Displays step 4 of the installation - configuration settings about Chamilo itself.
+ * @param string $installType
+ * @param string $urlForm
+ * @param string $languageForm
+ * @param string $emailForm
+ * @param string $adminFirstName
+ * @param string $adminLastName
+ * @param string $adminPhoneForm
+ * @param string $campusForm
+ * @param string $institutionForm
+ * @param string $institutionUrlForm
+ * @param string $encryptPassForm
+ * @param bool $allowSelfReg
+ * @param bool $allowSelfRegProf
+ * @param string $loginForm
+ * @param string $passForm
  */
 function display_configuration_settings_form(
     $installType,
@@ -1641,6 +1667,7 @@ function display_configuration_settings_form(
 
 /**
  * After installation is completed (step 6), this message is displayed.
+ * @param string $installType
  */
 function display_after_install_message($installType)
 {
@@ -1660,7 +1687,7 @@ function display_after_install_message($installType)
 
 /**
  * This function return countries list from array (hardcoded)
- * @param   bool    (Optional) True for returning countries list with select html
+ * @param   bool  $combo  (Optional) True for returning countries list with select html
  * @return  array|string countries list
  */
 function get_countries_list_from_array($combo = false)
@@ -1744,6 +1771,11 @@ function updateDirAndFilesPermissions()
     }
 }
 
+/**
+ * @param $current_value
+ * @param $wanted_value
+ * @return string
+ */
 function compare_setting_values($current_value, $wanted_value)
 {
     $current_value_string = $current_value;
@@ -1757,6 +1789,12 @@ function compare_setting_values($current_value, $wanted_value)
     }
 }
 
+/**
+ * @param $course_dir
+ * @param $course_attempt_name
+ * @param string $file
+ * @return bool
+ */
 function check_course_script_interpretation($course_dir, $course_attempt_name, $file = 'test.php')
 {
     $output = false;
@@ -1842,6 +1880,7 @@ function check_course_script_interpretation($course_dir, $course_attempt_name, $
  * @param string $language
  * @param string $allowRegistration
  * @param string $allowTeacherSelfRegistration
+ * @param string $installationProfile The name of an installation profile file in main/install/profiles/
  */
 function installSettings(
     $organizationName,
@@ -1852,7 +1891,8 @@ function installSettings(
     $adminFirstName,
     $language,
     $allowRegistration,
-    $allowTeacherSelfRegistration
+    $allowTeacherSelfRegistration,
+    $installationProfile = ''
 ) {
     $allowRegistration = $allowRegistration ? 'true' : 'false';
     $allowTeacherSelfRegistration = $allowTeacherSelfRegistration ? 'true' : 'false';
@@ -1876,6 +1916,7 @@ function installSettings(
                 WHERE variable = '$variable'";
         Database::query($sql);
     }
+    $res = installProfileSettings($installationProfile);
 }
 
 /**
@@ -1883,10 +1924,6 @@ function installSettings(
  * src/Chamilo/CoreBundle/Migrations/Schema/*
  *
  * @param string $chamiloVersion
- * @param string $dbNameForm
- * @param string $dbUsernameForm
- * @param string $dbPassForm
- * @param string $dbHostForm
  * @param EntityManager $manager
  * @throws \Doctrine\DBAL\DBALException
  */
@@ -1901,9 +1938,9 @@ function migrate($chamiloVersion, EntityManager $manager)
     // default name is: doctrine_migration_versions)
     $config->setMigrationsTableName('version');
     // Namespace of your migration classes, do not forget escape slashes, do not add last slash
-    $config->setMigrationsNamespace('Chamilo\CoreBundle\Migrations\Schema\V'.$chamiloVersion);
+    $config->setMigrationsNamespace('Application\Migrations\Schema\V'.$chamiloVersion);
     // Directory where your migrations are located
-    $config->setMigrationsDirectory(api_get_path(SYS_PATH).'src/Chamilo/CoreBundle/Migrations/Schema/V'.$chamiloVersion);
+    $config->setMigrationsDirectory(api_get_path(SYS_PATH).'app/Migrations/Schema/V'.$chamiloVersion);
     // Load your migrations
     $config->registerMigrationsFromDirectory($config->getMigrationsDirectory());
 
@@ -1946,6 +1983,447 @@ function migrate($chamiloVersion, EntityManager $manager)
 }
 
 /**
+* @param EntityManager $em
+ *
+* @throws \Doctrine\DBAL\DBALException
+ */
+function fixIds(EntityManager $em)
+{
+    $connection = $em->getConnection();
+
+    $sql = "SELECT * FROM c_lp_item";
+    $result = $connection->fetchAll($sql);
+    foreach ($result as $item) {
+        $courseId = $item['c_id'];
+        $iid = isset($item['iid']) ? $item['iid'] : 0;
+        $ref = isset($item['ref']) ? $item['ref'] : 0;
+        $sql = null;
+
+        $newId = '';
+
+        switch ($item['item_type']) {
+            case TOOL_LINK:
+                $sql = "SELECT * FROM c_link WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+            case TOOL_STUDENTPUBLICATION:
+                $sql = "SELECT * FROM c_student_publication WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+            case TOOL_QUIZ:
+                $sql = "SELECT * FROM c_quiz WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+            case TOOL_DOCUMENT:
+                $sql = "SELECT * FROM c_document WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+            case TOOL_FORUM:
+                $sql = "SELECT * FROM c_forum_forum WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+            case 'thread':
+                $sql = "SELECT * FROM c_forum_thread WHERE c_id = $courseId AND id = $ref";
+                $data = $connection->fetchAssoc($sql);
+                if ($data) {
+                    $newId = $data['iid'];
+                }
+                break;
+        }
+
+        if (!empty($sql) && !empty($newId) && !empty($iid)) {
+            $sql = "UPDATE c_lp_item SET ref = $newId WHERE iid = $iid";
+            $connection->executeQuery($sql);
+        }
+    }
+
+    // Set NULL if session = 0
+    $sql = "UPDATE c_item_property SET session_id = NULL WHERE session_id = 0";
+    $connection->executeQuery($sql);
+
+    // Set NULL if group = 0
+    $sql = "UPDATE c_item_property SET to_group_id = NULL WHERE to_group_id = 0";
+    $connection->executeQuery($sql);
+
+    // Set NULL if insert_user_id = 0
+    $sql = "UPDATE c_item_property SET insert_user_id = NULL WHERE insert_user_id = 0";
+    $connection->executeQuery($sql);
+
+    // Delete session data of sessions that don't exist.
+    $sql = "DELETE FROM c_item_property
+            WHERE session_id IS NOT NULL AND session_id NOT IN (SELECT id FROM session)";
+    $connection->executeQuery($sql);
+
+    // Delete group data of groups that don't exist.
+    $sql = "DELETE FROM c_item_property
+            WHERE to_group_id IS NOT NULL AND to_group_id NOT IN (SELECT DISTINCT id FROM c_group_info)";
+    $connection->executeQuery($sql);
+
+    // This updates the group_id with c_group_info.iid instead of c_group_info.id
+
+    $groupTableToFix = [
+        'c_group_rel_user',
+        'c_group_rel_tutor',
+        'c_permission_group',
+        'c_role_group',
+        'c_survey_invitation',
+        'c_attendance_calendar_rel_group'
+    ];
+
+    foreach ($groupTableToFix as $table) {
+        $sql = "SELECT * FROM $table";
+        $result = $connection->fetchAll($sql);
+        foreach ($result as $item) {
+            $iid = $item['iid'];
+            $courseId = $item['c_id'];
+            $groupId = intval($item['group_id']);
+
+            // Fix group id
+            if (!empty($groupId)) {
+                $sql = "SELECT * FROM c_group_info
+                        WHERE c_id = $courseId AND id = $groupId
+                        LIMIT 1";
+                $data = $connection->fetchAssoc($sql);
+                if (!empty($data)) {
+                    $newGroupId = $data['iid'];
+                    $sql = "UPDATE $table SET group_id = $newGroupId
+                            WHERE iid = $iid";
+                    $connection->executeQuery($sql);
+                } else {
+                    // The group does not exists clean this record
+                    $sql = "DELETE FROM $table WHERE iid = $iid";
+                    $connection->executeQuery($sql);
+                }
+            }
+        }
+    }
+
+    // Fix c_item_property
+
+    $sql = "SELECT * FROM c_item_property";
+    $result = $connection->fetchAll($sql);
+    foreach ($result as $item) {
+        $courseId = $item['c_id'];
+        $sessionId = intval($item['session_id']);
+        $groupId = intval($item['to_group_id']);
+        $iid = $item['iid'];
+        $ref = $item['ref'];
+
+        // Fix group id
+
+        if (!empty($groupId)) {
+            $sql = "SELECT * FROM c_group_info
+                    WHERE c_id = $courseId AND id = $groupId";
+            $data = $connection->fetchAssoc($sql);
+            if (!empty($data)) {
+                $newGroupId = $data['iid'];
+                $sql = "UPDATE c_item_property SET to_group_id = $newGroupId
+                        WHERE iid = $iid";
+                $connection->executeQuery($sql);
+            } else {
+                // The group does not exists clean this record
+                $sql = "DELETE FROM c_item_property WHERE iid = $iid";
+                $connection->executeQuery($sql);
+            }
+        }
+
+        $sql = '';
+        $newId = '';
+        switch ($item['tool']) {
+            case TOOL_LINK:
+                $sql = "SELECT * FROM c_link WHERE c_id = $courseId AND id = $ref ";
+                break;
+            case TOOL_STUDENTPUBLICATION:
+                $sql = "SELECT * FROM c_student_publication WHERE c_id = $courseId AND id = $ref";
+                break;
+            case TOOL_QUIZ:
+                $sql = "SELECT * FROM c_quiz WHERE c_id = $courseId AND id = $ref";
+                break;
+            case TOOL_DOCUMENT:
+                $sql = "SELECT * FROM c_document WHERE c_id = $courseId AND id = $ref";
+                break;
+            case TOOL_FORUM:
+                $sql = "SELECT * FROM c_forum_forum WHERE c_id = $courseId AND id = $ref";
+                break;
+            case 'thread':
+                $sql = "SELECT * FROM c_forum_thread WHERE c_id = $courseId AND id = $ref";
+                break;
+        }
+
+        if (!empty($sql) && !empty($newId)) {
+            $data = $connection->fetchAssoc($sql);
+            if (isset($data['iid'])) {
+                $newId = $data['iid'];
+            }
+            $sql = "UPDATE c_item_property SET ref = $newId WHERE iid = $iid";
+            $connection->executeQuery($sql);
+        }
+    }
+
+    // Fix gradebook_link
+    $sql = "SELECT * FROM gradebook_link";
+    $result = $connection->fetchAll($sql);
+    foreach ($result as $item) {
+        $courseCode = $item['course_code'];
+        $courseInfo = api_get_course_info($courseCode);
+
+        if (empty($courseInfo)) {
+            continue;
+        }
+        $courseId = $courseInfo['real_id'];
+        $ref = $item['ref_id'];
+        $iid = $item['id'];
+        $sql = '';
+
+        switch ($item['type']) {
+            case LINK_LEARNPATH:
+                $sql = "SELECT * FROM c_link WHERE c_id = $courseId AND id = $ref ";
+                break;
+            case LINK_STUDENTPUBLICATION:
+                $sql = "SELECT * FROM c_student_publication WHERE c_id = $courseId AND id = $ref";
+                break;
+            case LINK_EXERCISE:
+                $sql = "SELECT * FROM c_quiz WHERE c_id = $courseId AND id = $ref";
+                break;
+            case LINK_ATTENDANCE:
+                //$sql = "SELECT * FROM c_document WHERE c_id = $courseId AND id = $ref";
+                break;
+            case LINK_FORUM_THREAD:
+                $sql = "SELECT * FROM c_forum_thread WHERE c_id = $courseId AND id = $ref";
+                break;
+        }
+
+        if (!empty($sql)) {
+            $data = $connection->fetchAssoc($sql);
+            if (isset($data) && isset($data['iid'])) {
+                $newId = $data['iid'];
+                $sql = "UPDATE gradebook_link SET ref_id = $newId
+                        WHERE id = $iid";
+                $connection->executeQuery($sql);
+            }
+        }
+    }
+
+    $sql = "SELECT * FROM groups";
+    $result = $connection->executeQuery($sql);
+    $groups = $result->fetchAll();
+
+    $oldGroups = array();
+
+    if (!empty($groups )) {
+        foreach ($groups as $group) {
+            $sql = "INSERT INTO usergroup (name, group_type, description, picture, url, visibility, updated_at, created_at)
+                    VALUES ('{$group['name']}', '1', '{$group['description']}', '{$group['picture_uri']}', '{$group['url']}', '{$group['visibility']}', '{$group['updated_on']}', '{$group['created_on']}')";
+
+            $connection->executeQuery($sql);
+            $id = $connection->lastInsertId('id');
+            $oldGroups[$group['id']] = $id;
+        }
+    }
+
+    if (!empty($oldGroups)) {
+        foreach ($oldGroups as $oldId => $newId) {
+            $path = \GroupPortalManager::get_group_picture_path_by_id(
+                $oldId,
+                'system'
+            );
+            if (!empty($path)) {
+
+                $newPath = str_replace(
+                    "groups/$oldId/",
+                    "groups/$newId/",
+                    $path['dir']
+                );
+                $command = "mv {$path['dir']} $newPath ";
+                system($command);
+            }
+        }
+
+        $sql = "SELECT * FROM group_rel_user";
+        $result = $connection->executeQuery($sql);
+        $dataList = $result->fetchAll();
+
+        if (!empty($dataList)) {
+            foreach ($dataList as $data) {
+                if (isset($oldGroups[$data['group_id']])) {
+                    $data['group_id'] = $oldGroups[$data['group_id']];
+                    $sql = "INSERT INTO usergroup_rel_user (usergroup_id, user_id, relation_type)
+                            VALUES ('{$data['group_id']}', '{$data['user_id']}', '{$data['relation_type']}')";
+                    $connection->executeQuery($sql);
+                }
+            }
+        }
+
+        $sql = "SELECT * FROM group_rel_group";
+        $result = $connection->executeQuery($sql);
+        $dataList = $result->fetchAll();
+
+        if (!empty($dataList)) {
+            foreach ($dataList as $data) {
+                if (isset($oldGroups[$data['group_id']]) && isset($oldGroups[$data['subgroup_id']])) {
+                    $data['group_id'] = $oldGroups[$data['group_id']];
+                    $data['subgroup_id'] = $oldGroups[$data['subgroup_id']];
+                    $sql = "INSERT INTO usergroup_rel_usergroup (group_id, subgroup_id, relation_type)
+                            VALUES ('{$data['group_id']}', '{$data['subgroup_id']}', '{$data['relation_type']}')";
+                    $connection->executeQuery($sql);
+                }
+            }
+        }
+
+        $sql = "SELECT * FROM announcement_rel_group";
+        $result = $connection->executeQuery($sql);
+        $dataList = $result->fetchAll();
+
+        if (!empty($dataList)) {
+            foreach ($dataList as $data) {
+                if (isset($oldGroups[$data['group_id']])) {
+                    //Deleting relation
+                    $sql = "DELETE FROM announcement_rel_group WHERE id = {$data['id']}";
+                    $connection->executeQuery($sql);
+
+                    //Add new relation
+                    $data['group_id'] = $oldGroups[$data['group_id']];
+                    $sql = "INSERT INTO announcement_rel_group(group_id, announcement_id)
+                            VALUES ('{$data['group_id']}', '{$data['announcement_id']}')";
+                    $connection->executeQuery($sql);
+                }
+            }
+        }
+
+        $sql = "SELECT * FROM group_rel_tag";
+        $result = $connection->executeQuery($sql);
+        $dataList = $result->fetchAll();
+        if (!empty($dataList)) {
+            foreach ($dataList as $data) {
+                if (isset($oldGroups[$data['group_id']])) {
+                    $data['group_id'] = $oldGroups[$data['group_id']];
+                    $sql = "INSERT INTO usergroup_rel_tag (tag_id, usergroup_id)
+                            VALUES ('{$data['tag_id']}', '{$data['group_id']}')";
+                    $connection->executeQuery($sql);
+                }
+            }
+        }
+    }
+
+
+    // Extra fields
+    $extraFieldTables = [
+        ExtraField::USER_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_USER_FIELD),
+        ExtraField::COURSE_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_COURSE_FIELD),
+        //ExtraField::LP_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_LP_FIELD),
+        ExtraField::SESSION_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_SESSION_FIELD),
+        //ExtraField::CALENDAR_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_CALENDAR_EVENT_FIELD),
+        //ExtraField::QUESTION_FIELD_TYPE => Database::get_main_table(TABLE_MAIN_CALENDAR_EVENT_FIELD),
+        //ExtraField::USER_FIELD_TYPE => //Database::get_main_table(TABLE_MAIN_SPECIFIC_FIELD),
+    ];
+
+    foreach ($extraFieldTables as $type => $table) {
+        //continue;
+        $sql = "SELECT * FROM $table ";
+        $result = $connection->query($sql);
+        $fields = $result->fetchAll();
+
+        foreach ($fields as $field) {
+            $originalId = $field['id'];
+            $extraField = new ExtraField();
+            $extraField
+                ->setExtraFieldType($type)
+                ->setVariable($field['field_variable'])
+                ->setFieldType($field['field_type'])
+                ->setDisplayText($field['field_display_text'])
+                ->setDefaultValue($field['field_default_value'])
+                ->setFieldOrder($field['field_order'])
+                ->setVisible($field['field_visible'])
+                ->setChangeable($field['field_changeable'])
+                ->setFilter($field['field_filter']);
+
+            $em->persist($extraField);
+            $em->flush();
+
+            $values = array();
+            switch ($type) {
+                case ExtraField::USER_FIELD_TYPE:
+                    $optionTable = Database::get_main_table(
+                        TABLE_MAIN_USER_FIELD_OPTIONS
+                    );
+                    $valueTable = Database::get_main_table(
+                        TABLE_MAIN_USER_FIELD_VALUES
+                    );
+                    $handlerId = 'user_id';
+                    break;
+                case ExtraField::COURSE_FIELD_TYPE:
+                    $optionTable = Database::get_main_table(
+                        TABLE_MAIN_COURSE_FIELD_OPTIONS
+                    );
+                    $valueTable = Database::get_main_table(
+                        TABLE_MAIN_COURSE_FIELD_VALUES
+                    );
+                    $handlerId = 'c_id';
+                    break;
+                case ExtraField::SESSION_FIELD_TYPE:
+                    $optionTable = Database::get_main_table(
+                        TABLE_MAIN_SESSION_FIELD_OPTIONS
+                    );
+                    $valueTable = Database::get_main_table(
+                        TABLE_MAIN_SESSION_FIELD_VALUES
+                    );
+                    $handlerId = 'session_id';
+                    break;
+            }
+
+            if (!empty($optionTable)) {
+
+                $sql = "SELECT * FROM $optionTable WHERE field_id = $originalId ";
+                $result = $connection->query($sql);
+                $options = $result->fetchAll();
+
+                foreach ($options as $option) {
+                    $extraFieldOption = new ExtraFieldOptions();
+                    $extraFieldOption
+                        ->setDisplayText($option['option_display_text'])
+                        ->setField($extraField)
+                        ->setOptionOrder($option['option_order'])
+                        ->setValue($option['option_value']);
+                    $em->persist($extraFieldOption);
+                    $em->flush();
+                }
+
+                $sql = "SELECT * FROM $valueTable WHERE field_id = $originalId ";
+                $result = $connection->query($sql);
+                $values = $result->fetchAll();
+            }
+
+            if (!empty($values)) {
+                foreach ($values as $value) {
+                    $extraFieldValue = new ExtraFieldValues();
+                    $extraFieldValue
+                        ->setValue($value['field_value'])
+                        ->setField($extraField)
+                        ->setItemId($value[$handlerId]);
+                    $em->persist($extraFieldValue);
+                    $em->flush();
+                }
+            }
+        }
+    }
+}
+
+/**
  *
  * After the schema was created (table creation), the function adds
  * admin/platform information.
@@ -1965,6 +2443,7 @@ function migrate($chamiloVersion, EntityManager $manager)
  * @param string $siteName
  * @param string $allowSelfReg
  * @param string $allowSelfRegProf
+ * @param string $installationProfile Installation profile, if any was provided
  */
 function finishInstallation(
     $manager,
@@ -1981,7 +2460,8 @@ function finishInstallation(
     $institutionUrlForm,
     $siteName,
     $allowSelfReg,
-    $allowSelfRegProf
+    $allowSelfRegProf,
+    $installationProfile = ''
 ) {
     $sysPath = !empty($sysPath) ? $sysPath : api_get_path(SYS_PATH);
 
@@ -2035,19 +2515,6 @@ function finishInstallation(
         false //$isAdmin = false
     );
 
-/*
-    // Insert admin and Anonymous users.
-    $uniqueAdmin = sha1(uniqid(null, true));
-    $uniqueAnon = sha1(uniqid(null, true));
-    $sql = "INSERT INTO user (user_id, lastname, firstname, username, username_canonical, salt, password, auth_source, email, status, official_code, phone, creator_id, registration_date, expiration_date,active,openid,language) VALUES
-		(1, '$adminLastName','$adminFirstName','$loginForm','$loginForm', '$uniqueAdmin', '$encryptPassword','".PLATFORM_AUTH_SOURCE."','$emailForm',1,'ADMIN','$adminPhoneForm',1,NOW(),NULL,'1',NULL,'$languageForm'),
-		(2, 'Anonymous', 'Joe', 'anon', 'anon', '$uniqueAnon', '', 'platform', 'anonymous@localhost', 6, 'anonymous', NULL, 1, NOW(), NULL, 1,NULL,'$languageForm')";
-    //Database::query($sql);*/
-
-    // Insert user as admin
-    //$sql = "INSERT INTO admin VALUES(1, 1)";
-    //Database::query($sql);
-
     // Set default language
     $sql = "UPDATE language SET available=1 WHERE dokeos_folder = '$languageForm'";
     Database::query($sql);
@@ -2062,9 +2529,57 @@ function finishInstallation(
         $adminFirstName,
         $languageForm,
         $allowSelfReg,
-        $allowSelfRegProf
+        $allowSelfRegProf,
+        $installationProfile
     );
 
     lockSettings();
     updateDirAndFilesPermissions();
+}
+
+/**
+ * Update settings based on installation profile defined in a JSON file
+ * @param string $installationProfile The name of the JSON file in main/install/profiles/ folder
+ * @return bool false on failure (no bad consequences anyway, just ignoring profile)
+ */
+function installProfileSettings(
+    $installationProfile = ''
+) {
+    if (empty($installationProfile)) {
+        return false;
+    }
+    $jsonPath = api_get_path(SYS_PATH).'main/install/profiles/'.$installationProfile.'.json';
+    // Make sure the path to the profile is not hacked
+    if (!Security::check_abs_path($jsonPath, api_get_path(SYS_PATH).'main/install/profiles/')) {
+        return false;
+    }
+    if (!is_file($jsonPath)) {
+        return false;
+    }
+    if (!is_readable($jsonPath)) {
+        return false;
+    }
+    if (!function_exists('json_decode')) {
+        // The php-json extension is not available. Ignore profile.
+        return false;
+    }
+    $json = file_get_contents($jsonPath);
+    $params = json_decode($json);
+    if ($params === false or $params === null) {
+        return false;
+    }
+    $settings = $params->params;
+    if (!empty($params->parent)) {
+        $res = installProfileSettings($params->parent);
+    }
+    foreach ($settings as $id => $param) {
+        $sql = "UPDATE settings_current
+                SET selected_value = '".$param->selected_value."'
+                WHERE variable = '".$param->variable."'";
+        if (!empty($param->subkey)) {
+            $sql .= " AND subkey='" . $param->subkey . "'";
+        }
+        Database::query($sql);
+    }
+    return true;
 }

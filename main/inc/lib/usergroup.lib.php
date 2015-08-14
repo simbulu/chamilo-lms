@@ -44,10 +44,7 @@ class UserGroup extends Model
         $this->table_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $this->table_user = Database::get_main_table(TABLE_MAIN_USER);
 
-        global $_configuration;
-        if (isset($_configuration['enable_multiple_url_support_for_classes'])) {
-            $this->useMultipleUrl = $_configuration['enable_multiple_url_support_for_classes'];
-        }
+        $this->useMultipleUrl = api_get_configuration_value('enable_multiple_url_support_for_classes');
     }
 
     /**
@@ -2021,16 +2018,13 @@ class UserGroup extends Model
         }
 
         if (!empty($links)) {
-            $html .= '<div class="well sidebar-nav"><ul class="nav nav-list">';
-            if (!empty($group_info['description'])) {
-                $html .= Display::tag(
-                    'li',
-                    Security::remove_XSS($group_info['description'], STUDENT, true),
-                    array('class'=>'group_description')
-                );
-            }
+            $html .= '<div class="panel panel-default">';
+            $html .= '<div class="panel-body">';
+            $html .= '<ul class="nav nav-pills nav-stacked">';
             $html .= $links;
-            $html .= '</ul></div>';
+            $html .= '</ul>';
+            $html .= '</div>';
+            $html .= '</div>';
         }
 
         return $html;

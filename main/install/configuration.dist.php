@@ -50,10 +50,6 @@ $_configuration['root_sys'] = '{ROOT_SYS}';
 // example: chamilo (this means chamilo is installed in /var/www/chamilo/
 $_configuration['url_append'] = '{URL_APPEND_PATH}';
 
-// URL to your phpMyAdmin installation.
-// If not empty, a link will be available in the Platform Administration
-$_configuration['db_admin_path'] = '';
-
 /**
  * Login modules settings
  */
@@ -180,8 +176,6 @@ $_configuration['system_stable'] = NEW_VERSION_STABLE;
 //);
 // Define the frequency to which the data must be stored in the database
 //$_configuration['session_stored_after_n_times'] = 10;
-// One connection per user
-//$_configuration['prevent_multiple_simultaneous_login'] = false;
 // If the database is down this css style will be used to show the errors.
 //$_configuration['theme_fallback'] = 'chamilo'; // (chamilo theme)
 // The default template that will be use in the system.
@@ -208,10 +202,15 @@ $_configuration['system_stable'] = NEW_VERSION_STABLE;
     )
 );*/
 
-// Detail view of gradebook categories.
-//$_configuration['gradebook_detailed_admin_view'] = false;
 // E-mail accounts to send notifications to when executing cronjobs - works for main/cron/import_csv.php
 //$_configuration['cron_notification_mails'] = array('email@example.com', 'email2@example.com');
 
-// Allow anonymous users to see the courses/sessions catalogue
-//$_configuration['course_catalog_published'] = 'false';
+// Only shows the fields in this list
+/*$_configuration['allow_fields_inscription'] = [
+    'official_code',
+    'phone',
+    'status',
+    'language',
+    'extra_fields'
+];*/
+

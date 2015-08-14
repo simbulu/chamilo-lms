@@ -235,6 +235,7 @@ switch ($action) {
                         'work' . $move_to_path,
                         $_REQUEST['move_to_id']
                     );
+
                     api_item_property_update(
                         $_course,
                         'work',
@@ -250,7 +251,7 @@ switch ($action) {
             } else {
                 $message = Display::return_message(get_lang('Impossible'), 'error');
             }
-            Session::write('message', $message);
+            Display::addFlash($message);
             header('Location: '.$currentUrl);
             exit;
         }
@@ -321,11 +322,15 @@ switch ($action) {
         }
         if (api_is_allowed_to_edit() || api_is_coach()) {
             // Work list
+            $content .= '<div class="toolbar-works"><a id="open-view-list" class="btn btn-primary" href="#"><i class="fa fa-users"></i> Ver Estudiantes</a></div>';
             $content .= '<div class="row">';
-            $content .= '<div class="col-md-9">';
+            $content .= '<div class="col-md-12">';
+            $content .= '<div id="work-list" class="table-responsive">';
             $content .= showTeacherWorkGrid();
             $content .= '</div>';
-            $content .= '<div class="col-md-3">';
+            $content .= '</div>';
+            $content .= '<div id="student-list-work" style="display: none" class="table-responsive">';
+            $content .= '<div class="toolbar"><a id="closed-view-list" href="#"><i class="fa fa-times-circle"></i> ' .get_lang('Close'). '</a></div>';
             $content .= showStudentList($work_id);
             $content .= '</div>';
         } else {

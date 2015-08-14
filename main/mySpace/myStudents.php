@@ -32,15 +32,14 @@ function show_image(image,width,height) {
 }
 </script>';
 
-$export_csv = isset ($_GET['export']) && $_GET['export'] == 'csv' ? true : false;
-$sessionId = isset($_GET['id_session']) ? $_GET['id_session'] : 0;
+$export = isset($_GET['export']) ? $_GET['export'] : false;
+$sessionId = isset($_GET['id_session']) ? intval($_GET['id_session']) : 0;
 
 if (empty($sessionId)) {
     $sessionId = api_get_session_id();
 }
 
-
-if ($export_csv) {
+if ($export) {
     ob_start();
 }
 $csv_content = array();
@@ -115,11 +114,6 @@ if (isset($_GET['details'])) {
     $nameTools = get_lang("DetailsStudentInCourse");
 } else {
     if (!empty ($_GET['origin']) && $_GET['origin'] == 'resume_session') {
-        /*$interbreadcrumb[] = array (
-            'url' => '../admin/index.php',
-            "name" => get_lang('PlatformAdmin')
-        );*/
-
         $interbreadcrumb[] = array (
             'url' => "../session/session_list.php",
             "name" => get_lang('SessionList')
@@ -173,7 +167,7 @@ $check = Security::check_token('get');
 
 if ($check) {
     switch ($_GET['action']) {
-        case 'reset_lp' :
+        case 'reset_lp':
             $course = isset($_GET['course']) ? $_GET['course'] : "";
             $lp_id = isset($_GET['lp_id']) ? intval($_GET['lp_id']) : "";
 
@@ -316,30 +310,34 @@ if (isset($message)) {
 
 $token = Security::get_token();
 if (!empty($student_id)) {
-
     // Actions bar
     echo '<div class="actions">';
-    echo '<a href="javascript: window.back();" ">'.
+    echo '<a href="javascript: window.history.go(-1);" ">'.
             Display::return_icon('back.png', get_lang('Back'),'',ICON_SIZE_MEDIUM).'</a>';
 
     echo '<a href="javascript: void(0);" onclick="javascript: window.print();">'.
             Display::return_icon('printer.png', get_lang('Print'),'',ICON_SIZE_MEDIUM).'</a>';
+
     echo '<a href="' . api_get_self() . '?' . Security :: remove_XSS($_SERVER['QUERY_STRING']) . '&export=csv">'.
             Display::return_icon('export_csv.png', get_lang('ExportAsCSV'),'',ICON_SIZE_MEDIUM).'</a> ';
+
+    echo '<a href="' . api_get_self() . '?' . Security :: remove_XSS($_SERVER['QUERY_STRING']) . '&export=xls">'.
+    Display::return_icon('export_excel.png', get_lang('ExportAsXLS'),'',ICON_SIZE_MEDIUM).'</a> ';
+
     if (!empty ($user_info['email'])) {
         $send_mail = '<a href="mailto:'.$user_info['email'].'">'.
-                Display :: return_icon('mail_send.png', get_lang('SendMail'),'',ICON_SIZE_MEDIUM).'</a>';
+            Display :: return_icon('mail_send.png', get_lang('SendMail'),'',ICON_SIZE_MEDIUM).'</a>';
     } else {
         $send_mail = Display :: return_icon('mail_send_na.png', get_lang('SendMail'),'',ICON_SIZE_MEDIUM);
     }
     echo $send_mail;
     if (!empty($student_id) && !empty($_GET['course'])) {
         // Only show link to connection details if course and student were defined in the URL
-        echo '<a href="access_details.php?student=' . $student_id . '&course=' . Security :: remove_XSS($_GET['course']) . '&amp;origin=' . Security :: remove_XSS($_GET['origin']) . '&amp;cidReq='.Security::remove_XSS($_GET['course']).'&amp;id_session='.$sessionId.'">'.
+        echo '<a href="access_details.php?student=' . $student_id . '&course=' . Security :: remove_XSS($_GET['course']) . '&origin=' . Security :: remove_XSS($_GET['origin']) . '&cidReq='.Security::remove_XSS($_GET['course']).'&id_session='.$sessionId.'">'.
             Display :: return_icon('statistics.png', get_lang('AccessDetails'),'',ICON_SIZE_MEDIUM).'</a>';
     }
     if (api_can_login_as($student_id)) {
-        echo '<a href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&amp;user_id='.$student_id.'&amp;sec_token='.$token.'">'.
+        echo '<a href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&user_id='.$student_id.'&sec_token='.$token.'">'.
             Display::return_icon('login_as.png', get_lang('LoginAs'), null, ICON_SIZE_MEDIUM).'</a>&nbsp;&nbsp;';
     }
 
@@ -406,7 +404,7 @@ if (!empty($student_id)) {
 
     // cvs information
     $csv_content[] = array(
-        get_lang('Informations', '')
+        get_lang('Information', '')
     );
     $csv_content[] = array (
         get_lang('Name', ''),
@@ -426,8 +424,8 @@ if (!empty($student_id)) {
         get_lang('Tracking', '')
     );
     $csv_content[] = array(
-        get_lang('FirstLogin', ''),
-        get_lang('LatestLogin', ''),
+        get_lang('FirstLoginInPlatform', ''),
+        get_lang('LatestLoginInPlatform', ''),
         get_lang('TimeSpentInTheCourse', ''),
         get_lang('Progress', ''),
         get_lang('Score', '')
@@ -544,11 +542,11 @@ if (!empty($student_id)) {
             <tr>
                 <th colspan="2"><?php echo get_lang('Tracking'); ?></th>
             </tr>
-            <tr><td align="right"><?php echo get_lang('FirstLogin') ?></td>
+            <tr><td align="right"><?php echo get_lang('FirstLoginInPlatform') ?></td>
                 <td align="left"><?php echo $first_connection_date ?></td>
             </tr>
             <tr>
-                <td align="right"><?php echo get_lang('LatestLogin') ?></td>
+                <td align="right"><?php echo get_lang('LatestLoginInPlatform') ?></td>
                 <td align="left"><?php echo $last_connection_date ?></td>
             </tr>
             <?php if (isset($_GET['details']) && $_GET['details'] == 'true') {?>
@@ -762,11 +760,21 @@ if (!empty($student_id)) {
                 <table class="data_table">
                 <tr>
                     <th><?php echo get_lang('Learnpaths');?></th>
-                    <th><?php echo get_lang('Time').' '; Display :: display_icon('info3.gif', get_lang('TotalTimeByCourse'), array ('align' => 'absmiddle', 'hspace' => '3px')); ?></th>
-                    <th><?php echo get_lang('AverageScore').' '; Display :: display_icon('info3.gif', get_lang('AverageIsCalculatedBasedInAllAttempts'), array ( 'align' => 'absmiddle', 'hspace' => '3px')); ?></th>
-                    <th><?php echo get_lang('LatestAttemptAverageScore').' '; Display :: display_icon('info3.gif', get_lang('AverageIsCalculatedBasedInTheLatestAttempts'), array ( 'align' => 'absmiddle', 'hspace' => '3px')); ?></th>
-                    <th><?php echo get_lang('Progress').' '; Display :: display_icon('info3.gif', get_lang('LPProgressScore'), array ('align' => 'absmiddle','hspace' => '3px')); ?></th>
-                    <th><?php echo get_lang('LastConnexion').' '; Display :: display_icon('info3.gif', get_lang('LastTimeTheCourseWasUsed'), array ('align' => 'absmiddle','hspace' => '3px')); ?></th>
+                    <th><?php
+                        echo get_lang('Time').' ';
+                        Display :: display_icon('info3.gif', get_lang('TotalTimeByCourse'), array ('align' => 'absmiddle', 'hspace' => '3px')); ?></th>
+                    <th><?php
+                        echo get_lang('AverageScore').' ';
+                        Display :: display_icon('info3.gif', get_lang('AverageIsCalculatedBasedInAllAttempts'), array ( 'align' => 'absmiddle', 'hspace' => '3px')); ?></th>
+                    <th><?php
+                        echo get_lang('LatestAttemptAverageScore').' ';
+                        Display :: display_icon('info3.gif', get_lang('AverageIsCalculatedBasedInTheLatestAttempts'), array ( 'align' => 'absmiddle', 'hspace' => '3px')); ?></th>
+                    <th><?php
+                        echo get_lang('Progress').' ';
+                        Display :: display_icon('info3.gif', get_lang('LPProgressScore'), array ('align' => 'absmiddle','hspace' => '3px')); ?></th>
+                    <th><?php
+                        echo get_lang('LastConnexion').' ';
+                        Display :: display_icon('info3.gif', get_lang('LastTimeTheCourseWasUsed'), array ('align' => 'absmiddle','hspace' => '3px')); ?></th>
                     <?php
                     echo '<th>'.get_lang('Details').'</th>';
                     if (api_is_allowed_to_edit()) {
@@ -1153,9 +1161,17 @@ if (!empty($student_id)) {
     <?php
     } //end details
 }
-if ($export_csv) {
+
+if ($export) {
     ob_end_clean();
-    Export :: arrayToCsv($csv_content, 'reporting_student');
+    switch ($export) {
+        case 'csv':
+            Export::arrayToCsv($csv_content, 'reporting_student');
+            break;
+        case 'xls':
+            Export::arrayToXls($csv_content, 'reporting_student');
+        break;
+    }
     exit;
 }
 

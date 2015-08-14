@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 use \Chamilo\CoreBundle\Entity\SequenceResource;
 
 /**
@@ -22,7 +23,7 @@ $limit = getLimitArray();
 // Section for the tabs.
 $this_section = SECTION_COURSES;
 
-if (api_get_configuration_value('course_catalog_published') !== 'true') {
+if (api_get_setting('course_catalog_published') !== 'true') {
     // Access rights: anonymous users can't do anything useful here.
     api_block_anonymous_users();
 }
@@ -67,10 +68,16 @@ if (empty($nameTools)) {
     $nameTools = get_lang('CourseManagement');
 } else {
     if (!in_array($action, array('sortmycourses', 'createcoursecategory', 'display_random_courses', 'display_courses', 'subscribe'))) {
-        $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'auth/courses.php', 'name' => get_lang('CourseManagement'));
+        $interbreadcrumb[] = array(
+            'url' => api_get_path(WEB_CODE_PATH).'auth/courses.php',
+            'name' => get_lang('CourseManagement'),
+        );
     }
     if ($action == 'createcoursecategory') {
-        $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'auth/courses.php?action=sortmycourses', 'name' => get_lang('SortMyCourses'));
+        $interbreadcrumb[] = array(
+            'url' => api_get_path(WEB_CODE_PATH).'auth/courses.php?action=sortmycourses',
+            'name' => get_lang('SortMyCourses'),
+        );
     }
     $interbreadcrumb[] = array('url' => '#', 'name' => $nameTools);
 }
@@ -81,14 +88,14 @@ $courses_controller = new CoursesController();
 // We are moving a course or category of the user up/down the list (=Sort My Courses).
 if (isset($_GET['move'])) {
     if (isset($_GET['course'])) {
-        if ($ctok == $_GET['sec_token']) {
-            $courses_controller->move_course($_GET['move'], $_GET['course'], $_GET['category']);
-        }
+        $courses_controller->move_course(
+            $_GET['move'],
+            $_GET['course'],
+            $_GET['category']
+        );
     }
     if (isset($_GET['category']) && !$_GET['course']) {
-        if ($ctok == $_GET['sec_token']) {
-            $courses_controller->move_category($_GET['move'], $_GET['category']);
-        }
+        $courses_controller->move_category($_GET['move'], $_GET['category']);
     }
 }
 
@@ -210,24 +217,43 @@ switch ($action) {
         $courses_controller->sessionsList($action, $nameTools, $limit);
         break;
     case 'subscribe_to_session':
+        $userId = api_get_user_id();
+        $confirmed = isset($_GET['confirm']);
+        $sessionId = intval($_GET['session_id']);
+
+        if (empty($userId)) {
+            api_not_allowed();
+            exit;
+        }
+
+        if (!$confirmed) {
+            $template = new Template(null, false, false, false, false, false);
+            $template->assign('session_id', $sessionId);
+
+            $layout = $template->get_template('auth/confirm_session_subscription.tpl');
+
+            echo $template->fetch($layout);
+            exit;
+        }
+
         $registrationAllowed = api_get_setting('catalog_allow_session_auto_subscription');
         if ($registrationAllowed === 'true') {
             $entityManager = Database::getManager();
             $repository = $entityManager->getRepository('ChamiloCoreBundle:SequenceResource');
 
             $sequences = $repository->getRequirements(
-                $_GET['session_id'],
+                $sessionId,
                 SequenceResource::SESSION_TYPE
             );
 
             if (count($sequences) > 0) {
-                $requirementsData = SecuenceResourceManager::checkRequirementsForUser(
+                $requirementsData = SequenceResourceManager::checkRequirementsForUser(
                     $sequences,
-                    api_get_user_id(),
-                    SequenceResource::SESSION_TYPE
+                    SequenceResource::SESSION_TYPE,
+                    $userId
                 );
 
-                $continueWithSubscription = SecuenceResourceManager::checkSequenceAreCompleted($requirementsData);
+                $continueWithSubscription = SequenceResourceManager::checkSequenceAreCompleted($requirementsData);
 
                 if (!$continueWithSubscription) {
                     header('Location: ' .  api_get_path(WEB_CODE_PATH) . 'auth/courses.php');
@@ -237,7 +263,7 @@ switch ($action) {
 
             SessionManager::suscribe_users_to_session(
                 $_GET['session_id'],
-                array($_GET['user_id'])
+                array($userId)
             );
 
             $coursesList = SessionManager::get_course_list_by_session_id($_GET['session_id']);

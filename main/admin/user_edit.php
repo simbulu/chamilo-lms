@@ -97,7 +97,7 @@ unset($user_data['password']);
 $form = new FormValidator(
     'user_edit',
     'post',
-    '',
+    api_get_self().'?user_id='.$user_id,
     ''
 );
 $form->addElement('header', '', $tool_name);
@@ -195,8 +195,14 @@ if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0
 $form->addElement('radio', 'reset_password', null, get_lang('AutoGeneratePassword'), 1);
 $group = array();
 $group[] =$form->createElement('radio', 'reset_password', null, null, 2);
-$group[] =$form->createElement('password', 'password', null, array('onkeydown' => 'javascript: password_switch_radio_button();'));
+$group[] = $form->createElement(
+    'password',
+    'password',
+    null,
+    array('onkeydown' => 'javascript: password_switch_radio_button();')
+);
 $form->addGroup($group, 'password', null, '', false);
+//$form->addGroupRule('password', 'password', 'required', null, 1);
 
 // Status
 $status = array();
@@ -293,6 +299,13 @@ $error_drh = false;
 // Validate form
 if ($form->validate()) {
 	$user = $form->getSubmitValues(1);
+    $reset_password = intval($user['reset_password']);
+    if ($reset_password == 2 && empty($user['password'])) {
+        Display::addFlash(Display::return_message(get_lang('PasswordIsTooShort')));
+        header('Location: '.api_get_self().'?user_id='.$user_id);
+        exit();
+    }
+
 	$is_user_subscribed_in_course = CourseManager::is_user_subscribed_in_course($user['user_id']);
 
 	if ($user['status'] == DRH && $is_user_subscribed_in_course) {
@@ -383,44 +396,6 @@ if ($form->validate()) {
         $extraFieldValue = new ExtraFieldValue('user');
         $extraFieldValue->saveFieldValues($user);
 
-		/*foreach ($user as $key => $value) {
-			if (substr($key, 0, 6) == 'extra_') {
-                //an extra field
-                //@todo remove this as well as in the profile.php ad put it in a function
-                if (is_array($value) && isset($value['Y']) && isset($value['F']) && isset($value['d'])) {
-                    if (isset($value['H']) && isset($value['i'])) {
-                        // extra field date time
-                        $time = mktime($value['H'],$value['i'],0,$value['F'],$value['d'],$value['Y']);
-                        $value = date('Y-m-d H:i:s',$time);
-                    } else {
-                        // extra field date
-                        $time = mktime(0,0,0,$value['F'],$value['d'],$value['Y']);
-                        $value = date('Y-m-d',$time);
-                    }
-                }
-                // For array $value -> if exists key 'tmp_name' then must not be empty
-                // This avoid delete from user field value table when doesn't upload a file
-                if (is_array($value)) {
-                    if (array_key_exists('tmp_name', $value) && empty($value['tmp_name'])) {
-                        //Nothing to do
-                    } else {
-                        if (array_key_exists('tmp_name', $value)) {
-                            $value['tmp_name'] = Security::filter_filename($value['tmp_name']);
-                        }
-                        if (array_key_exists('name', $value)) {
-                            $value['name'] = Security::filter_filename($value['name']);
-                        }
-                        UserManager::update_extra_field_value($user_id, substr($key, 6), $value);
-                    }
-                } else {
-                    UserManager::update_extra_field_value($user_id, substr($key, 6), $value);
-                }
-            } elseif (strpos($key, 'remove_extra') !== false) {
-                $extra_value = Security::filter_filename(urldecode(key($value)));
-                // To remove from user_field_value and folder
-                UserManager::update_extra_field_value($user_id, substr($key,13), $extra_value);
-            }
-		}*/
 		$tok = Security::get_token();
 		header('Location: user_list.php?action=show_message&message='.urlencode(get_lang('UserUpdated')).'&sec_token='.$tok);
 		exit();
