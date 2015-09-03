@@ -530,6 +530,10 @@ define('TEACHER_HTML_FULLPAGE', 5);
 define('TIMELINE_STATUS_ACTIVE', '1');
 define('TIMELINE_STATUS_INACTIVE', '2');
 
+// Event email template class
+define ('EVENT_EMAIL_TEMPLATE_ACTIVE',  1);
+define ('EVENT_EMAIL_TEMPLATE_INACTIVE', 0);
+
 /**
  * Inclusion of internationalization libraries
  */
@@ -3950,7 +3954,7 @@ function api_get_item_property_list_by_tool_by_user(
     $item_property_table = Database::get_course_table(TABLE_ITEM_PROPERTY);
     $session_condition = ' AND session_id = '.$session_id;
     if (empty($session_id)) {
-        $session_condition = " (session_id = 0 OR session_id IS NULL) ";
+        $session_condition = " AND (session_id = 0 OR session_id IS NULL) ";
     }
     $sql = "SELECT * FROM $item_property_table
             WHERE
@@ -3966,6 +3970,7 @@ function api_get_item_property_list_by_tool_by_user(
             $list[] = $row;
         }
     }
+
     return $list;
 }
 
@@ -3988,10 +3993,14 @@ function api_get_item_property_id($course_code, $tool, $ref, $sessionId = 0)
     $course_id = $course_info['real_id'];
     $sessionCondition = " AND session_id = $sessionId ";
     if (empty($sessionId)) {
-        $sessionCondition = " (session_id = 0 OR session_id IS NULL) ";
+        $sessionCondition = " AND (session_id = 0 OR session_id IS NULL) ";
     }
     $sql = "SELECT id FROM $tableItemProperty
-            WHERE c_id = $course_id AND tool = '$tool' AND ref = $ref $sessionCondition";
+            WHERE
+                c_id = $course_id AND
+                tool = '$tool' AND
+                ref = $ref
+                $sessionCondition";
     $rs  = Database::query($sql);
     $item_property_id = '';
     if (Database::num_rows($rs) > 0) {
@@ -6089,8 +6098,8 @@ function api_global_admin_can_edit_admin($admin_id_to_check, $my_user_id = null,
         $my_user_id = api_get_user_id();
     }
 
-    $iam_a_global_admin     = api_is_global_platform_admin($my_user_id);
-    $user_is_global_admin   = api_is_global_platform_admin($admin_id_to_check);
+    $iam_a_global_admin = api_is_global_platform_admin($my_user_id);
+    $user_is_global_admin = api_is_global_platform_admin($admin_id_to_check);
 
     if ($iam_a_global_admin) {
         // Global admin can edit everything

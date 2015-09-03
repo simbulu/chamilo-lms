@@ -58,10 +58,6 @@ class ExtraFieldValue extends Model
      */
     public function get_count()
     {
-        /*$row = Database::select('count(*) as count', $this->table, array(), 'first');
-
-        return $row['count'];*/
-
         $query = Database::getManager()->getRepository('ChamiloCoreBundle:ExtraFieldValues')->createQueryBuilder('e');
         $query->select('count(e.id)');
         $query->where('e.extraFieldType = :type');
@@ -126,6 +122,18 @@ class ExtraFieldValue extends Model
                                 );
                             } else {
                                 $em = Database::getManager();
+                                
+                                $currentTags = $em
+                                    ->getRepository('ChamiloCoreBundle:ExtraFieldRelTag')
+                                    ->findBy([
+                                        'fieldId' => $extraFieldInfo['id'],
+                                        'itemId' => $params['item_id']
+                                    ]);
+
+                                foreach ($currentTags as $extraFieldtag) {
+                                    $em->remove($extraFieldtag);
+                                }
+
                                 $tagValues = is_array($value) ? $value : [$value];
                                 $tags = [];
 
@@ -148,23 +156,8 @@ class ExtraFieldValue extends Model
                                 }
 
                                 foreach ($tags as $tag) {
-                                    $fieldTags = $em->getRepository('ChamiloCoreBundle:ExtraFieldRelTag')->findBy([
-                                        'fieldId' => $extraFieldInfo['id'],
-                                        'itemId' => $params['item_id'],
-                                        'tagId' => $tag->getId()
-                                    ]);
-
-                                    foreach ($fieldTags as $fieldTag) {
-                                        $em->remove($fieldTag);
-
-                                        $tag->setCount($tag->getCount() - 1);
-                                        $em->persist($tag);
-                                        $em->flush();
-                                    }
-
                                     $tag->setCount($tag->getCount() + 1);
                                     $em->persist($tag);
-                                    $em->flush();
 
                                     $fieldRelTag = new Chamilo\CoreBundle\Entity\ExtraFieldRelTag();
                                     $fieldRelTag->setFieldId($extraFieldInfo['id']);
@@ -172,8 +165,9 @@ class ExtraFieldValue extends Model
                                     $fieldRelTag->setTagId($tag->getId());
 
                                     $em->persist($fieldRelTag);
-                                    $em->flush();
                                 }
+
+                                $em->flush();
                             }
                             break;
                         case ExtraField::FIELD_TYPE_FILE_IMAGE:
@@ -626,6 +620,7 @@ class ExtraFieldValue extends Model
                     }
                 }
             }
+
             return $result;
         } else {
             return false;
@@ -672,6 +667,7 @@ class ExtraFieldValue extends Model
         $result = Database::query($sql);
         if ($result !== false && Database::num_rows($result)) {
             $result = Database::fetch_array($result, 'ASSOC');
+
             return $result;
         } else {
             return false;
@@ -679,7 +675,8 @@ class ExtraFieldValue extends Model
     }
 
     /**
-     * @param $fieldId
+     * @param int $fieldId
+     *
      * @return array|bool
      */
     public function getValuesByFieldId($fieldId)
@@ -699,6 +696,7 @@ class ExtraFieldValue extends Model
         if (Database::num_rows($result)) {
             return Database::store_result($result, 'ASSOC');
         }
+
         return false;
     }
 
@@ -726,6 +724,7 @@ class ExtraFieldValue extends Model
         if (Database::num_rows($result)) {
             return Database::store_result($result, 'ASSOC');
         }
+
         return false;
     }
 
@@ -752,6 +751,7 @@ class ExtraFieldValue extends Model
         if (Database::num_rows($result)) {
             return Database::store_result($result, 'ASSOC');
         }
+
         return false;
     }
 
@@ -759,6 +759,7 @@ class ExtraFieldValue extends Model
      * @param int $itemId
      * @param int $fieldId
      * @param string $fieldValue
+     *
      * @return array|bool
      */
     public function getAllValuesByItemAndFieldAndValue($itemId, $fieldId, $fieldValue)
@@ -788,6 +789,7 @@ class ExtraFieldValue extends Model
     /**
      * Deletes all the values related to a specific field ID
      * @param int $field_id
+     *
      * @return void
      * @assert ('a') == null
      */
@@ -854,7 +856,7 @@ class ExtraFieldValue extends Model
         $itemId = intval($itemId);
         $fieldId = intval($fieldId);
         $fieldValue = Database::escape_string($fieldValue);
-        $extraFieldType = $this->getExtraField()->getExtraFieldType();
+        //$extraFieldType = $this->getExtraField()->getExtraFieldType();
 
         $sql = "DELETE FROM {$this->table}
                 WHERE
@@ -936,5 +938,4 @@ class ExtraFieldValue extends Model
 
         return $valueList;
     }
-
 }

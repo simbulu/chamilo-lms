@@ -45,10 +45,13 @@ class IndexManager
         $exercise_list = array();
         if (!empty($personal_course_list)) {
             foreach($personal_course_list as  $course_item) {
-                $course_code     = $course_item['c'];
-                $session_id     = $course_item['id_session'];
+                $course_code = $course_item['c'];
+                $session_id = $course_item['id_session'];
 
-                $exercises = ExerciseLib::get_exercises_to_be_taken($course_code, $session_id);
+                $exercises = ExerciseLib::get_exercises_to_be_taken(
+                    $course_code,
+                    $session_id
+                );
 
                 foreach($exercises as $exercise_item) {
                     $exercise_item['course_code']     = $course_code;
@@ -68,7 +71,8 @@ class IndexManager
         }
     }
 
-    function return_announcements($show_slide = true) {
+    function return_announcements($show_slide = true)
+    {
         //// Display System announcements
         $hideAnnouncements = api_get_setting('hide_global_announcements_when_not_connected');
         if ($hideAnnouncements == 'true' && empty($userId)) {
@@ -80,17 +84,30 @@ class IndexManager
         if (!api_is_anonymous() && $this->user_id) {
             $visibility = api_is_allowed_to_create_course() ? SystemAnnouncementManager::VISIBLE_TEACHER : SystemAnnouncementManager::VISIBLE_STUDENT;
             if ($show_slide) {
-                $announcements = SystemAnnouncementManager :: display_announcements_slider($visibility, $announcement);
+                $announcements = SystemAnnouncementManager:: display_announcements_slider(
+                    $visibility,
+                    $announcement
+                );
             } else {
-                $announcements = SystemAnnouncementManager :: display_all_announcements($visibility, $announcement);
+                $announcements = SystemAnnouncementManager:: display_all_announcements(
+                    $visibility,
+                    $announcement
+                );
             }
         } else {
             if ($show_slide) {
-                $announcements = SystemAnnouncementManager :: display_announcements_slider(SystemAnnouncementManager::VISIBLE_GUEST, $announcement);
+                $announcements = SystemAnnouncementManager:: display_announcements_slider(
+                    SystemAnnouncementManager::VISIBLE_GUEST,
+                    $announcement
+                );
             } else {
-                $announcements = SystemAnnouncementManager :: display_all_announcements(SystemAnnouncementManager::VISIBLE_GUEST, $announcement);
+                $announcements = SystemAnnouncementManager:: display_all_announcements(
+                    SystemAnnouncementManager::VISIBLE_GUEST,
+                    $announcement
+                );
             }
         }
+
         return $announcements;
     }
 
@@ -98,7 +115,8 @@ class IndexManager
      * Alias for the online_logout() function
      * @param   bool    $redirect   Whether to ask online_logout to redirect to index.php or not
      */
-    function logout($redirect = true) {
+    function logout($redirect = true)
+    {
         online_logout($this->user_id, true);
     }
 
@@ -108,7 +126,8 @@ class IndexManager
      * @param string $category
      * @return boolean
      */
-    function category_has_open_courses($category) {
+    function category_has_open_courses($category)
+    {
         $setting_show_also_closed_courses = api_get_setting('show_closed_courses') == 'true';
         $main_course_table = Database :: get_main_table(TABLE_MAIN_COURSE);
         $category = Database::escape_string($category);
@@ -125,25 +144,8 @@ class IndexManager
                 }
             }
         }
+
         return false;
-    }
-
-
-    /**
-     * Displays the right-hand menu for anonymous users:
-     * login form, useful links, help section
-     * Warning: function defines globals
-     * @version 1.0.1
-     * @todo does $_plugins need to be global?
-     */
-    function display_anonymous_right_menu() {
-        global $loginFailed, $_user;
-        $display_add_course_link    = api_is_allowed_to_create_course() && ($_SESSION['studentview'] != 'studentenview');
-        $current_user_id            = api_get_user_id();
-
-        echo self::set_login_form(false);
-        echo self::return_teacher_link();
-        echo self::return_notice();
     }
 
     function return_teacher_link()
@@ -207,7 +209,6 @@ class IndexManager
     public function return_home_page()
     {
         $userId = api_get_user_id();
-        global $_configuration;
         // Including the page for the news
         $html = '';
 
@@ -257,8 +258,9 @@ class IndexManager
 		return $html;
 	}
 
-    function return_notice() {
-        $sys_path               = api_get_path(SYS_PATH);
+    function return_notice()
+    {
+        $sys_path = api_get_path(SYS_PATH);
         $user_selected_language = api_get_interface_language();
 
         $html = '';
@@ -276,7 +278,8 @@ class IndexManager
         return $html;
     }
 
-    function return_help() {
+    function return_help()
+    {
         $user_selected_language = api_get_interface_language();
         $sys_path               = api_get_path(SYS_PATH);
         $platformLanguage       = api_get_setting('platformLanguage');
@@ -299,8 +302,8 @@ class IndexManager
         return $html;
     }
 
-    function return_skills_links() {
-        $html = '';
+    function return_skills_links()
+    {
         $content = '';
         $content .= '<ul class="nav nav-pills nav-stacked">';
         /**
@@ -350,7 +353,15 @@ class IndexManager
             }
         }
         $content .= '</ul>';
-        $html = self::show_right_block(get_lang("Skills"), $content, 'skill_block',null, 'skills', 'skillsCollapse');
+        $html = self::show_right_block(
+            get_lang("Skills"),
+            $content,
+            'skill_block',
+            null,
+            'skills',
+            'skillsCollapse'
+        );
+
         return $html;
     }
 
@@ -394,7 +405,6 @@ class IndexManager
                                     ORDER BY title, UPPER(visual_code)";
 
         // Showing only the courses of the current access_url_id.
-        global $_configuration;
         if (api_is_multiple_url_enabled()) {
             $url_access_id = api_get_current_access_url_id();
             if ($url_access_id != -1) {
@@ -464,8 +474,11 @@ class IndexManager
                     LEFT JOIN $main_course_table t3 ON (t3.category_code = t1.code $platform_visible_courses)
                     INNER JOIN $tbl_url_rel_course as url_rel_course
                     ON (url_rel_course.c_id = t3.id)
-                    WHERE url_rel_course.access_url_id = $url_access_id AND t1.parent_id ".(empty($category) ? "IS NULL" : "='$category'")."
-                    GROUP BY t1.name,t1.code,t1.parent_id,t1.children_count ORDER BY t1.tree_pos, t1.name";
+                    WHERE
+                        url_rel_course.access_url_id = $url_access_id AND
+                        t1.parent_id ".(empty($category) ? "IS NULL" : "='$category'")."
+                    GROUP BY t1.name,t1.code,t1.parent_id,t1.children_count
+                    ORDER BY t1.tree_pos, t1.name";
             }
         }
 
@@ -558,7 +571,7 @@ class IndexManager
                     // 3. the user is logged in and the user is subscribed to the course and the course visibility is not COURSE_VISIBILITY_CLOSED;
                     // 4. the user is logged in and the user is course admin of te course (regardless of the course visibility setting);
                     // 5. the user is the platform admin api_is_platform_admin().
-                    //
+
                     $courses_shown++;
                     $courses_list_string .= "<li>";
                     if ($course['visibility'] == COURSE_VISIBILITY_OPEN_WORLD
@@ -600,13 +613,7 @@ class IndexManager
                     // 2.
                     if ($user_identified && !array_key_exists($course['code'], $courses_of_user)) {
                         if ($course['subscribe'] == '1') {
-                        /*$courses_list_string .= '<form action="main/auth/courses.php?action=subscribe&category='.Security::remove_XSS($_GET['category']).'" method="post">';
-                        $courses_list_string .= '<input type="hidden" name="sec_token" value="'.$stok.'">';
-                        $courses_list_string .= '<input type="hidden" name="subscribe" value="'.$course['code'].'" />';
-                        $courses_list_string .= '<input type="image" name="unsub" src="main/img/enroll.gif" alt="'.get_lang('Subscribe').'" />'.get_lang('Subscribe').'</form>';
-                            */
-                        $courses_list_string .= '&nbsp;<a class="btn btn-primary" href="main/auth/courses.php?action=subscribe_course&amp;sec_token='.$stok.'&amp;subscribe_course='.$course['code'].'&amp;category_code='.Security::remove_XSS($_GET['category']).'">'.get_lang('Subscribe').'</a><br />';
-
+                            $courses_list_string .= '&nbsp;<a class="btn btn-primary" href="main/auth/courses.php?action=subscribe_course&sec_token='.$stok.'&subscribe_course='.$course['code'].'&category_code='.Security::remove_XSS($_GET['category']).'">'.get_lang('Subscribe').'</a><br />';
                         } else {
                             $courses_list_string .= '<br />'.get_lang('SubscribingNotAllowed');
                         }
@@ -622,7 +629,9 @@ class IndexManager
             $result .=  $courses_list_string;
         }
         if ($category != '') {
-            $result .=  '<p><a href="'.api_get_self().'"> ' . Display :: return_icon('back.png', get_lang('BackToHomePage')) . get_lang('BackToHomePage') . '</a></p>';
+            $result .=  '<p><a href="'.api_get_self().'"> ' .
+                Display :: return_icon('back.png', get_lang('BackToHomePage')).
+                get_lang('BackToHomePage') . '</a></p>';
         }
         return $result;
     }
@@ -637,7 +646,8 @@ class IndexManager
     {
         $table_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $table_course_user = Database::get_main_table(TABLE_MAIN_COURSE_USER);
-        // Secondly we select the courses that are in a category (user_course_cat <> 0) and sort these according to the sort of the category
+        // Secondly we select the courses that are in a category (user_course_cat <> 0)
+        // and sort these according to the sort of the category
         $user_id = intval($user_id);
         $sql_select_courses = "SELECT
             course.code k,
@@ -681,7 +691,8 @@ class IndexManager
     /**
      * @todo use the template system
      */
-    function show_right_block($title, $content, $id = null, $params = null, $idAccordion = null, $idCollpase = null) {
+    function show_right_block($title, $content, $id = null, $params = null, $idAccordion = null, $idCollpase = null)
+    {
         if (!empty($idAccordion)) {
             $html = null;
             $html .= '<div class="panel-group" id="'.$idAccordion.'" role="tablist" aria-multiselectable="true">' . PHP_EOL;
@@ -692,7 +703,7 @@ class IndexManager
             $html .= '<div id="'.$idCollpase.'" class="panel-collapse collapse in" role="tabpanel">' . PHP_EOL;
             $html .= '<div class="panel-body">'.$content.'</div>' . PHP_EOL;
             $html .= '</div></div></div>' . PHP_EOL;
-            
+
         } else {
             if (!empty($id)) {
                 $params['id'] = $id;
@@ -860,6 +871,7 @@ class IndexManager
             'profile',
             'profileCollapse'
         );
+
         return $html;
     }
 
@@ -1532,7 +1544,7 @@ class IndexManager
     }
 
     /**
-     * Return HTML code for personnal user course category
+     * Return HTML code for personal user course category
      * @param $id
      * @param $title
      * @return string
@@ -1548,6 +1560,7 @@ class IndexManager
             array('class' => 'sessionView'),
             ICON_SIZE_LARGE
         );
+
         return "<div class='session-view-user-category'>$icon<span>$title</span></div>";
     }
 
@@ -1728,5 +1741,4 @@ class IndexManager
     {
         setcookie('defaultMyCourseView'.$userId, $view);
     }
-
 }

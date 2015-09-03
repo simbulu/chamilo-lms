@@ -398,7 +398,6 @@ class Display
         $column_order = array(),
         $form_actions = array()
     ) {
-        global $origin;
         $column = isset($sorting_options['column']) ? $sorting_options['column'] : 0;
         $default_items_per_page = isset($paging_options['per_page']) ? $paging_options['per_page'] : 20;
 
@@ -2104,5 +2103,30 @@ class Display
         $attributes['class'] = isset($attributes['class']) ? "$buttonClass {$attributes['class']}" : $buttonClass;
 
         return self::url("$icon $text", $url, $attributes);
+    }
+    public static function toolbarAction($id, $content = array(), $col = 2)
+    {
+        $columns = 12/$col;
+        $html = '';
+        $html .= '<div id="' . $id . '" class="actions">';
+        $html .= '<div class="row">';
+        if ($col > 4) {
+            $html = '<div class="alert alert-warning" role="alert">Not exceeding four columns</div>';
+        } else {
+            for ( $i = 0; $i < $col; $i++ ) {
+                $html .= '<div class="col-md-' . $columns . '">';
+                if ( $col == 2 && $i == 1 ) {
+                    $html .= '<div class="pull-right">';
+                    $html .= $content[$i];
+                    $html .= '</div>';
+                } else {
+                    $html .= $content[$i];
+                }
+                $html .= '</div>';
+            }
+        }
+        $html .= '</div>';
+        $html .= '</div>';
+        return $html;
     }
 }

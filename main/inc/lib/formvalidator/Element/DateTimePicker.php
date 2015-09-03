@@ -32,12 +32,13 @@ class DateTimePicker extends HTML_QuickForm_text
 
         $id = $this->getAttribute('id');
         $value = $this->getValue();
+        $label = $this->getLabel();
 
         if (!empty($value)) {
             $value = api_format_date($value, DATE_TIME_FORMAT_LONG_24H);
         }
 
-        if (empty($this->getLabel())) {
+        if (empty($label)) {
             return $this->getElementJS() . '
                 <div class="input-group">
                     <span class="input-group-addon">
@@ -87,7 +88,9 @@ class DateTimePicker extends HTML_QuickForm_text
                     showOn: 'both',
                     buttonImage: '" . Display::return_icon('attendance.png', null, [], ICON_SIZE_TINY, true, true) . "',
                     buttonImageOnly: true,
-                    buttonText: '" . get_lang('SelectDate') . "'
+                    buttonText: '" . get_lang('SelectDate') . "',
+                    changeMonth: true,
+                    changeYear: true
                 });
             });
         </script>";

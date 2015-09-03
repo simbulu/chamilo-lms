@@ -2088,7 +2088,6 @@ class CourseManager
             return;
         }
 
-
         $sql = "SELECT * FROM $table_course WHERE code = '" . $codeFiltered . "'";
         $res = Database::query($sql);
         $course = Database::fetch_array($res);
@@ -2101,7 +2100,7 @@ class CourseManager
                 $url_id = api_get_current_access_url_id();
             }
             UrlManager::delete_url_rel_course($courseId, $url_id);
-            $count = UrlManager::getcountUrlRelCourse($courseId);
+            $count = UrlManager::getCountUrlRelCourse($courseId);
         }
 
         if ($count == 0) {
@@ -2109,6 +2108,22 @@ class CourseManager
 
             $course_tables = AddCourse::get_course_tables();
 
+            // Cleaning group categories
+
+            $groupCategories = GroupManager::get_categories($course['code']);
+
+            if (!empty($groupCategories)) {
+                foreach ($groupCategories as $category) {
+                    GroupManager::delete_category($category['id'], $course['code']);
+                }
+            }
+
+            // Cleaning groups
+            $groups = GroupManager::get_groups();
+            if (!empty($groups)) {
+                $groupList = array_column($groups, 'id');
+                GroupManager::delete_groups($groupList);
+            }
 
             // Cleaning c_x tables
             if (!empty($courseId)) {
@@ -2468,7 +2483,8 @@ class CourseManager
      * Get list of courses for a given user
      * @param int $user_id
      * @param boolean $include_sessions Whether to include courses from session or not
-     * @param boolean $adminGetsAllCourses If the user is platform admin, whether he gets all the courses or just his. Note: This does *not* include all sessions
+     * @param boolean $adminGetsAllCourses If the user is platform admin,
+     * whether he gets all the courses or just his. Note: This does *not* include all sessions
      * @return array    List of codes and db name
      * @author isaac flores paz
      */
@@ -2534,7 +2550,8 @@ class CourseManager
 
         if ($include_sessions === true) {
             $sql = "SELECT DISTINCT(c.code), c.id as real_id
-                    FROM " . Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER) . " s, " . Database::get_main_table(TABLE_MAIN_COURSE) . " c
+                    FROM " . Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER) . " s,
+                    " . Database::get_main_table(TABLE_MAIN_COURSE) . " c
                     WHERE user_id = $user_id AND s.c_id = c.id";
             $r = Database::query($sql);
             while ($row = Database::fetch_array($r, 'ASSOC')) {
@@ -4829,7 +4846,7 @@ class CourseManager
             }
 
             $sql = 'DELETE FROM ' . $course_user_table . '
-                    WHERE c_id ="' . $courseId . '" AND status="1"' . $cond;
+                    WHERE c_id ="' . $courseId . '" AND status="1" AND relation_type = 0 ' . $cond;
             Database::query($sql);
         }
 
@@ -4850,6 +4867,7 @@ class CourseManager
                             status = '1',
                             is_tutor = '0',
                             sort = '0',
+                            relation_type = '0',
                             user_course_cat='0'";
                 }
                 Database::query($sql);

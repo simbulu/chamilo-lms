@@ -16,8 +16,8 @@ if (api_get_setting('allow_social_tool') != 'true') {
     api_not_allowed();
 }
 
-$this_section      = SECTION_SOCIAL;
-$tool_name         = get_lang('Search');
+$this_section = SECTION_SOCIAL;
+$tool_name = get_lang('Search');
 $interbreadcrumb[] = array('url' => 'profile.php', 'name' => get_lang('SocialNetwork'));
 
 $query = isset($_GET['q']) ? Security::remove_XSS($_GET['q']): null;
@@ -68,7 +68,7 @@ if ($query != '' || ($query_vars['search_type']=='1' && count($query_vars)>2) ) 
     }
 
     if (empty($users) && empty($groups)) {
-        $social_right_content .= get_lang('SorryNoResults');
+        Display::addFlash(Display::return_message(get_lang('SorryNoResults')));
     }
 
     $results = '<div id="online_grid_container">';
