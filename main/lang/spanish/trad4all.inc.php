@@ -7534,4 +7534,6 @@ $SkillXEnabled = "Competencia \"%s\" habilitada";
 $SkillXDisabled = "Competencia \"%s\" deshabilitada";
 $ShowFullSkillNameOnSkillWheelTitle = "Mostrar nombre completo de la competencias en rueda de competencias";
 $ShowFullSkillNameOnSkillWheelComment = "En la rueda de competencias, permite mostrar el nombre de la competencia cuando ésta tiene código corto.";
+$DBPort = "Puerto";
+$CreatedBy = "Creado por";
 ?>

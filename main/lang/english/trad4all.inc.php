@@ -7509,4 +7509,6 @@ $SkillXEnabled = "Skill \"%s\" enabled";
 $SkillXDisabled = "Skill \"%s\" disabled";
 $ShowFullSkillNameOnSkillWheelTitle = "Show full skill name on skill wheel";
 $ShowFullSkillNameOnSkillWheelComment = "On the wheel of skills, it shows the name of the skill when it has short code.";
+$DBPort = "Port";
+$CreatedBy = "Created by";
 ?>
