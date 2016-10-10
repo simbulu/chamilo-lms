@@ -308,7 +308,7 @@ if (!empty($thematic_advance_info)) {
     $introduction_section .= '</div>';
 }
 $editIconButton = '';
-if (api_is_allowed_to_edit()) {
+if (api_is_allowed_to_edit() && empty($session_id)) {
     $editIconButton = Display::url(
         '<i class="fa fa-wrench"></i> ',
         api_get_path(WEB_CODE_PATH).'course_info/tools.php?'.api_get_cidreq(),

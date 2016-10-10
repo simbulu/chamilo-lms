@@ -44,8 +44,8 @@ class HookCreateDrupalUser extends HookObserver implements HookCreateUserObserve
                 'init' => $userInfo['email']
             );
             $extraFields = array(
-                'firstname' => $userInfo['firstname'],
-                'lastname' => $userInfo['lastname']
+                'first_name' => $userInfo['firstname'],
+                'last_name' => $userInfo['lastname']
             );
 
             $options = array(
@@ -58,11 +58,15 @@ class HookCreateDrupalUser extends HookObserver implements HookCreateUserObserve
             
             if (isset($_SESSION['ws_drupal_user_id'])) {
                 $drupalUserId = $_SESSION['ws_drupal_user_id'];
+
                 return true;
             }
 
             if ($drupalUserId === false) {
-                $drupalUserId = $client->addUser($fields, $extraFields);
+                try {
+                    $drupalUserId = $client->addUser($fields, $extraFields);
+                } catch (\Exception $e) {
+                }
             }
 
             if ($drupalUserId !== false) {

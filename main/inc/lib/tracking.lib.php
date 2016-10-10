@@ -4905,6 +4905,8 @@ class Tracking
                 $course_info['code'],
                 $session_id,
                 'publicated_on ASC',
+                true,
+                null,
                 true
             );
 

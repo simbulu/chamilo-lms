@@ -1796,7 +1796,6 @@ function WSEditUserWithPicture($params)
     if (!WSHelperVerifyKey($params)) {
         return return_error(WS_ERROR_SECRET_KEY);
     }
-
     $userManager = UserManager::getManager();
     $userRepository = UserManager::getRepository();
 
@@ -1813,7 +1812,6 @@ function WSEditUserWithPicture($params)
     $expiration_date = null;
     $expirationDateStatement = '';
     $status = $params['status'];
-    $official_code = '';
     $phone = $params['phone'];
     $picture_url = $params['picture_url'];
     $pictureUri = '';
@@ -1911,7 +1909,6 @@ function WSEditUserWithPicture($params)
     $user
         ->setEmail($email)
         ->setStatus($status)
-        ->setOfficialCode($official_code)
         ->setPhone($phone)
         ->setExpirationDate($expiration_date)
         ->setHrDeptId($hr_dept_id)

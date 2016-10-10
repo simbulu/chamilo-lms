@@ -371,7 +371,7 @@ class CatForm extends FormValidator
             );
         }
 
-        if (!empty(api_get_session_id())) {
+        if (!empty($session_id)) {
             $isRequirementCheckbox = $this->addCheckBox(
                 'is_requirement',
                 [

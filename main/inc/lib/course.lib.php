@@ -1828,11 +1828,12 @@ class CourseManager
     public static function get_teacher_list_from_course_code_to_string(
         $course_code,
         $separator = self::USER_SEPARATOR,
-        $add_link_to_profile = false
-    ) {
+        $add_link_to_profile = false,
+        $orderList = false    
+    ) {     
         $teacher_list = self::get_teacher_list_from_course_code($course_code);
-
         $teacher_string = '';
+        $html = '';
         $list = array();
         if (!empty($teacher_list)) {
             foreach ($teacher_list as $teacher) {
@@ -1853,11 +1854,21 @@ class CourseManager
                 }
                 $list[] = $teacher_name;
             }
+            
             if (!empty($list)) {
-                $teacher_string = array_to_string($list, $separator);
+                if ($orderList === true){
+                    $html .= '<ul class="user-teacher">';
+                    foreach ($list as $teacher){
+                        $html .= Display::tag('li', Display::return_icon('teacher.png', $teacher, null, ICON_SIZE_TINY) . ' ' . $teacher);
+                    }
+                    $html .= '</ul>';
+                }else{
+                    $html .= array_to_string($list, $separator);
+                }
             }
         }
-        return $teacher_string;
+        
+        return $html;
     }
 
     /**
@@ -1919,11 +1930,12 @@ class CourseManager
         $session_id = 0,
         $courseId = null,
         $separator = self::USER_SEPARATOR,
-        $add_link_to_profile = false
+        $add_link_to_profile = false,
+        $orderList = false    
     ) {
         $coachs_course = self::get_coachs_from_course($session_id, $courseId);
         $course_coachs = array();
-
+        $html = '';
         if (is_array($coachs_course)) {
             foreach ($coachs_course as $coach_course) {
                 $coach_name = api_get_person_name($coach_course['firstname'], $coach_course['lastname']);
@@ -1942,32 +1954,21 @@ class CourseManager
             }
         }
         $coaches_to_string = null;
-        if (is_array($course_coachs) && count($course_coachs) > 0) {
-            $coaches_to_string = array_to_string($course_coachs, $separator);
-        }
-        return $coaches_to_string;
-    }
-
-    /**
-     * @param int $courseId
-     * @param int $session_id
-     * @return string
-     * @deprecated seem not to be use
-     */
-    public static function get_coach_list_from_course_code_to_string($courseId, $session_id)
-    {
-        $tutor_data = '';
-        if ($session_id != 0) {
-            $coaches = self::get_email_of_tutor_to_session($session_id, $courseId);
-            $coach_list = array();
-            foreach ($coaches as $coach) {
-                $coach_list[] = $coach['complete_name'];
+        
+        if (!empty($course_coachs)) {
+            if ($orderList === true){
+                $html .= '<ul class="user-coachs">';
+                    foreach ($course_coachs as $coachs){
+                        $html .= Display::tag('li', Display::return_icon('teacher.png', $coachs, null, ICON_SIZE_TINY) . ' ' . $coachs);
+                    }
+                $html .= '</ul>';
+            } else {
+                $coaches_to_string = array_to_string($course_coachs, $separator);
             }
-            if (!empty($coach_list)) {
-                $tutor_data = implode(self::USER_SEPARATOR, $coach_list);
-            }
+            
         }
-        return $tutor_data;
+        
+        return $html;
     }
 
     /**
@@ -5616,7 +5617,7 @@ class CourseManager
         $current_url_id = api_get_current_access_url_id();
 
         // Get course list auto-register
-        $special_course_list            = self::get_special_course_list();
+        $special_course_list = self::get_special_course_list();
 
         $without_special_courses = '';
         if (!empty($special_course_list)) {
@@ -5626,13 +5627,16 @@ class CourseManager
         //AND course_rel_user.relation_type<>".COURSE_RELATION_TYPE_RRHH."
         $sql = "SELECT course.id, course.title, course.code, course.subscribe subscr, course.unsubscribe unsubscr, course_rel_user.status status,
                 course_rel_user.sort sort, course_rel_user.user_course_cat user_course_cat
-                FROM    $TABLECOURS      course,
-                        $TABLECOURSUSER  course_rel_user, ".$TABLE_ACCESS_URL_REL_COURSE." url
-                WHERE   course.id=".intval($courseId)."
-                        AND course.id = course_rel_user.c_id
-                        AND url.c_id = course.id
-                        AND course_rel_user.user_id = ".intval($user_id)."
-                        $without_special_courses ";
+                FROM
+                $TABLECOURS course,
+                $TABLECOURSUSER  course_rel_user, ".$TABLE_ACCESS_URL_REL_COURSE." url
+                WHERE
+                    course.id=".intval($courseId)." AND
+                    course.id = course_rel_user.c_id AND
+                    url.c_id = course.id AND
+                    course_rel_user.user_id = ".intval($user_id)."
+                    $without_special_courses
+                ";
 
         // If multiple URL access mode is enabled, only fetch courses
         // corresponding to the current URL.
@@ -5644,19 +5648,29 @@ class CourseManager
 
         $result = Database::query($sql);
 
-        // Browse through all courses. We can only have one course because of the  course.id=".intval($courseId) in sql query
+        // Browse through all courses. We can only have one course because
+        // of the  course.id=".intval($courseId) in sql query
         $course = Database::fetch_array($result);
-        $course_info = api_get_course_info($course['code']);
+        $course_info = api_get_course_info_by_id($courseId);
+        if (empty($course_info)) {
+            return '';
+        }
+
         //$course['id_session'] = null;
         $course_info['id_session'] = null;
         $course_info['status'] = $course['status'];
 
         // For each course, get if there is any notification icon to show
         // (something that would have changed since the user's last visit).
-        $show_notification = Display :: show_notification($course_info);
+        $show_notification = Display::show_notification($course_info);
 
         // New code displaying the user's status in respect to this course.
-        $status_icon = Display::return_icon('blackboard.png', $course_info['title'], array(), ICON_SIZE_LARGE);
+        $status_icon = Display::return_icon(
+            'blackboard.png',
+            $course_info['title'],
+            array(),
+            ICON_SIZE_LARGE
+        );
 
         $params = array();
         $params['right_actions'] = '';

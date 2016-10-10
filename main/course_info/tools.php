@@ -6,6 +6,12 @@ require_once '../inc/global.inc.php';
 // The section for the tabs
 $this_section = SECTION_COURSES;
 
+$sessionId = api_get_session_id();
+
+if (!empty($sessionId)) {
+    api_not_allowed();
+}
+
 api_protect_course_script(true);
 
 if (!api_is_allowed_to_edit()) {
@@ -38,21 +44,21 @@ switch ($action) {
         }
 
         $interbreadcrumb[] = array('url' => api_get_self().'?'.api_get_cidreq(), 'name' => get_lang('CustomizeIcons'));
-        $toolName = $tool['name'];
+        $toolName = Security::remove_XSS(stripslashes($tool['name']));
 
         $currentUrl = api_get_self().'?action=edit_icon&id=' . $id.'&'.api_get_cidreq();
 
         $form = new FormValidator('icon_edit', 'post', $currentUrl);
-        $form->addElement('header', get_lang('EditIcon'));
+        $form->addHeader(get_lang('EditIcon'));
         $form->addHtml('<div class="col-md-7">');
-        $form->addElement('text', 'name', get_lang('Name'));
-        $form->addElement('text', 'link', get_lang('Links'));
+        $form->addText('name', get_lang('Name'));
+        $form->addText('link', get_lang('Links'));
         $allowed_picture_types = array ('jpg', 'jpeg', 'png');
-        $form->addElement('file', 'icon', get_lang('CustomIcon'));
+        $form->addFile('icon', get_lang('CustomIcon'));
         $form->addRule('icon', get_lang('OnlyImagesAllowed').' ('.implode(',', $allowed_picture_types).')', 'filetype', $allowed_picture_types);
-        $form->addElement('select', 'target', get_lang('Target'), array('_self' => '_self', '_blank' => '_blank'));
-        $form->addElement('select', 'visibility', get_lang('Visibility'), array(1 => get_lang('Visible'), 0 => get_lang('Invisible')));
-        $form->addElement('textarea', 'description', get_lang('Description'),array ('rows' => '3', 'cols' => '40'));
+        $form->addselect('target', get_lang('Target'), array('_self' => '_self', '_blank' => '_blank'));
+        $form->addselect('visibility', get_lang('Visibility'), array(1 => get_lang('Visible'), 0 => get_lang('Invisible')));
+        $form->addtextarea('description', get_lang('Description'),array ('rows' => '3', 'cols' => '40'));
         $form->addButtonUpdate(get_lang('Update'));
         $form->addHtml('</div>');
         $form->addHtml('<div class="col-md-5">');
@@ -94,24 +100,21 @@ switch ($action) {
         $iconsTools .= Display::page_header(get_lang('CustomizeIcons'), null, 'h4');
         $iconsTools .= '<div class="row">';
         foreach ($toolList as $tool) {
-
-            if ($tool['id']>20) {
-                $toolName = $tool['name'];
-            } else {
-                $toolName = get_lang('Tool'.api_underscore_to_camel_case($tool['name']));
-            }
+            $tool['name'] = Security::remove_XSS(stripslashes($tool['name']));
+            $toolIconName = 'Tool' . api_underscore_to_camel_case($tool['name']);
+            $toolIconName = isset($$toolIconName) ? get_lang($toolIconName) : $tool['name'];
 
             $iconsTools .= '<div class="col-md-2">';
             $iconsTools .= '<div class="items-tools">';
 
             if (!empty($tool['custom_icon'])) {
                 $image = getCustomWebIconPath().$tool['custom_icon'];
-                $icon = Display::img($image, $toolName);
+                $icon = Display::img($image, $toolIconName);
             } else {
                 $image = (substr($tool['image'], 0, strpos($tool['image'], '.'))).'.png';
                 $icon = Display::return_icon(
                     $image,
-                    $toolName,
+                    $toolIconName,
                     array('id' => 'tool_'.$tool['id']),
                     ICON_SIZE_BIG,
                     false
@@ -125,7 +128,7 @@ switch ($action) {
             $edit = '<a class="btn btn-default" href="' . api_get_self() . '?action=edit_icon&id=' . $tool['iid'] . '&'.api_get_cidreq().'"><i class="fa fa-pencil"></i></a>';
 
             $iconsTools .= '<div class="icon-tools">'. $icon . '</div>';
-            $iconsTools .= '<div class="name-tools">' . $toolName . '</div>';
+            $iconsTools .= '<div class="name-tools">' . $toolIconName . '</div>';
             $iconsTools .= '<div class="toolbar">' . $edit . $delete . '</div>';
             $iconsTools .= '</div>';
             $iconsTools .= '</div>';

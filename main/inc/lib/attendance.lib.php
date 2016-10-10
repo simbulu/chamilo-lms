@@ -638,16 +638,15 @@ class Attendance
 				'',
 				'lastname'
 			);
-
-			if (!empty($groupId)) {
-				$students = GroupManager::getStudents($groupId);
-				if (!empty($students)) {
-					foreach ($students as $student) {
-						$studentInGroup[$student['user_id']] = true;
-					}
-				}
-			}
 		}
+                if (!empty($groupId)) {
+                        $students = GroupManager::getStudents($groupId);
+                        if (!empty($students)) {
+                                foreach ($students as $student) {
+                                        $studentInGroup[$student['user_id']] = true;
+                                }
+                        }
+                }
 
 		// get registered users inside current course
 		$a_users = array();
@@ -1343,10 +1342,10 @@ class Attendance
 		$groupCondition = null;
 
 		if ($showAll) {
-			$sql = "SELECT * FROM $tbl_attendance_calendar
+			$sql = "SELECT * FROM $tbl_attendance_calendar c
 					WHERE c_id = $course_id AND attendance_id = '$attendance_id'";
 		} else {
-			$sql = "SELECT * FROM $tbl_attendance_calendar
+			$sql = "SELECT * FROM $tbl_attendance_calendar c
 					WHERE
 						c_id = $course_id AND
 						attendance_id = '$attendance_id' AND
@@ -1377,7 +1376,7 @@ class Attendance
 			case 'calendar_id':
 				$calendar_id = intval($calendar_id);
 				if (!empty($calendar_id)) {
-					$sql.= " AND id = $calendar_id";
+					$sql.= " AND c.id = $calendar_id";
 				}
 				break;
 			case 'today':

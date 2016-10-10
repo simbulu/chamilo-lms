@@ -120,6 +120,8 @@ if ($form->validate()) {
 
     if ($values['hid_parent_id'] == 0 ) {
         $cat->set_certificate_min_score($values['certif_min_score']);
+    } else {
+        $cat->setGenerateCertificates(false);
     }
 
     if (empty ($values['visible'])) {
