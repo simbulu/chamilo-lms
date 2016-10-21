@@ -1,38 +1,52 @@
 <?php
 /**
- * This script initiates a videoconference session, calling the BigBlueButton API
+ * This script initiates a video conference session, calling the BigBlueButton API
  * @package chamilo.plugin.bigbluebutton
- */
-/**
- * Initialization
  */
 
 $course_plugin = 'bbb'; //needed in order to load the plugin lang variables
-require_once dirname(__FILE__).'/config.php';
+require_once __DIR__.'/config.php';
+
 $plugin = BBBPlugin::create();
 $tool_name = $plugin->get_lang('Videoconference');
+
+$htmlHeadXtra[] = api_get_js_simple(
+    api_get_path(WEB_PLUGIN_PATH) . 'bbb/resources/utils.js'
+);
+$htmlHeadXtra[] = "<script>var _p = {web_plugin: '" . api_get_path(WEB_PLUGIN_PATH). "'}</script>";
+
 $tpl = new Template($tool_name);
 
-$bbb = new bbb();
+$isGlobal = isset($_GET['global']) ? true : false;
+
+$bbb = new bbb('', '', $isGlobal);
 $action = isset($_GET['action']) ? $_GET['action'] : null;
 
-$teacher = $bbb->isTeacher();
+$conferenceManager = $bbb->isConferenceManager();
+if ($bbb->isGlobalConference()) {
+    api_block_anonymous_users();
+} else {
+    api_protect_course_script(true);
+}
 
-api_protect_course_script(true);
 $message = null;
 
-if ($teacher) {
+if ($conferenceManager) {
     switch ($action) {
         case 'add_to_calendar':
-            $course_info = api_get_course_info();
+            if ($bbb->isGlobalConference()) {
+
+                return false;
+            }
+            $courseInfo = api_get_course_info();
             $agenda = new Agenda();
             $agenda->type = 'course';
 
             $id = intval($_GET['id']);
-            $title = sprintf(get_lang('VideoConferenceXCourseX'), $id, $course_info['name']);
+            $title = sprintf(get_lang('VideoConferenceXCourseX'), $id, $courseInfo['name']);
             $content = Display::url(get_lang('GoToTheVideoConference'), $_GET['url']);
 
-            $event_id = $agenda->addEvent(
+            $eventId = $agenda->addEvent(
                 $_REQUEST['start'],
                 null,
                 'true',
@@ -40,7 +54,7 @@ if ($teacher) {
                 $content,
                 array('everyone')
             );
-            if (!empty($event_id)) {
+            if (!empty($eventId)) {
                 $message = Display::return_message(get_lang('VideoConferenceAddedToTheCalendar'), 'success');
             } else {
                 $message = Display::return_message(get_lang('Error'), 'error');
@@ -97,29 +111,48 @@ if ($teacher) {
             break;
     }
 }
+    
 
-$meetings = $bbb->getCourseMeetings();
+$meetings = $bbb->getMeetings(
+    api_get_course_int_id(),
+    api_get_session_id(),
+    api_get_group_id()
+);
 if (!empty($meetings)) {
     $meetings = array_reverse($meetings);
 }
-$users_online   = $bbb->getUsersOnlineInCurrentRoom();
-$status         = $bbb->isServerRunning();
-$meeting_exists = $bbb->meetingExists(api_get_course_id().'-'.api_get_session_id());
-$show_join_button = false;
-if ($meeting_exists || $teacher) {
-    $show_join_button = true;
+$users_online = $bbb->getUsersOnlineInCurrentRoom();
+$status = $bbb->isServerRunning();
+$meetingExists = $bbb->meetingExists($bbb->getCurrentVideoConferenceName());
+$showJoinButton = false;
+if ($meetingExists || $conferenceManager) {
+    $showJoinButton = true;
 }
 
-$tpl->assign('allow_to_edit', $teacher);
+$tpl->assign('allow_to_edit', $conferenceManager);
 $tpl->assign('meetings', $meetings);
-$conferenceUrl = api_get_path(WEB_PLUGIN_PATH).'bbb/start.php?launch=1&'.api_get_cidreq();
+$conferenceUrl = $bbb->getConferenceUrl();
 $tpl->assign('conference_url', $conferenceUrl);
 $tpl->assign('users_online', $users_online);
 $tpl->assign('bbb_status', $status);
-$tpl->assign('show_join_button', $show_join_button);
+$tpl->assign('show_join_button', $showJoinButton);
 
-//$tpl->assign('actions', $actions);
 $tpl->assign('message', $message);
 $listing_tpl = 'bbb/listing.tpl';
 $content = $tpl->fetch($listing_tpl);
-$tpl->assign('content', $content);$tpl->display_one_col_template();
+
+if (api_is_platform_admin()) {
+    $actionLinks = [
+        Display::toolbarButton(
+            $plugin->get_lang('AdminView'),
+            api_get_path(WEB_PLUGIN_PATH) . 'bbb/admin.php',
+            'list',
+            'primary'
+        )
+    ];
+
+    $tpl->assign('actions', implode(PHP_EOL, $actionLinks));
+}
+
+$tpl->assign('content', $content);
+$tpl->display_one_col_template();

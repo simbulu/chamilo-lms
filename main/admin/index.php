@@ -19,7 +19,7 @@ api_protect_admin_script(true);
 $nameTools = get_lang('PlatformAdmin');
 
 $accessUrlId = 0;
-$adminExtraContentDir = api_get_path(SYS_PATH) . "home/admin/";
+$adminExtraContentDir = api_get_path(SYS_APP_PATH) . "home/admin/";
 
 if (api_is_multiple_url_enabled()) {
     $accessUrlId = api_get_current_access_url_id();
@@ -28,7 +28,7 @@ if (api_is_multiple_url_enabled()) {
         $urlInfo = api_get_access_url($accessUrlId);
         $url = api_remove_trailing_slash(preg_replace('/https?:\/\//i', '', $urlInfo['url']));
         $cleanUrl = str_replace('/', '-', $url);
-        $adminExtraContentDir = api_get_path(SYS_PATH) . "home/$cleanUrl/admin/";
+        $adminExtraContentDir = api_get_path(SYS_APP_PATH) . "home/$cleanUrl/admin/";
     }
 }
 
@@ -36,7 +36,9 @@ if (api_is_multiple_url_enabled()) {
 $message = '';
 
 if (api_is_platform_admin()) {
-    if (is_dir(api_get_path(SYS_ARCHIVE_PATH)) && !is_writable(api_get_path(SYS_ARCHIVE_PATH))) {
+    if (is_dir(api_get_path(SYS_ARCHIVE_PATH)) &&
+        !is_writable(api_get_path(SYS_ARCHIVE_PATH))
+    ) {
         $message = Display::return_message(get_lang('ArchivesDirectoryNotWriteableContactAdmin'), 'warning');
     }
 
@@ -76,8 +78,7 @@ if (!empty($hook)) {
 }
 
 /* Users */
-
-$blocks['users']['icon'] = Display::return_icon('members.gif', get_lang('Users'), array(), ICON_SIZE_MEDIUM, false);
+$blocks['users']['icon'] = Display::return_icon('members.png', get_lang('Users'), array(), ICON_SIZE_MEDIUM, false);
 $blocks['users']['label'] = api_ucfirst(get_lang('Users'));
 $blocks['users']['class'] = 'block-admin-users';
 
@@ -95,7 +96,7 @@ if (api_is_platform_admin()) {
             <div class="form-group">
                 <input class="form-control" type="text" name="keyword" value="">
                 <button class="btn btn-default" type="submit">
-                    <i class="fa fa-search"></i> ' . get_lang('Search') . '
+                    <em class="fa fa-search"></em> ' . get_lang('Search') . '
                 </button>
             </div>
         </form>';
@@ -128,7 +129,7 @@ $blocks['users']['extra'] = null;
 if (api_is_platform_admin()) {
     /* Courses */
     $blocks['courses']['icon'] = Display::return_icon(
-        'course.gif',
+        'course.png',
         get_lang('Courses'),
         array(),
         ICON_SIZE_MEDIUM,
@@ -148,7 +149,7 @@ if (api_is_platform_admin()) {
             <div class="form-group">
                 <input class="form-control" type="text" name="keyword" value="">
                 <button class="btn btn-default" type="submit">
-                    <i class="fa fa-search"></i> ' . get_lang('Search') . '
+                    <em class="fa fa-search"></em> ' . get_lang('Search') . '
                 </button>
             </div>
         </form>';
@@ -208,7 +209,7 @@ if (api_is_platform_admin()) {
                 <input class="form-control" type="text" name="search_field" value="" >
                 <input type="hidden" value="search_setting" name="category">
                 <button class="btn btn-default" type="submit">
-                    <i class="fa fa-search"></i> ' . get_lang('Search') . '
+                    <em class="fa fa-search"></em> ' . get_lang('Search') . '
                 </button>
             </div>
         </form>';
@@ -281,7 +282,7 @@ $search_form = ' <form method="GET" class="form-inline" action="'.$sessionPath.'
                     <div class="form-group">
                         <input class="form-control" type="text" name="keyword" value="">
                         <button class="btn btn-default" type="submit">
-                            <i class="fa fa-search"></i> ' . get_lang('Search') . '
+                            <em class="fa fa-search"></em> ' . get_lang('Search') . '
                         </button>
                     </div>
                 </form>';
@@ -353,7 +354,7 @@ if (api_is_platform_admin()) {
 
         $items[] = array(
             'url' => "db.php?username=$username&db=$databaseName&server=$host",
-            'label' => get_lang('Database Manager')
+            'label' => get_lang('DatabaseManager')
         );
     }
 
@@ -364,7 +365,7 @@ if (api_is_platform_admin()) {
     // Skills
     if (api_get_setting('allow_skills_tool') == 'true') {
         $blocks['skills']['icon'] = Display::return_icon(
-            'logo.png',
+            'skill-badges.png',
             get_lang('Skills'),
             array(),
             ICON_SIZE_MEDIUM,
@@ -393,9 +394,49 @@ if (api_is_platform_admin()) {
         $blocks['skills']['search_form'] = null;
     }
 
+    /* Plugins */
+    global $_plugins;
+    if (isset($_plugins['menu_administrator']) && count($_plugins['menu_administrator']) > 0) {
+        $blocks['plugins']['icon'] = Display::return_icon(
+            'plugins.png',
+             get_lang('Plugins'),
+             array(),
+             ICON_SIZE_MEDIUM,
+             false
+        );
+        $blocks['plugins']['label'] = api_ucfirst(get_lang('Plugins'));
+        $blocks['plugins']['class'] = 'block-admin-platform';
+        $blocks['plugins']['editable'] = true;
+
+        $plugin_obj = new AppPlugin();
+        $items = array();
+        foreach ($_plugins['menu_administrator'] as $plugin_name) {
+            $itemUrl = '';
+            $plugin_info = $plugin_obj->getPluginInfo($plugin_name);
+
+            if ($plugin_info['is_admin_plugin']) {
+                $itemUrl = '/admin.php';
+            } elseif ($plugin_info['is_admin_plugin']) {
+                $itemUrl = '/start.php';
+            }
+
+            if (!file_exists(api_get_path(SYS_PLUGIN_PATH) . $plugin_name . $itemUrl)) {
+                continue;
+            }
+
+            $items[] = array(
+                'url' => api_get_path(WEB_PLUGIN_PATH) . $plugin_name . $itemUrl,
+                'label' => $plugin_info['title']
+            );
+        }
+
+        $blocks['plugins']['items'] = $items;
+        $blocks['plugins']['extra'] = null;
+    }
+
     /* Chamilo.org */
 
-    $blocks['chamilo']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
+    $blocks['chamilo']['icon'] = Display::return_icon('platform.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
     $blocks['chamilo']['label'] = 'Chamilo.org';
     $blocks['chamilo']['class'] = 'block-admin-chamilo';
 
@@ -419,7 +460,7 @@ if (api_is_platform_admin()) {
     $blocks['chamilo']['search_form'] = null;
 
     // Version check
-    $blocks['version_check']['icon'] = Display::return_icon('logo.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
+    $blocks['version_check']['icon'] = Display::return_icon('platform.png', 'Chamilo.org', array(), ICON_SIZE_MEDIUM, false);
     $blocks['version_check']['label'] = get_lang('VersionCheck');
     $blocks['version_check']['extra'] = '<div class="admin-block-version"></div>';
     $blocks['version_check']['search_form'] = null;
@@ -437,6 +478,30 @@ if (api_is_platform_admin()) {
             $blocks = $data['blocks'];
         }
     }
+
+    //Hack for fix migration on session_rel_user
+    $tableColumns = Database::getManager()
+        ->getConnection()
+        ->getSchemaManager()
+        ->listTableColumns(
+            Database::get_main_table(TABLE_MAIN_SESSION_USER)
+        );
+
+    if (!array_key_exists('duration', $tableColumns)) {
+        try {
+            $dbSchema = Database::getManager()->getConnection()->getSchemaManager();
+            $durationColumn = new \Doctrine\DBAL\Schema\Column(
+                'duration',
+                Doctrine\DBAL\Types\Type::getType(\Doctrine\DBAL\Types\Type::INTEGER),
+                ['notnull' => false]
+            );
+            $tableDiff = new \Doctrine\DBAL\Schema\TableDiff('session_rel_user', [$durationColumn]);
+            $dbSchema->alterTable($tableDiff);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+        }
+    }
+    //end hack
 }
 $admin_ajax_url = api_get_path(WEB_AJAX_PATH) . 'admin.ajax.php';
 
@@ -496,7 +561,8 @@ if (api_is_platform_admin()) {
 
             file_put_contents($fullFilePath, $extraData['extra_content']);
 
-            Header::location(api_get_self());
+            header('Location: '.api_get_self());
+            exit;
         }
     }
 

@@ -1800,4 +1800,28 @@ class SocialManager extends UserManager
 
         return $template->fetch($skillBlock);
     }
+    /**
+     * verify if Url Exist - Using Curl
+     * @param $uri url
+     *
+     * @return boolean
+     */
+    public static function verifyUrl($uri)
+    {
+        $curl = curl_init($uri);
+        curl_setopt($curl, CURLOPT_FAILONERROR, true);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 15);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT']);
+        $response = curl_exec($curl);
+        curl_close($curl);
+        if (!empty($response)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

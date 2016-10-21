@@ -22,6 +22,7 @@ class AppPlugin
         'footer_left',
         'footer_center',
         'footer_right',
+        'menu_administrator',
         'course_tool_plugin'
     );
 
@@ -372,8 +373,7 @@ class AppPlugin
                         $_template['plugin_info'] = $plugin_info;
                     }
 
-                    // Setting the plugin info available in the template if exists
-
+                    // Setting the plugin info available in the template if exists.
                     $template->assign($plugin_name, $_template);
 
                     // Loading the Twig template plugin files if exists
@@ -387,7 +387,7 @@ class AppPlugin
                             if (!empty($plugin_tpl)) {
                                 //$template_plugin_file = api_get_path(SYS_PLUGIN_PATH)."$plugin_name/$plugin_tpl"; //for smarty
                                 $template_plugin_file = "$plugin_name/$plugin_tpl"; // for twig
-                                $template->display($template_plugin_file);
+                                $template->display($template_plugin_file, false);
                             }
                         }
                     }
@@ -396,17 +396,6 @@ class AppPlugin
         }
 
         return true;
-    }
-
-    /**
-     * @param string    $plugin_name
-     * @param bool      $forced
-     *
-     * @deprecated
-     */
-    public function get_plugin_info($plugin_name, $forced = false)
-    {
-        return $this->getPluginInfo($plugin_name, $forced);
     }
 
     /**
@@ -528,6 +517,7 @@ class AppPlugin
     }
 
     /**
+     * Add the course settings to the course settings form
      * @param FormValidator $form
      */
     public function add_course_settings_form($form)
@@ -558,6 +548,9 @@ class AppPlugin
 
                 $groups = array();
                 foreach ($obj->course_settings as $setting) {
+                    if ($obj->validateCourseSetting($setting['name']) === false) {
+                        continue;
+                    }
                     if ($setting['type'] != 'checkbox') {
                         $form->addElement($setting['type'], $setting['name'], $obj->get_lang($setting['name']));
                     } else {
@@ -570,6 +563,7 @@ class AppPlugin
                         if (isset($setting['init_value']) && $setting['init_value'] == 1) {
                             $element->setChecked(true);
                         }
+                        $form->addElement($element);
 
                         if (isset($setting['group'])) {
                             $groups[$setting['group']][] = $element;

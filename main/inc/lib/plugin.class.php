@@ -24,6 +24,7 @@ class Plugin
     // Translation strings.
     private $strings = null;
     public $isCoursePlugin = false;
+    public $isAdminPlugin = false;
     public $isMailPlugin = false;
 
     /**
@@ -76,6 +77,7 @@ class Plugin
         $result['author'] = $this->get_author();
         $result['plugin_class'] = get_class($this);
         $result['is_course_plugin'] = $this->isCoursePlugin;
+        $result['is_admin_plugin'] = $this->isAdminPlugin;
         $result['is_mail_plugin'] = $this->isMailPlugin;
 
         if ($form = $this->get_settings_form()) {
@@ -321,7 +323,7 @@ class Plugin
 
             $interfaceLanguageId = api_get_language_id($language_interface);
             $interfaceLanguageInfo = api_get_language_info($interfaceLanguageId);
-            $languageParentId = intval($interfaceLanguageInfo['parent_id']);
+            $languageParentId = (!empty($interfaceLanguageInfo['parent_id'])?intval($interfaceLanguageInfo['parent_id']):0);
 
             //1. Loading english if exists
             $english_path = $root.$plugin_name."/lang/english.php";
@@ -745,5 +747,14 @@ class Plugin
                 $this->deleteTab($result[0]['subkey']);
             }
         }
+    }
+
+    /**
+     * @param string $variable
+     * @return bool
+     */
+    public function validateCourseSetting($variable)
+    {
+        return true;
     }
 }
