@@ -113,7 +113,11 @@ $content = $tpl->fetch('bbb/admin.tpl');
 if ($meetings) {
     $actions[] = Display::toolbarButton(
         get_lang('ExportInExcel'),
-        api_get_self() . '?action=export',
+        api_get_self() . '?action=export' . http_build_query([
+            'action' => 'export',
+            'search_meeting_start' => $dateStart,
+            'search_meeting_end' => $dateEnd
+        ]),
         'file-excel-o',
         'success'
     );
