@@ -1075,10 +1075,16 @@ class bbb
             'plugin_bbb_room',
             array('where' => array('meeting_id = ?' => intval($meetingId)))
         );
-
+        $participantIds = [];
         $return = [];
 
         foreach ($meetingData as $participantInfo) {
+            if (in_array($participantInfo['participant_id'], $participantIds)) {
+                continue;
+            }
+
+            $participantIds[] = $participantInfo['participant_id'];
+
             $return[] = [
                 'id' => $participantInfo['id'],
                 'meeting_id' => $participantInfo['meeting_id'],
